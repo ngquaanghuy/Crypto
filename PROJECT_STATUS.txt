@@ -1,0 +1,158 @@
+================================================================================
+  CRYPTO v1.0.0 - PROJECT STATUS REPORT
+================================================================================
+
+1. TONG QUAN
+--------------------------------------------------------------------------------
+  Ten du an      : Crypto
+  Phien ban      : 1.0.0
+  Ngon ngu       : C++20 / C11
+  He thong build : CMake 3.16+
+  Thu vien phu   : OpenSSL (libcrypto)
+  Kich thuoc     : 41K binary, ~1286 lines of code
+  Muc dich       : Bao ve, ma hoa, encode ma nguon Python
+
+
+2. CAU TRUC THU MUC
+--------------------------------------------------------------------------------
+  Crypto/
+  ├── CMakeLists.txt                 # Cau hinh build (C++20, OpenSSL)
+  ├── PROJECT_STATUS.txt             # Bao cao nay
+  ├── build/                         # Thu muc build (cmake -B build)
+  │   └── crypto                     # Binary thanh pham (41K)
+  ├── include/
+  │   └── crypto/
+  │       ├── common.h               # Kieu du lieu chung (ExitCode, Algorithm enum, Buffer)
+  │       └── file_util.h            # File I/O + validation
+  └── src/
+      ├── main.cpp                   # Entry point
+      ├── cli/
+      │   ├── cli.h                  # int cli_run(argc, argv)
+      │   └── cli.cpp                # Parser CLI (195 lines)
+      ├── utils/
+      │   └── file_util.cpp          # file_read / file_write + kiem tra loi
+      ├── encode/
+      │   ├── encoder.h / .cpp       # Dispatch encode/decode theo Algorithm
+      │   ├── base64.h / .cpp        # Base64 encode/decode
+      │   ├── base32.h / .cpp        # Base32 encode/decode
+      │   ├── base85.h / .cpp        # Base85 (Z85) encode/decode
+      │   ├── ascii85.h / .cpp       # Ascii85 (Adobe) encode/decode
+      │   ├── hexcode.h / .cpp       # Hex string encode/decode
+      │   └── xorcode.h / .cpp       # XOR voi key tuy chinh
+      └── crypto/
+          ├── cipher.h / .cpp        # Dispatch encrypt/decrypt theo Algorithm
+          ├── aes.h / .cpp           # AES-256-CBC (key derive bang SHA-256)
+          └── chacha20.h / .cpp      # ChaCha20 (key derive bang SHA-256)
+
+
+3. CAC THUAT TOAN DA HOAN THANH
+--------------------------------------------------------------------------------
+  Encode (co the encode + decode):
+
+  Ten          | Loai         | Dac diem
+  -------------+--------------+------------------------------------------
+  Base64       | Encoding     | Chuan A-Z a-z 0-9 +/, padding '='
+  Base32       | Encoding     | Chuan A-Z 2-7, padding '=', ho tro partial group
+  Base85       | Encoding     | Z85 alphabet, toi uu 'z' cho 4 bytes zero
+  Ascii85      | Encoding     | Adobe/PostScript, delimiter <~~>, 'z' shortcut
+  Hex          | Encoding     | Chu thuong 0-9 a-f, decode ca upper/lower
+  XOR          | Transform    | XOR voi key tuy chinh, do dai key bat ky
+
+  Crypto (co the encrypt + decrypt):
+
+  Ten          | Loai         | Dac diem
+  -------------+--------------+------------------------------------------
+  AES          | Ma hoa       | AES-256-CBC, key derive SHA-256, padding PKCS7
+  ChaCha20     | Ma hoa       | ChaCha20 stream cipher, key + nonce derive SHA-256
+  XOR          | Transform    | XOR voi key tuy chinh (dung chung voi encode)
+
+  -> Tat ca 8 thuat toan da duoc test roundtrip (encode->decode / encrypt->decrypt)
+     cho nhieu kich thuoc file khac nhau.
+
+
+4. GIAO DIEN CLI
+--------------------------------------------------------------------------------
+  crypto [options] <command> [<args>]
+
+  Commands:
+    encode <file>       Encode Python source file
+    decode <file>       Decode encoded file
+    encrypt <file>      Encrypt Python source file
+    decrypt <file>      Decrypt encrypted file
+
+  Options:
+    -a, --algorithm <algo>  Algorithm: base64, base32, base85, ascii85,
+                            hex, xor, aes, chacha20
+  -k, --key <key>         Key (truc tiep)
+      --keyfile <file>    Doc key tu file (trim newline)
+      --keyenv <var>       Doc key tu bien moi truong
+  -o, --output <file>     Output file (auto suffix neu khong co)
+    -v, --version           Show version
+    -h, --help              Show this help
+
+  Default algorithm:
+    encode/decode  -> base64
+    encrypt/decrypt -> aes
+
+  Key priority: -k > --keyfile > --keyenv > built-in default (CRYPTO_DEFAULT_KEY)
+
+  Vi du:
+    crypto encode -a base64 script.py
+    crypto encode -a xor -k "mykey" script.py -o output.encoded
+    crypto encrypt -a aes -k "secret123" script.py
+    crypto decrypt -a aes --keyfile key.txt script.encrypted
+    crypto encrypt -a chacha20 --keyenv CRYPTO_KEY script.py
+    crypto encrypt -a xor script.py              # dung key mac dinh
+    crypto -o out.b64 encode -a base64 script.py
+
+
+5. XU LY LOI
+--------------------------------------------------------------------------------
+  Exit codes:
+    0 = OK
+    1 = Loi tham so dong lenh
+    2 = Loi file (khong ton tai, file rong, khong the ghi)
+    3 = Loi crypto (key sai, du lieu hong, bo nho)
+    4 = Loi noi bo (internal error)
+
+  Cac kiem tra:
+    - File input ton tai, co the doc
+    - File khong rong
+    - Output path co the ghi
+    - Key ton tai cho cac thuat toan can key
+    - AES: bao loi neu decrypt sai key / du lieu hong
+
+
+6. TIEN DO PHAT TRIEN
+--------------------------------------------------------------------------------
+  [x] Buoc 1: Project structure + CMake + CLI co ban (--help, --version)
+  [x] Buoc 2: Ket noi CLI -> logic (dispatch command, -o option, auto-suffix)
+  [x] Buoc 3: Implement thuat toan (8 algorithms, test roundtrip)
+  [x] Buoc 3b: PBKDF2-SHA256 key derivation + random salt
+  [x] Buoc 3c: HMAC-SHA256 integrity check (encrypt: append HMAC, decrypt: verify before decrypt)
+  [x] Buoc 3d: Unit tests (doctest, 21 test cases, 495 assertions)
+  [ ] Buoc 4: Custom VM cho Python bytecode
+  [ ] Buoc 5: Compress (zlib/gzip) truoc khi ma hoa
+  [ ] Buoc 6: Obfuscation layer (lam roi AST/bytecode Python)
+  [ ] Buoc 7: Tinh nang khac...
+
+
+7. LUU Y KY THUAT
+--------------------------------------------------------------------------------
+  - Tat ca thuat toan encode deu tu viet (khong phu thuoc thu vien ngoai)
+  - AES va ChaCha20 su dung OpenSSL EVP API
+  - Key derivation: password -> PBKDF2-HMAC-SHA256 (100.000 iterations, random salt 16 bytes)
+    -> AES: 32 bytes key + 16 bytes IV
+    -> ChaCha20: 32 bytes key + 16 bytes IV (counter=0, nonce=12)
+  - Salt duoc prepend vao ciphertext (16 bytes dau file)
+  - AES co padding PKCS7 -> phat hien sai key (exit code 3)
+  - ChaCha20 la stream cipher -> sai key cho garbage output (khong co error)
+  - PBKDF2 ~100ms per operation -> cham nhung an toan (brute-force resistant)
+  - Base32, Base85, Ascii85 ho tro partial groups o cuoi file
+  - Encoder dung bo dem bit (bit buffer) de xu ly Base32 chinh xac
+  - Binary chi 41K -> rat gon, phu hop cho embedded / nhe
+  - Build chi can: cmake -S . -B build && cmake --build build
+  - Chay unit tests: cmake --build build --target test_crypto && ./build/test_crypto
+    hoac: ctest --test-dir build -V
+  - Thu vien test: doctest (header-only, lib/doctest.h)
+  - Test hien tai: 21 test cases, 495 assertions, tat ca PASS

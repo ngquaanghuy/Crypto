@@ -1,0 +1,37 @@
+file(REMOVE_RECURSE
+  "CMakeFiles/crypto.dir/src/cli/cli.cpp.o"
+  "CMakeFiles/crypto.dir/src/cli/cli.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/cli/protect.cpp.o"
+  "CMakeFiles/crypto.dir/src/cli/protect.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/crypto/aes.cpp.o"
+  "CMakeFiles/crypto.dir/src/crypto/aes.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/crypto/chacha20.cpp.o"
+  "CMakeFiles/crypto.dir/src/crypto/chacha20.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/crypto/cipher.cpp.o"
+  "CMakeFiles/crypto.dir/src/crypto/cipher.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/encode/ascii85.cpp.o"
+  "CMakeFiles/crypto.dir/src/encode/ascii85.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/encode/base32.cpp.o"
+  "CMakeFiles/crypto.dir/src/encode/base32.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/encode/base64.cpp.o"
+  "CMakeFiles/crypto.dir/src/encode/base64.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/encode/base85.cpp.o"
+  "CMakeFiles/crypto.dir/src/encode/base85.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/encode/encoder.cpp.o"
+  "CMakeFiles/crypto.dir/src/encode/encoder.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/encode/hexcode.cpp.o"
+  "CMakeFiles/crypto.dir/src/encode/hexcode.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/encode/xorcode.cpp.o"
+  "CMakeFiles/crypto.dir/src/encode/xorcode.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/main.cpp.o"
+  "CMakeFiles/crypto.dir/src/main.cpp.o.d"
+  "CMakeFiles/crypto.dir/src/utils/file_util.cpp.o"
+  "CMakeFiles/crypto.dir/src/utils/file_util.cpp.o.d"
+  "crypto"
+  "crypto.pdb"
+)
+
+# Per-language clean rules from dependency scanning.
+foreach(lang CXX)
+  include(CMakeFiles/crypto.dir/cmake_clean_${lang}.cmake OPTIONAL)
+endforeach()

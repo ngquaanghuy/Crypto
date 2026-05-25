@@ -1,0 +1,294 @@
+================================================================================
+  CRYPTO v1.0.0 - CLI USER GUIDE (A-Z)
+================================================================================
+
+
+1. BUILD
+--------------------------------------------------------------------------------
+
+  Yeu cau:
+    - CMake >= 3.16
+    - C++20 compiler (GCC, Clang)
+    - OpenSSL (libssl-dev / openssl-devel)
+
+  Build:
+    cmake -S . -B build
+    cmake --build build
+
+  Build nhanh (multi-thread):
+    cmake --build build -j$(nproc)
+
+  Unit tests:
+    cmake --build build --target test_crypto
+    ./build/test_crypto
+    # hoac:
+    ctest --test-dir build -V
+
+  Clean build:
+    rm -rf build && cmake -S . -B build && cmake --build build
+
+
+2. CACH SU DUNG CO BAN
+--------------------------------------------------------------------------------
+
+  crypto [options] <command> [<args>]
+
+  Command (bat buoc):
+    encode <file>      Encode (ma hoa dang string)
+    decode <file>      Decode (giai ma string)
+    encrypt <file>     Encrypt (ma hoa bang thuat toan)
+    decrypt <file>     Decrypt (giai ma)
+
+  Options:
+    -a, --algorithm <algo>   Chon thuat toan
+    -k, --key <key>           Key truc tiep
+        --keyfile <file>      Doc key tu file
+        --keyenv <var>        Doc key tu bien moi truong
+    -o, --output <file>       File output
+    -v, --version             Xem phien ban
+    -h, --help                Xem help
+
+
+3. KEY PRIORITY
+--------------------------------------------------------------------------------
+
+  Thu tu uu tien (cao -> thap):
+    1. -k / --key "string"        Key truc tiep tu dong lenh
+    2. --keyfile /path/to/file    Key tu file (trim newline)
+    3. --keyenv VARIABLE_NAME     Key tu bien moi truong
+    4. (default)                  Key tinh trong source code
+
+  Vi du uu tien:
+    crypto encrypt -a aes -k "pass1" --keyfile key.txt file.py
+    -> dung "pass1" (bo qua keyfile)
+
+    crypto encrypt -a aes --keyfile key.txt --keyenv CRYPTO_KEY file.py
+    -> dung keyfile (bo qua env)
+
+  Neu khong co key nao duoc cung cap, va thuat toan can key (AES/ChaCha20/XOR),
+  se dung key mac dinh: "Crypto-Default-Key-v1.0"
+  (xem include/crypto/common.h, dong #define CRYPTO_DEFAULT_KEY)
+
+
+4. THUAT TOAN
+--------------------------------------------------------------------------------
+
+  4.1. ENCODE / DECODE (dung -a)
+
+    base64    - Chuan Base64 (A-Z a-z 0-9 +/), padding '='
+    base32    - Chuan Base32 (A-Z 2-7), padding '=', ho tro partial group
+    base85    - Z85 alphabet, toi uu 'z' cho 4 bytes zero
+    ascii85   - Adobe/PostScript, delimiter <~~>, 'z' shortcut
+    hex       - Hex lowercase (0-9 a-f), decode ca upper
+    xor       - XOR voi key tuy chinh
+
+    Mac dinh: base64
+
+  4.2. ENCRYPT / DECRYPT (dung -a)
+
+    aes       - AES-256-CBC (PBKDF2 key derivation, HMAC integrity)
+    chacha20  - ChaCha20 stream cipher (PBKDF2 + HMAC)
+    xor       - XOR (cung co the dung nhu encrypt)
+
+    Mac dinh: aes
+
+  Luu y:
+    - Tat ca thuat toan crypto deu co HMAC-SHA256 integrity check
+    - Sai key -> bi tu choi (exit code 3)
+    - Du lieu bi corrupt -> bi tu choi (exit code 3)
+    - File format: [salt 16 bytes][ciphertext][HMAC 32 bytes]
+
+
+5. CAC VI DU DAY DU
+--------------------------------------------------------------------------------
+
+  5.1. ENCODE
+
+    # Encode base64 (mac dinh)
+    crypto encode script.py
+
+    # Encode voi algorithm cu the
+    crypto encode -a base64 script.py
+    crypto encode -a base32 script.py
+    crypto encode -a base85 script.py
+    crypto encode -a ascii85 script.py
+    crypto encode -a hex script.py
+
+    # Encode XOR voi key
+    crypto encode -a xor -k "mysecret" script.py
+
+    # Ghi ro file output
+    crypto encode -a base64 script.py -o output.b64
+
+    # Encode, ghi output vao thu muc khac
+    crypto encode -a base64 script.py -o /tmp/encoded.b64
+
+  5.2. DECODE
+
+    # Decode base64
+    crypto decode script.encoded
+
+    # Decode voi algorithm cu the
+    crypto decode -a base64 script.b64
+    crypto decode -a base32 script.b32
+    crypto decode -a hex script.hex
+
+    # Decode XOR (cung key)
+    crypto decode -a xor -k "mysecret" script.xor
+
+    # Decode ra file output
+    crypto decode -a base64 script.b64 -o original.py
+
+  5.3. ENCRYPT
+
+    # Encrypt AES (mac dinh)
+    crypto encrypt script.py -k "password123"
+
+    # Encrypt AES ghi ro output
+    crypto encrypt -a aes -k "password123" script.py -o secret.enc
+
+    # Encrypt ChaCha20
+    crypto encrypt -a chacha20 -k "password123" script.py
+
+    # Encrypt XOR
+    crypto encrypt -a xor -k "mykey" script.py
+
+    # Key tu file
+    crypto encrypt -a aes --keyfile /tmp/mypassword.txt script.py
+
+    # Key tu bien moi truong
+    export CRYPTO_SECRET="supersecret"
+    crypto encrypt -a aes --keyenv CRYPTO_SECRET script.py
+
+  5.4. DECRYPT
+
+    # Decrypt AES
+    crypto decrypt secret.enc -k "password123"
+
+    # Decrypt ChaCha20
+    crypto decrypt secret.chacha -k "password123"
+
+    # Decrypt voi keyfile
+    crypto decrypt -a aes --keyfile /tmp/mypassword.txt secret.enc
+
+    # Decrypt ra file output
+    crypto decrypt -a aes -k "password123" secret.enc -o restored.py
+
+  5.5. KET HOP -o TRUOC COMMAND
+
+    # Dat output o bat ky vi tri nao
+    crypto -o out.b64 encode -a base64 script.py
+    crypto encode -a base64 script.py -o out.b64
+    crypto encode -a base64 -o out.b64 script.py
+
+
+6. TRANH CHAP VAO RA (AUTO SUFFIX)
+--------------------------------------------------------------------------------
+
+  Neu khong dung -o, tu dong them suffix:
+
+    crypto encode script.py   ->  script.encoded
+    crypto decode script.py   ->  script.decoded
+    crypto encrypt script.py  ->  script.encrypted
+    crypto decrypt script.py  ->  script.decrypted
+
+  Vi du:
+    crypto encode -a base64 app.py        -> app.encoded
+    crypto encrypt -a aes app.py -k "pw"  -> app.encrypted
+    crypto decrypt app.encrypted -k "pw"  -> app.decrypted
+
+
+7. XU LY LOI (EXIT CODES)
+--------------------------------------------------------------------------------
+
+  0 = OK
+  1 = Loi tham so dong lenh (sai command, thieu input, ...)
+  2 = Loi file (khong ton tai, rong, khong the ghi, ...)
+  3 = Loi crypto (sai key, du lieu corrupt, loi bo nho, ...)
+  4 = Loi noi bo (internal, khong nen xay ra)
+
+  Vi du kiem tra exit code:
+    crypto encrypt script.py -k "pw" && echo "OK" || echo "FAIL: $?"
+
+
+8. FILE FORMAT (CRYPTO)
+--------------------------------------------------------------------------------
+
+  Khi encrypt, file output co cau truc:
+
+    [salt: 16 bytes]  - Salt ngau nhien cho PBKDF2
+    [ciphertext]      - Du lieu da ma hoa
+    [HMAC: 32 bytes]  - HMAC-SHA256 cua ciphertext
+
+  Tong: 48 + ciphertext bytes (AES) / 48 + plaintext bytes (ChaCha20)
+
+  Khong the doc file .encrypted bang text editor thong thuong
+  (tru cac thuat toan encode).
+
+
+9. SO SANH CAC THUAT TOAN
+--------------------------------------------------------------------------------
+
+  Thuat toan  | Output size    | Can key | Co HMAC | Toc do
+  ------------+----------------+---------+---------+-----------
+  base64      | ~33% larger    | Khong   | Khong   | Rat nhanh
+  base32      | ~60% larger    | Khong   | Khong   | Rat nhanh
+  base85      | ~25% larger    | Khong   | Khong   | Rat nhanh
+  ascii85     | ~25% larger    | Khong   | Khong   | Rat nhanh
+  hex         | 2x larger      | Khong   | Khong   | Rat nhanh
+  XOR         | Bang input     | Co      | Khong   | Rat nhanh
+  AES-256-CBC | ~same + 48     | Co      | Co      | ~120ms (PBKDF2)
+  ChaCha20    | Bang input+48  | Co      | Co      | ~120ms (PBKDF2)
+
+  Note: AES va ChaCha20 cham ~120ms do PBKDF2 (100K iterations).
+  Phan ma hoa/giai ma thuc te rat nhanh (< 1ms cho 100KB).
+
+
+10. TIPS & BEST PRACTICES
+--------------------------------------------------------------------------------
+
+  - Dung --keyfile de tranh lo key trong shell history:
+      echo "mysecretpassword" > ~/.crypto_key
+      chmod 600 ~/.crypto_key
+      crypto encrypt -a aes --keyfile ~/.crypto_key script.py
+
+  - Dung --keyenv cho CI/CD pipeline:
+      export DEPLOY_KEY="..."
+      crypto decrypt -a aes --keyenv DEPLOY_KEY config.enc
+
+  - Luon dung -a de xac dinh ro thuat toan, tranh nham lan
+
+  - Kiem tra file bang exit code:
+      if crypto decrypt file.enc -k "pass" -o out.py; then
+          python out.py
+      else
+          echo "Decrypt that bai!"
+      fi
+
+  - Ket hop encode + encrypt de bao ve nhieu lop:
+      crypto encode -a base64 app.py -o /tmp/encoded
+      crypto encrypt -a aes /tmp/encoded -k "pass" -o final.enc
+
+  - Khi test, dung file nho (1-2 dong) de debug nhanh
+
+  - AES padding PKCS7: plaintext tu dong duoc padding, tu dong bo khi decrypt
+
+
+11. QUICK REFERENCE
+--------------------------------------------------------------------------------
+
+  # Encode
+  crypto encode [-a algo] [-k key] [-o out] file
+
+  # Decode
+  crypto decode [-a algo] [-k key] [-o out] file
+
+  # Encrypt
+  crypto encrypt [-a algo] [-k key|--keyfile f|--keyenv v] [-o out] file
+
+  # Decrypt
+  crypto decrypt [-a algo] [-k key|--keyfile f|--keyenv v] [-o out] file
+
+  # Help & version
+  crypto --help
+  crypto -v

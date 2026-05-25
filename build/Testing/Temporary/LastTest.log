@@ -1,0 +1,32 @@
+Start testing: May 24 19:22 +07
+----------------------------------------------------------
+1/1 Testing: test_crypto
+1/1 Test: test_crypto
+Command: "/home/ngquanghuy/Crypto/build/test_crypto"
+Directory: /home/ngquanghuy/Crypto/build
+"test_crypto" start time: May 24 19:22 +07
+Output:
+----------------------------------------------------------
+error: hex string length must be even
+error: invalid hex character
+error: XOR requires a non-empty key
+error: integrity check failed (wrong key or corrupted data)
+error: integrity check failed (wrong key or corrupted data)
+error: AES requires a non-empty key
+error: integrity check failed (wrong key or corrupted data)
+error: integrity check failed (wrong key or corrupted data)
+[doctest] doctest version is "2.5.0"
+[doctest] run with "--help" for options
+===============================================================================
+[doctest] test cases:  21 |  21 passed | 0 failed | 0 skipped
+[doctest] assertions: 495 | 495 passed | 0 failed |
+[doctest] Status: SUCCESS!
+<end of output>
+Test time =   2.24 sec
+----------------------------------------------------------
+Test Passed.
+"test_crypto" end time: May 24 19:22 +07
+"test_crypto" time elapsed: 00:00:02
+----------------------------------------------------------
+
+End testing: May 24 19:22 +07
