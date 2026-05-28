@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(Crypto VERSION 1.0.0 LANGUAGES CXX C)
+project(Crypto VERSION 1.1.0 LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -16,6 +16,7 @@ set(CRYPTO_SOURCES
     src/cli/cli.cpp
     src/cli/protect.cpp
     src/utils/file_util.cpp
+    src/utils/compress.cpp
     src/encode/encoder.cpp
     src/encode/base64.cpp
     src/encode/base32.cpp
@@ -26,6 +27,8 @@ set(CRYPTO_SOURCES
     src/crypto/cipher.cpp
     src/crypto/aes.cpp
     src/crypto/chacha20.cpp
+    src/vm/vm_compile.cpp
+    src/vm/vm_stub.cpp
 )
 
 add_executable(crypto ${CRYPTO_SOURCES})
@@ -43,7 +46,9 @@ option(CRYPTO_BUILD_TESTS "Build unit tests" ON)
 if(CRYPTO_BUILD_TESTS)
     add_executable(test_crypto
         tests/test_all.cpp
-        src/utils/file_util.cpp
+        tests/test_vm.cpp
+    src/utils/file_util.cpp
+    src/utils/compress.cpp
         src/encode/base64.cpp
         src/encode/base32.cpp
         src/encode/base85.cpp
@@ -52,6 +57,8 @@ if(CRYPTO_BUILD_TESTS)
         src/encode/xorcode.cpp
         src/crypto/aes.cpp
         src/crypto/chacha20.cpp
+        src/vm/vm_compile.cpp
+        src/vm/vm_stub.cpp
     )
 
     target_include_directories(test_crypto PRIVATE

@@ -1,158 +1,233 @@
-================================================================================
-  CRYPTO v1.0.0 - PROJECT STATUS REPORT
-================================================================================
+==============================================================================
+  CRYPTO v1.1.0 - PROJECT STATUS REPORT
+==============================================================================
 
 1. TONG QUAN
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
   Ten du an      : Crypto
-  Phien ban      : 1.0.0
+  Phien ban      : 1.1.0
   Ngon ngu       : C++20 / C11
   He thong build : CMake 3.16+
-  Thu vien phu   : OpenSSL (libcrypto)
-  Kich thuoc     : 41K binary, ~1286 lines of code
-  Muc dich       : Bao ve, ma hoa, encode ma nguon Python
+  Thu vien phu   : OpenSSL (libcrypto), ZLIB
+  Kich thuoc     : ~41K binary, ~3100 lines of C++ code
+     + Embedded Python scripts: ~2000 lines (obfuscator, VM compiler, VM interpreter, split)
+  Muc dich       : Bao ve, ma hoa, lam roi ma nguon Python
 
 
 2. CAU TRUC THU MUC
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
   Crypto/
-  ├── CMakeLists.txt                 # Cau hinh build (C++20, OpenSSL)
-  ├── PROJECT_STATUS.txt             # Bao cao nay
-  ├── build/                         # Thu muc build (cmake -B build)
-  │   └── crypto                     # Binary thanh pham (41K)
+  ├── CMakeLists.txt              # Build system (C++20, OpenSSL, ZLIB)
+  ├── PROJECT_STATUS.txt          # Bao cao nay
+  ├── USAGE_GUIDE.txt             # Huong dan su dung
+  ├── lib/
+  │   └── doctest.h               # Thu vien test header-only
   ├── include/
-  │   └── crypto/
-  │       ├── common.h               # Kieu du lieu chung (ExitCode, Algorithm enum, Buffer)
-  │       └── file_util.h            # File I/O + validation
-  └── src/
-      ├── main.cpp                   # Entry point
-      ├── cli/
-      │   ├── cli.h                  # int cli_run(argc, argv)
-      │   └── cli.cpp                # Parser CLI (195 lines)
-      ├── utils/
-      │   └── file_util.cpp          # file_read / file_write + kiem tra loi
-      ├── encode/
-      │   ├── encoder.h / .cpp       # Dispatch encode/decode theo Algorithm
-      │   ├── base64.h / .cpp        # Base64 encode/decode
-      │   ├── base32.h / .cpp        # Base32 encode/decode
-      │   ├── base85.h / .cpp        # Base85 (Z85) encode/decode
-      │   ├── ascii85.h / .cpp       # Ascii85 (Adobe) encode/decode
-      │   ├── hexcode.h / .cpp       # Hex string encode/decode
-      │   └── xorcode.h / .cpp       # XOR voi key tuy chinh
-      └── crypto/
-          ├── cipher.h / .cpp        # Dispatch encrypt/decrypt theo Algorithm
-          ├── aes.h / .cpp           # AES-256-CBC (key derive bang SHA-256)
-          └── chacha20.h / .cpp      # ChaCha20 (key derive bang SHA-256)
+  │   ├── crypto/
+  │   │   ├── common.h            # Kieu du lieu chung (ExitCode, Algorithm, Buffer)
+  │   │   ├── compress.h          # Compression API + algo ID constants
+  │   │   ├── file_util.h         # File I/O
+  │   │   ├── pyobf.h             # Python obfuscator (~1011 dong embedded Python)
+  │   │   └── stub.h              # Stub template co ban
+  │   └── vm/
+  │       ├── vm.h                # Kieu VM, opcodes, VmProgram, serialize/deserialize
+  │       ├── vm_py.h             # VM compiler script (~652 dong Python)
+  │       ├── vm_interp_py.h      # VM interpreter script (~154 dong Python)
+  │       └── vm_split.h          # VM code-split script (~189 dong Python)
+  ├── src/
+  │   ├── main.cpp                # Entry point: cli_run()
+  │   ├── cli/
+  │   │   ├── cli.h               # cli_run() declaration
+  │   │   ├── cli.cpp             # Parser CLI + dispatch (395 dong)
+  │   │   ├── protect.h           # protect_file() declaration
+  │   │   └── protect.cpp         # Protect pipeline (~1165 dong)
+  │   ├── encode/
+  │   │   ├── encoder.h/.cpp      # Dispatch encode/decode
+  │   │   ├── base64.h/.cpp       # Base64
+  │   │   ├── base32.h/.cpp       # Base32
+  │   │   ├── base85.h/.cpp       # Base85 (Z85)
+  │   │   ├── ascii85.h/.cpp      # Ascii85 (Adobe)
+  │   │   ├── hexcode.h/.cpp      # Hex string
+  │   │   └── xorcode.h/.cpp      # XOR transform
+  │   ├── crypto/
+  │   │   ├── cipher.h/.cpp       # Dispatch encrypt/decrypt
+  │   │   ├── aes.h/.cpp          # AES-256 (ECB/CBC/CTR/GCM)
+  │   │   └── chacha20.h/.cpp     # ChaCha20 stream cipher
+  │   ├── utils/
+  │   │   ├── file_util.cpp       # File read/write
+  │   │   └── compress.cpp        # Compression wrapper (zlib)
+  │   └── vm/
+  │       ├── vm_compile.cpp      # VM compile/serialize/deserialize
+  │       └── vm_stub.cpp         # VM stub generation
+  ├── tests/
+  │   ├── test_all.cpp            # Unit tests encode/decode/encrypt/decrypt
+  │   └── test_vm.cpp             # Unit tests VM compilation
+  └── tools/
+      └── pyobf.py                # Python obfuscator standalone
 
 
-3. CAC THUAT TOAN DA HOAN THANH
---------------------------------------------------------------------------------
-  Encode (co the encode + decode):
+3. CAC THANH PHAN DA HOAN THANH
+-------------------------------------------------------------------------------
 
-  Ten          | Loai         | Dac diem
-  -------------+--------------+------------------------------------------
-  Base64       | Encoding     | Chuan A-Z a-z 0-9 +/, padding '='
-  Base32       | Encoding     | Chuan A-Z 2-7, padding '=', ho tro partial group
-  Base85       | Encoding     | Z85 alphabet, toi uu 'z' cho 4 bytes zero
-  Ascii85      | Encoding     | Adobe/PostScript, delimiter <~~>, 'z' shortcut
-  Hex          | Encoding     | Chu thuong 0-9 a-f, decode ca upper/lower
-  XOR          | Transform    | XOR voi key tuy chinh, do dai key bat ky
+  3.1. CLI COMMANDS
 
-  Crypto (co the encrypt + decrypt):
+  Command      | Chuc nang                       | Algorithm mac dinh
+  -------------+---------------------------------+-------------------
+  encode       | Ma hoa dang text (string)       | base64
+  decode       | Giai ma text                    | base64
+  encrypt      | Ma hoa bang thuat toan          | aes-gcm
+  decrypt      | Giai ma                         | aes-gcm
+  protect      | Dong goi vao script Python      | aes-gcm
+               | tu giai ma (self-decrypting)
 
-  Ten          | Loai         | Dac diem
-  -------------+--------------+------------------------------------------
-  AES          | Ma hoa       | AES-256-CBC, key derive SHA-256, padding PKCS7
-  ChaCha20     | Ma hoa       | ChaCha20 stream cipher, key + nonce derive SHA-256
-  XOR          | Transform    | XOR voi key tuy chinh (dung chung voi encode)
+  3.2. THUAT TOAN ENCODE (encode/decode)
 
-  -> Tat ca 8 thuat toan da duoc test roundtrip (encode->decode / encrypt->decrypt)
-     cho nhieu kich thuoc file khac nhau.
+  Ten      | Mo ta
+  ---------+---------------------------------------------------
+  base64   | A-Z a-z 0-9 +/, padding '='
+  base32   | A-Z 2-7, padding '=', ho tro partial group
+  base85   | Z85 alphabet, toi uu 'z' cho 4 bytes zero
+  ascii85  | Adobe/PostScript, delimiter <~~>, 'z' shortcut
+  hex      | Chu thuong 0-9 a-f, doc ca upper/lower
+  xor      | XOR stream voi key tuy chinh
+
+  3.3. THUAT TOAN ENCRYPT (encrypt/decrypt)
+
+  Ten          | Che do          | Kiem tra tinh toan ven
+  -------------+-----------------+-----------------------
+  aes-ecb      | ECB             | HMAC-SHA256
+  aes-cbc      | CBC             | HMAC-SHA256
+  aes-ctr      | CTR             | HMAC-SHA256
+  aes-gcm      | GCM (mac dinh)  | AEAD tag (built-in)
+  chacha20     | Stream cipher   | HMAC-SHA256
+  xor          | Stream XOR      | Khong
+
+  Key derivation: PBKDF2-HMAC-SHA256, 100.000 iterations, salt 16 bytes
+
+  3.4. OBFUSCATION (--obf <tech>)
+
+  Technique  | Mo ta
+  -----------+---------------------------------------------------
+  rename     | Doi ten bien, ham, class -> ten ngan, kho doc
+  strings    | Ma hoa string literal bang XOR, giai ma bang lambda
+  vstrings   | Che string nang cao: cat string thanh nhieu doan,
+             | moi doan XOR key khac nhau, giai ma bang eval long
+  cleanup    | Xoa docstrings, string expressions doc lap
+  flow       | Lam roi control flow co ban: if/else -> state machine
+  aflow      | Lam roi control flow nang cao: state ID xao tron,
+             | opaque predicates, dummy states, dispatch dict
+  junk       | Chen code chet (dead code) voi opaque predicates
+  mutate     | Bien doi bieu thuc: a+b -> lambda, x[y] -> .__getitem__
+  all        | Ap dung TAT CA ky thuat
+
+  3.5. ANTI-ANALYSIS (--anti-analysis <t>)
+
+  Technique  | Mo ta
+  -----------+---------------------------------------------------
+  debug      | Phat hien debugger: sys.gettrace(), breakpointhook,
+             | quet sys.modules phat hien pydevd/pdb/ipdb/...
+  hook       | Phat hien hook: kiem tra __import__/compile/exec
+             | co bi hook khong, phat hien sandbox
+  scramble   | Trai cac doan anti-analysis vao nhieu vi tri khac
+             | nhau trong luong giai ma, dung ten sys ngau nhien
+  opaque     | Chen opaque predicates vao VM bytecode
+  all        | Tat ca ky thuat
+
+  3.6. COMPRESSION (--compress <algo>)
+
+  Algo    | Thu vien
+  --------+---------------------------
+  none    | Khong nen
+  zlib    | zlib (C++), mac dinh cho protect
+  lzma    | Python's lzma (runtime)
+  bz2     | Python's bz2 (runtime)
+  brotli  | brotli (Python runtime)
+  zstd    | zstandard (Python runtime)
+  gzip    | gzip (Python runtime)
+  lz4     | lz4.frame (Python runtime)
+  snappy  | snappy (Python runtime)
+  zopfli  | gzip module (Python runtime)
+  blosc   | blosc (Python runtime)
+
+  3.7. REGISTER VM (--vm)
+
+  - Kien truc: 64 registers, bo nho constant, bang ten
+  - Instruction: 8-byte fixed-size {op, rd, rs1, rs2, imm}
+  - 33+ opcodes ho tro: load/store, so hoc, so sanh, call, jump,
+    for loop, list/tuple, import, attribute access
+  - Code-split pipeline: tach function/class defs (chay native)
+    va module-level code (chay trong VM)
+  - Ho tro ca Python 3.14 opcode specializations
+  - IIFE (Immediately Invoked Function Expression) evaluation
+    tai compile time
+  - Opaque predicate injection
+  - Tuong thich: Python 3.10+
+
+  3.8. STUB GENERATION
+
+  - Polymorphic: random names (30+), shuffle algorithm dispatch (11 blocks)
+  - XOR key obfuscation voi random byte
+  - Junk code injection
+  - Ho tro compress (10 algos) + decompress tai runtime
+  - Ho tro VM mode (version header 2)
+  - Anti-analysis fragments gom 4 loai
 
 
-4. GIAO DIEN CLI
---------------------------------------------------------------------------------
-  crypto [options] <command> [<args>]
-
-  Commands:
-    encode <file>       Encode Python source file
-    decode <file>       Decode encoded file
-    encrypt <file>      Encrypt Python source file
-    decrypt <file>      Decrypt encrypted file
-
-  Options:
-    -a, --algorithm <algo>  Algorithm: base64, base32, base85, ascii85,
-                            hex, xor, aes, chacha20
-  -k, --key <key>         Key (truc tiep)
-      --keyfile <file>    Doc key tu file (trim newline)
-      --keyenv <var>       Doc key tu bien moi truong
-  -o, --output <file>     Output file (auto suffix neu khong co)
-    -v, --version           Show version
-    -h, --help              Show this help
-
-  Default algorithm:
-    encode/decode  -> base64
-    encrypt/decrypt -> aes
-
-  Key priority: -k > --keyfile > --keyenv > built-in default (CRYPTO_DEFAULT_KEY)
-
-  Vi du:
-    crypto encode -a base64 script.py
-    crypto encode -a xor -k "mykey" script.py -o output.encoded
-    crypto encrypt -a aes -k "secret123" script.py
-    crypto decrypt -a aes --keyfile key.txt script.encrypted
-    crypto encrypt -a chacha20 --keyenv CRYPTO_KEY script.py
-    crypto encrypt -a xor script.py              # dung key mac dinh
-    crypto -o out.b64 encode -a base64 script.py
+4. TRANG THAI TIEN DO
+-------------------------------------------------------------------------------
+  [x] Buoc 1: Project structure + CMake + CLI co ban
+  [x] Buoc 2: Ket noi CLI -> logic (dispatch, -o, auto-suffix)
+  [x] Buoc 3: Implement 6 encoding algorithms
+  [x] Buoc 4: AES-256 (ECB/CBC/CTR/GCM) + ChaCha20
+  [x] Buoc 5: PBKDF2 key derivation + HMAC integrity
+  [x] Buoc 6: 21 unit tests, 495 assertions, all PASS
+  [x] Buoc 7: Polymorphic stub generation
+  [x] Buoc 8: Obfuscation layer (9 techniques)
+  [x] Buoc 9: Compression (zlib + 9 Python algos)
+  [x] Buoc 10: Anti-analysis (debug/hook/scramble/opaque)
+  [x] Buoc 11: Custom Register VM (code-split pipeline, compile, interp)
+  [x] Buoc 12: VM stub generation + self-decrypting script
+  [ ] Buoc 13: Improve lex/Vy cho VM mode
+  [ ] Buoc 14: GUI / plugin system
 
 
-5. XU LY LOI
---------------------------------------------------------------------------------
-  Exit codes:
-    0 = OK
-    1 = Loi tham so dong lenh
-    2 = Loi file (khong ton tai, file rong, khong the ghi)
-    3 = Loi crypto (key sai, du lieu hong, bo nho)
-    4 = Loi noi bo (internal error)
-
-  Cac kiem tra:
-    - File input ton tai, co the doc
-    - File khong rong
-    - Output path co the ghi
-    - Key ton tai cho cac thuat toan can key
-    - AES: bao loi neu decrypt sai key / du lieu hong
+5. FILE FORMAT (PROTECT)
+-------------------------------------------------------------------------------
+  Header 4 bytes: [version][compress_algo][algo_id][reserved]
+    Version 1: normal (compressed + encrypted source)
+    Version 2: VM mode (serialized VM program)
+  Sau header: ciphertext (da ma hoa)
 
 
-6. TIEN DO PHAT TRIEN
---------------------------------------------------------------------------------
-  [x] Buoc 1: Project structure + CMake + CLI co ban (--help, --version)
-  [x] Buoc 2: Ket noi CLI -> logic (dispatch command, -o option, auto-suffix)
-  [x] Buoc 3: Implement thuat toan (8 algorithms, test roundtrip)
-  [x] Buoc 3b: PBKDF2-SHA256 key derivation + random salt
-  [x] Buoc 3c: HMAC-SHA256 integrity check (encrypt: append HMAC, decrypt: verify before decrypt)
-  [x] Buoc 3d: Unit tests (doctest, 21 test cases, 495 assertions)
-  [ ] Buoc 4: Custom VM cho Python bytecode
-  [ ] Buoc 5: Compress (zlib/gzip) truoc khi ma hoa
-  [ ] Buoc 6: Obfuscation layer (lam roi AST/bytecode Python)
-  [ ] Buoc 7: Tinh nang khac...
+6. EXIT CODES
+-------------------------------------------------------------------------------
+  0 = OK
+  1 = Loi tham so dong lenh
+  2 = Loi file (khong ton tai, khong the doc/ghi)
+  3 = Loi crypto (sai key, du lieu hong, loi bo nho)
+  4 = Loi noi bo
 
 
-7. LUU Y KY THUAT
---------------------------------------------------------------------------------
-  - Tat ca thuat toan encode deu tu viet (khong phu thuoc thu vien ngoai)
-  - AES va ChaCha20 su dung OpenSSL EVP API
-  - Key derivation: password -> PBKDF2-HMAC-SHA256 (100.000 iterations, random salt 16 bytes)
-    -> AES: 32 bytes key + 16 bytes IV
-    -> ChaCha20: 32 bytes key + 16 bytes IV (counter=0, nonce=12)
-  - Salt duoc prepend vao ciphertext (16 bytes dau file)
-  - AES co padding PKCS7 -> phat hien sai key (exit code 3)
-  - ChaCha20 la stream cipher -> sai key cho garbage output (khong co error)
-  - PBKDF2 ~100ms per operation -> cham nhung an toan (brute-force resistant)
-  - Base32, Base85, Ascii85 ho tro partial groups o cuoi file
-  - Encoder dung bo dem bit (bit buffer) de xu ly Base32 chinh xac
-  - Binary chi 41K -> rat gon, phu hop cho embedded / nhe
-  - Build chi can: cmake -S . -B build && cmake --build build
-  - Chay unit tests: cmake --build build --target test_crypto && ./build/test_crypto
-    hoac: ctest --test-dir build -V
-  - Thu vien test: doctest (header-only, lib/doctest.h)
-  - Test hien tai: 21 test cases, 495 assertions, tat ca PASS
+7. KIEM THU
+-------------------------------------------------------------------------------
+  - 21 test cases encode/decode/encrypt/decrypt (495 assertions)
+  - 4 test cases VM compilation (VM opcodes, serialization)
+  - Chay: cmake --build build --target test_crypto && ./build/test_crypto
+  - Hoac: ctest --test-dir build -V
+
+
+8. PHU THUOC
+-------------------------------------------------------------------------------
+  - OpenSSL (libcrypto): AES, ChaCha20, PBKDF2, HMAC
+  - ZLIB: Compression
+  - Python 3.10+: Obfuscator, VM compiler, VM interpreter (runtime)
+  - Python packages (runtime cho giai nen): lzma, bz2, brotli, zstandard,
+    lz4, snappy, blosc (optional, tuy algo compress)
+
+
+9. LUU Y
+-------------------------------------------------------------------------------
+  - Binary ~41K, rat gon, phu hop cho embedded / phan phoi
+  - Build: cmake -S . -B build && cmake --build build
+  - Python 3.10+ required cho cac tinh nang obfuscation va VM
+  - Tat ca code tu viet (tru OpenSSL, ZLIB, doctest)

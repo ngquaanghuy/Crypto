@@ -852,6 +852,33 @@ src/main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
 
+src/utils/compress.o: src/utils/compress.cpp.o
+.PHONY : src/utils/compress.o
+
+# target to build an object file
+src/utils/compress.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/utils/compress.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o
+.PHONY : src/utils/compress.cpp.o
+
+src/utils/compress.i: src/utils/compress.cpp.i
+.PHONY : src/utils/compress.i
+
+# target to preprocess a source file
+src/utils/compress.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/utils/compress.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/utils/compress.cpp.i
+.PHONY : src/utils/compress.cpp.i
+
+src/utils/compress.s: src/utils/compress.cpp.s
+.PHONY : src/utils/compress.s
+
+# target to generate assembly for a file
+src/utils/compress.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/utils/compress.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/utils/compress.cpp.s
+.PHONY : src/utils/compress.cpp.s
+
 src/utils/file_util.o: src/utils/file_util.cpp.o
 .PHONY : src/utils/file_util.o
 
@@ -879,6 +906,60 @@ src/utils/file_util.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.s
 .PHONY : src/utils/file_util.cpp.s
 
+src/vm/vm_compile.o: src/vm/vm_compile.cpp.o
+.PHONY : src/vm/vm_compile.o
+
+# target to build an object file
+src/vm/vm_compile.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/vm_compile.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o
+.PHONY : src/vm/vm_compile.cpp.o
+
+src/vm/vm_compile.i: src/vm/vm_compile.cpp.i
+.PHONY : src/vm/vm_compile.i
+
+# target to preprocess a source file
+src/vm/vm_compile.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/vm_compile.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.i
+.PHONY : src/vm/vm_compile.cpp.i
+
+src/vm/vm_compile.s: src/vm/vm_compile.cpp.s
+.PHONY : src/vm/vm_compile.s
+
+# target to generate assembly for a file
+src/vm/vm_compile.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/vm_compile.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.s
+.PHONY : src/vm/vm_compile.cpp.s
+
+src/vm/vm_stub.o: src/vm/vm_stub.cpp.o
+.PHONY : src/vm/vm_stub.o
+
+# target to build an object file
+src/vm/vm_stub.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/vm_stub.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o
+.PHONY : src/vm/vm_stub.cpp.o
+
+src/vm/vm_stub.i: src/vm/vm_stub.cpp.i
+.PHONY : src/vm/vm_stub.i
+
+# target to preprocess a source file
+src/vm/vm_stub.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/vm_stub.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.i
+.PHONY : src/vm/vm_stub.cpp.i
+
+src/vm/vm_stub.s: src/vm/vm_stub.cpp.s
+.PHONY : src/vm/vm_stub.s
+
+# target to generate assembly for a file
+src/vm/vm_stub.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/vm_stub.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.s
+.PHONY : src/vm/vm_stub.cpp.s
+
 tests/test_all.o: tests/test_all.cpp.o
 .PHONY : tests/test_all.o
 
@@ -902,6 +983,30 @@ tests/test_all.s: tests/test_all.cpp.s
 tests/test_all.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/tests/test_all.cpp.s
 .PHONY : tests/test_all.cpp.s
+
+tests/test_vm.o: tests/test_vm.cpp.o
+.PHONY : tests/test_vm.o
+
+# target to build an object file
+tests/test_vm.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/tests/test_vm.cpp.o
+.PHONY : tests/test_vm.cpp.o
+
+tests/test_vm.i: tests/test_vm.cpp.i
+.PHONY : tests/test_vm.i
+
+# target to preprocess a source file
+tests/test_vm.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/tests/test_vm.cpp.i
+.PHONY : tests/test_vm.cpp.i
+
+tests/test_vm.s: tests/test_vm.cpp.s
+.PHONY : tests/test_vm.s
+
+# target to generate assembly for a file
+tests/test_vm.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/tests/test_vm.cpp.s
+.PHONY : tests/test_vm.cpp.s
 
 # Help Target
 help:
@@ -981,12 +1086,24 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/utils/compress.o"
+	@echo "... src/utils/compress.i"
+	@echo "... src/utils/compress.s"
 	@echo "... src/utils/file_util.o"
 	@echo "... src/utils/file_util.i"
 	@echo "... src/utils/file_util.s"
+	@echo "... src/vm/vm_compile.o"
+	@echo "... src/vm/vm_compile.i"
+	@echo "... src/vm/vm_compile.s"
+	@echo "... src/vm/vm_stub.o"
+	@echo "... src/vm/vm_stub.i"
+	@echo "... src/vm/vm_stub.s"
 	@echo "... tests/test_all.o"
 	@echo "... tests/test_all.i"
 	@echo "... tests/test_all.s"
+	@echo "... tests/test_vm.o"
+	@echo "... tests/test_vm.i"
+	@echo "... tests/test_vm.s"
 .PHONY : help
 
 

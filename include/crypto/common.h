@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#define CRYPTO_VERSION    "1.0.0"
+#define CRYPTO_VERSION    "1.1.0"
 #define CRYPTO_NAME       "Crypto"
 #define CRYPTO_DEFAULT_KEY "Crypto-Default-Key-v1.0"
 

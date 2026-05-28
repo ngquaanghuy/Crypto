@@ -13,14 +13,20 @@ Techniques:
     strings    Encrypt string literals (XOR inline)
     vstrings   Virtualize strings (chunked + runtime eval decrypt)
     cleanup    Remove docstrings and standalone expressions
-    flow       Basic control flow flattening (if/else → state machine)
+    flow       Basic control flow flattening (if/else -> state machine)
     aflow      Advanced control flow flatt. (dispatch table + opaque predicates)
+    opaque     Encode state variable with non-linear transformations
+    mutate     AST mutation (binary op -> lambda/sum/complex expr)
+    mba        Mixed Boolean-Arithmetic (math identity replacements)
     junk       Junk code injection (dead code with opaque predicates)
-    mutate     AST mutation (binary op → lambda/sum/complex expr)
+    apihash    Replace static imports with FNV-1a hash dynamic resolution
+    funcenc    Encrypt function bodies (SHA-256-CTR, on-the-fly decryption)
     all        All of the above
 """
 import ast
 import copy
+import hashlib
+import os
 import random
 import re
 import string
@@ -207,6 +213,13 @@ class _RenameTransformer(ast.NodeTransformer):
             node.id = self.name_map[nid]
         return node
 
+    def visit_keyword(self, node):
+        if node.arg is not None and not _should_skip(node.arg) and node.arg not in self.imported_names:
+            if node.arg in self.name_map:
+                node.arg = self.name_map[node.arg]
+        self.generic_visit(node)
+        return node
+
     def visit_Attribute(self, node):
         self.generic_visit(node)
         return node
@@ -255,6 +268,23 @@ def rename_code(source):
                 if not _should_skip(node.name) and not node.name.startswith('__'):
                     if node.name not in self.names:
                         self.names[node.name] = self._new_name()
+                # Pre-scan parameter names so keyword args at call sites
+                # can be renamed to match (see visit_keyword).
+                for arg in node.args.args:
+                    if not _should_skip(arg.arg) and arg.arg not in self.names:
+                        self.names[arg.arg] = self._new_name()
+                if node.args.vararg:
+                    if not _should_skip(node.args.vararg.arg) and node.args.vararg.arg not in self.names:
+                        self.names[node.args.vararg.arg] = self._new_name()
+                if node.args.kwarg:
+                    if not _should_skip(node.args.kwarg.arg) and node.args.kwarg.arg not in self.names:
+                        self.names[node.args.kwarg.arg] = self._new_name()
+                for arg in node.args.kwonlyargs:
+                    if not _should_skip(arg.arg) and arg.arg not in self.names:
+                        self.names[arg.arg] = self._new_name()
+                for arg in node.args.posonlyargs:
+                    if not _should_skip(arg.arg) and arg.arg not in self.names:
+                        self.names[arg.arg] = self._new_name()
                 self.generic_visit(node)
             def visit_AsyncFunctionDef(self, node):
                 self.visit_FunctionDef(node)
@@ -758,6 +788,272 @@ def flatten_advanced(source):
 
 
 # ---------------------------------------------------------------------------
+# STATE-VARIABLE ENCODING & OPAQUE CONSTANTS
+# ---------------------------------------------------------------------------
+class _StateEncoder(ast.NodeTransformer):
+    """Encode the state variable in flattened state machines using a
+    mathematical transformation.  All state values are stored and compared
+    in encoded space — raw state values never appear in the source.
+
+    Encoding: F(x) = (A * x + B) % M   (affine, bijective on [0, M-1]).
+    
+    Must run AFTER flow/aflow, BEFORE mutate/mba/junk.
+    """
+
+    def __init__(self):
+        self._M = 65536
+        self._A = random.randrange(1, self._M, 2)   # odd → coprime with M
+        self._B = random.randint(0, self._M - 1)
+        self._F_name = _rand_name()
+        self._state_var = None
+        self._state_vals = None
+
+    def _F(self, x):
+        return (self._A * x + self._B) % self._M
+
+    def _is_state_machine(self, node):
+        """Check if *node* is a flattened state-machine while-loop.
+        Returns (*state_var_name*, [*state_values*]) or None."""
+        if not isinstance(node, ast.While):
+            return None
+        if not (isinstance(node.test, ast.Constant) and node.test.value is True):
+            return None
+        body = node.body
+        if not body or not isinstance(body[0], ast.If):
+            return None
+
+        var_name = None
+        vals = []
+        cur = body[0]
+        while isinstance(cur, ast.If):
+            test = cur.test
+            compares = []
+            if isinstance(test, ast.BoolOp) and isinstance(test.op, ast.And):
+                for v in test.values:
+                    if _is_state_cmp(v):
+                        compares.append(v)
+            elif _is_state_cmp(test):
+                compares.append(test)
+
+            if not compares:
+                return None
+            cmp = compares[0]
+            if not isinstance(cmp.left, ast.Name):
+                return None
+            if var_name is None:
+                var_name = cmp.left.id
+            elif cmp.left.id != var_name:
+                return None
+
+            val = None
+            for c in cmp.comparators:
+                if isinstance(c, ast.Constant) and isinstance(c.value, int):
+                    val = c.value
+                    break
+            if val is None:
+                return None
+            vals.append(val)
+
+            cur = cur.orelse[0] if cur.orelse and len(cur.orelse) == 1 and isinstance(cur.orelse[0], ast.If) else None
+
+        if var_name is None or len(vals) < 2:
+            return None
+        return var_name, vals
+
+    def _encode_state_refs(self, node):
+        """Walk a statement and replace __fs == N / __fs = N with __F forms."""
+        for child in ast.walk(node):
+            if isinstance(child, ast.Assign):
+                for t in child.targets:
+                    if isinstance(t, ast.Name) and t.id == self._state_var:
+                        if isinstance(child.value, ast.Constant) and isinstance(child.value.value, int):
+                            enc = self._F(child.value.value)
+                            child.value = _make_call(self._F_name, [ast.Constant(value=enc)])
+                            break
+            if isinstance(child, ast.If):
+                self._encode_if_conds(child)
+
+    def _encode_if_conds(self, if_node):
+        """Walk if-elif chain and encode state comparisons."""
+        cur = if_node
+        while isinstance(cur, ast.If):
+            test = cur.test
+            if isinstance(test, ast.BoolOp) and isinstance(test.op, ast.And):
+                new_vals = []
+                for v in test.values:
+                    if _is_state_cmp(v, self._state_var):
+                        v = self._rewrite_cmp(v)
+                    new_vals.append(v)
+                cur.test = ast.BoolOp(op=ast.And(), values=new_vals)
+            elif _is_state_cmp(test, self._state_var):
+                cur.test = self._rewrite_cmp(test)
+            self.generic_visit(cur)
+            cur = cur.orelse[0] if cur.orelse and len(cur.orelse) == 1 and isinstance(cur.orelse[0], ast.If) else None
+
+    def _rewrite_cmp(self, cmp_node):
+        """Rewrite __fs == N  →  __fs == _F(N)."""
+        val = None
+        for c in cmp_node.comparators:
+            if isinstance(c, ast.Constant) and isinstance(c.value, int):
+                val = c.value
+                break
+        if val is not None:
+            new_comparators = []
+            for c in cmp_node.comparators:
+                if isinstance(c, ast.Constant) and isinstance(c.value, int):
+                    new_comparators.append(ast.Constant(value=self._F(val)))
+                else:
+                    new_comparators.append(c)
+            cmp_node.comparators = new_comparators
+        return cmp_node
+
+    def visit_While(self, node):
+        self.generic_visit(node)
+        sm = self._is_state_machine(node)
+        if sm is None:
+            return node
+        self._state_var, self._state_vals = sm
+        self._encode_state_refs(node)
+        return node
+
+
+def _is_state_cmp(node, state_var=None):
+    """Check if *node* is a comparison like __fs == N."""
+    if not isinstance(node, ast.Compare):
+        return False
+    if not isinstance(node.left, ast.Name):
+        return False
+    if state_var is not None and node.left.id != state_var:
+        return False
+    if not (len(node.ops) == 1 and isinstance(node.ops[0], ast.Eq)):
+        return False
+    for c in node.comparators:
+        if isinstance(c, ast.Constant) and isinstance(c.value, int):
+            return True
+    return False
+
+
+def encode_state(source):
+    """Apply state-variable encoding to all flattened functions."""
+    try:
+        tree = ast.parse(source)
+
+        func_encoders = {}
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            for stmt in node.body:
+                if isinstance(stmt, ast.While):
+                    cand = _StateEncoder()
+                    sm = cand._is_state_machine(stmt)
+                    if sm is not None:
+                        enc = _StateEncoder()
+                        enc._F_name = _rand_name()
+                        enc._state_var = sm[0]
+                        func_encoders[id(node)] = enc
+                        break
+
+        class _EncodePass(ast.NodeTransformer):
+            def __init__(self):
+                self._cur_enc = None
+
+            def visit_FunctionDef(self, node):
+                self.generic_visit(node)
+                enc = func_encoders.get(id(node))
+                if enc is None:
+                    return node
+                self._cur_enc = enc
+                F_name = enc._F_name
+                src = "lambda _x: (%d * _x + %d) %% %d" % (enc._A, enc._B, enc._M)
+                flam = ast.parse(src, mode='eval').body
+                f_stmt = ast.Assign(
+                    targets=[ast.Name(id=F_name, ctx=ast.Store())],
+                    value=flam)
+                new_body = [f_stmt]
+                for stmt in node.body:
+                    if isinstance(stmt, ast.While):
+                        sm = enc._is_state_machine(stmt)
+                        if sm is not None:
+                            for child in ast.walk(stmt):
+                                if isinstance(child, ast.Assign):
+                                    for t in child.targets:
+                                        if (isinstance(t, ast.Name) and
+                                            t.id == enc._state_var and
+                                            isinstance(child.value, ast.Constant) and
+                                            isinstance(child.value.value, int)):
+                                            child.value = ast.Call(
+                                                func=ast.Name(id=F_name, ctx=ast.Load()),
+                                                args=[ast.Constant(value=child.value.value)],
+                                                keywords=[])
+                                if isinstance(child, ast.If):
+                                    _encode_if_conds(child, enc._state_var, F_name)
+                            for prev in new_body:
+                                if isinstance(prev, ast.Assign):
+                                    for t in prev.targets:
+                                        if (isinstance(t, ast.Name) and
+                                            t.id == enc._state_var and
+                                            isinstance(prev.value, ast.Constant) and
+                                            isinstance(prev.value.value, int)):
+                                            prev.value = ast.Call(
+                                                func=ast.Name(id=F_name, ctx=ast.Load()),
+                                                args=[ast.Constant(value=prev.value.value)],
+                                                keywords=[])
+                    new_body.append(stmt)
+                node.body = new_body
+                return node
+
+            def visit_AsyncFunctionDef(self, node):
+                return self.visit_FunctionDef(node)
+
+        def _encode_if_conds(if_node, state_var, F_name):
+            cur = if_node
+            while isinstance(cur, ast.If):
+                test = cur.test
+                if isinstance(test, ast.BoolOp) and isinstance(test.op, ast.And):
+                    new_vals = []
+                    for v in test.values:
+                        if _is_state_cmp(v, state_var):
+                            v = _rewrite_cmp(v, state_var, F_name)
+                        new_vals.append(v)
+                    cur.test = ast.BoolOp(op=ast.And(), values=new_vals)
+                elif _is_state_cmp(test, state_var):
+                    cur.test = _rewrite_cmp(test, state_var, F_name)
+                for child in ast.iter_child_nodes(cur):
+                    if isinstance(child, ast.If):
+                        _encode_if_conds(child, state_var, F_name)
+                cur = (cur.orelse[0] if cur.orelse and
+                       len(cur.orelse) == 1 and
+                       isinstance(cur.orelse[0], ast.If) else None)
+
+        def _rewrite_cmp(cmp_node, state_var, F_name):
+            val = None
+            for c in cmp_node.comparators:
+                if isinstance(c, ast.Constant) and isinstance(c.value, int):
+                    val = c.value
+                    break
+            if val is not None:
+                new_comparators = []
+                for c in cmp_node.comparators:
+                    if (isinstance(c, ast.Constant) and
+                        isinstance(c.value, int)):
+                        new_comparators.append(
+                            ast.Call(
+                                func=ast.Name(id=F_name, ctx=ast.Load()),
+                                args=[ast.Constant(value=c.value)],
+                                keywords=[]))
+                    else:
+                        new_comparators.append(c)
+                cmp_node.comparators = new_comparators
+            return cmp_node
+
+        tree = _EncodePass().visit(tree)
+        ast.fix_missing_locations(tree)
+        return ast.unparse(tree)
+    except SyntaxError:
+        return source
+
+
+# ---------------------------------------------------------------------------
 # AST MUTATION
 # ---------------------------------------------------------------------------
 class _ASTMutator(ast.NodeTransformer):
@@ -790,21 +1086,24 @@ class _ASTMutator(ast.NodeTransformer):
                     pass
         
         if kind < 0.65:
-            # Method call: a.__add__(b)
-            # Always type-safe (calls the actual dunder method)
-            method_map = {
-                ast.Add: '__add__', ast.Sub: '__sub__', ast.Mult: '__mul__',
-                ast.Div: '__truediv__', ast.FloorDiv: '__floordiv__', 
-                ast.Mod: '__mod__', ast.Pow: '__pow__',
-                ast.LShift: '__lshift__', ast.RShift: '__rshift__',
-                ast.BitOr: '__or__', ast.BitXor: '__xor__', ast.BitAnd: '__and__',
+            # Lambda wrapper (second chunk): (lambda x,y: x+y)(a, b)
+            # Type-safe because it wraps the original operator preserving
+            # Python's __radd__ / reflected operator fallback.
+            op_map = {
+                ast.Add: '+', ast.Sub: '-', ast.Mult: '*', 
+                ast.Div: '/', ast.FloorDiv: '//', ast.Mod: '%',
+                ast.Pow: '**', ast.LShift: '<<', ast.RShift: '>>',
+                ast.BitOr: '|', ast.BitXor: '^', ast.BitAnd: '&',
             }
-            if type(op) in method_map:
-                mname = method_map[type(op)]
-                return ast.Call(
-                    func=ast.Attribute(value=left, attr=mname, ctx=ast.Load()),
-                    args=[right],
-                    keywords=[])
+            if type(op) in op_map:
+                opsym = op_map[type(op)]
+                l = ast.unparse(left)
+                r = ast.unparse(right)
+                src = "(lambda _0,_1:_0 %s _1)((%s),(%s))" % (opsym, l, r)
+                try:
+                    return ast.parse(src, mode='eval').body
+                except SyntaxError:
+                    pass
         
         if kind < 0.80:
             # Extra-wrapper: (lambda: a + b)()
@@ -916,6 +1215,132 @@ def mutate_expressions(source):
 
 
 # ---------------------------------------------------------------------------
+# MIXED BOOLEAN-ARITHMETIC (MBA)
+# ---------------------------------------------------------------------------
+class _MBAMutator(ast.NodeTransformer):
+    """Replace simple arithmetic/bitwise ops with MBA equivalent expressions."""
+
+    def _safe_wrap(self, mba_expr, fallback_op, left, right):
+        l = ast.unparse(left)
+        r = ast.unparse(right)
+        src = "(lambda _m0,_m1: %s if isinstance(_m0, int) and isinstance(_m1, int) else _m0 %s _m1)(%s, %s)" % (
+            mba_expr, fallback_op, l, r)
+        try:
+            return ast.parse(src, mode='eval').body
+        except SyntaxError:
+            return None
+
+    def _wrap(self, fmt, *args):
+        src = fmt % args
+        try:
+            return ast.parse(src, mode='eval').body
+        except SyntaxError:
+            return None
+
+    def _mba_add(self, left, right):
+        kind = random.random()
+        l = ast.unparse(left)
+        r = ast.unparse(right)
+        if kind < 0.40:
+            mba = "(%s ^ %s) + 2 * (%s & %s)" % (l, r, l, r)
+        elif kind < 0.70:
+            mba = "(%s | %s) + (%s & %s)" % (l, r, l, r)
+        else:
+            mba = "(%s ^ %s) + ((%s & %s) << 1)" % (l, r, l, r)
+        return self._safe_wrap(mba, '+', left, right)
+
+    def _mba_sub(self, left, right):
+        kind = random.random()
+        l = ast.unparse(left)
+        r = ast.unparse(right)
+        if kind < 0.40:
+            mba = "%s + ~%s + 1" % (l, r)
+        elif kind < 0.70:
+            mba = "(%s ^ %s) - 2 * (~%s & %s)" % (l, r, l, r)
+        else:
+            mba = "~(~%s + %s)" % (l, r)
+        return self._safe_wrap(mba, '-', left, right)
+
+    def _mba_mul(self, left, right):
+        kind = random.random()
+        l = ast.unparse(left)
+        r = ast.unparse(right)
+        if kind < 0.50:
+            mba = "(%s & %s) * (%s | %s) + (%s & ~%s) * (%s & ~%s)" % (
+                l, r, l, r, l, r, r, l)
+        else:
+            mba = "(%s + %s) ** 2 // 4 - (%s - %s) ** 2 // 4" % (l, r, l, r)
+        return self._safe_wrap(mba, '*', left, right)
+
+    def _mba_xor(self, left, right):
+        kind = random.random()
+        l = ast.unparse(left)
+        r = ast.unparse(right)
+        if kind < 0.50:
+            return self._safe_wrap("(%s | %s) - (%s & %s)" % (l, r, l, r), '^', left, right)
+        else:
+            return self._safe_wrap("(%s + %s) - 2 * (%s & %s)" % (l, r, l, r), '^', left, right)
+
+    def _mba_and(self, left, right):
+        l = ast.unparse(left)
+        r = ast.unparse(right)
+        return self._safe_wrap("(%s + %s) - (%s | %s)" % (l, r, l, r), '&', left, right)
+
+    def _mba_or(self, left, right):
+        l = ast.unparse(left)
+        r = ast.unparse(right)
+        return self._safe_wrap("(%s & %s) + (%s ^ %s)" % (l, r, l, r), '|', left, right)
+
+    def _mba_invert(self, operand):
+        kind = random.random()
+        o = ast.unparse(operand)
+        if kind < 0.50:
+            return self._wrap("-%s - 1" % o)
+        else:
+            return self._wrap("%s ^ -1" % o)
+
+    def visit_BinOp(self, node):
+        self.generic_visit(node)
+        if isinstance(node.op, ast.Add):
+            result = self._mba_add(node.left, node.right)
+            return result if result is not None else node
+        elif isinstance(node.op, ast.Sub):
+            result = self._mba_sub(node.left, node.right)
+            return result if result is not None else node
+        elif isinstance(node.op, ast.Mult):
+            result = self._mba_mul(node.left, node.right)
+            return result if result is not None else node
+        elif isinstance(node.op, ast.BitXor):
+            result = self._mba_xor(node.left, node.right)
+            return result if result is not None else node
+        elif isinstance(node.op, ast.BitAnd):
+            result = self._mba_and(node.left, node.right)
+            return result if result is not None else node
+        elif isinstance(node.op, ast.BitOr):
+            result = self._mba_or(node.left, node.right)
+            return result if result is not None else node
+        return node
+
+    def visit_UnaryOp(self, node):
+        self.generic_visit(node)
+        if isinstance(node.op, ast.Invert):
+            result = self._mba_invert(node.operand)
+            return result if result is not None else node
+        return node
+
+
+def mba_obfuscate(source):
+    try:
+        tree = ast.parse(source)
+        tf = _MBAMutator()
+        tree = tf.visit(tree)
+        ast.fix_missing_locations(tree)
+        return ast.unparse(tree)
+    except SyntaxError:
+        return source
+
+
+# ---------------------------------------------------------------------------
 # JUNK CODE INJECTION (enhanced)
 # ---------------------------------------------------------------------------
 _JUNK_TEMPLATES = [
@@ -973,6 +1398,360 @@ def inject_junk(source):
 
 
 # ---------------------------------------------------------------------------
+# API HASHING & DYNAMIC IMPORT OBFUSCATION
+# ---------------------------------------------------------------------------
+
+def _fnv1a(s):
+    h = 2166136261
+    for c in s.encode('utf-8'):
+        h ^= c
+        h = (h * 16777619) & 0xFFFFFFFF
+    return h
+
+
+class _ApiHasher(ast.NodeTransformer):
+    def __init__(self):
+        self._imports = {}
+        self._attrs = {}
+
+    def _xor_encrypt(self, s):
+        key = random.randint(1, 255)
+        enc = bytes(ord(c) ^ key for c in s)
+        return enc, key
+
+    def visit_Import(self, node):
+        for alias in node.names:
+            mod = alias.name
+            asname = alias.asname or mod.split('.')[0]
+            if asname not in self._imports:
+                enc, key = self._xor_encrypt(mod)
+                mod_hash = _fnv1a(mod)
+                self._imports[asname] = (enc, key, mod_hash, set())
+            if '.' in mod:
+                parts = mod.split('.')
+                mod_hash = _fnv1a(parts[0])
+                for p in parts[1:]:
+                    h = _fnv1a(p)
+                    if (mod_hash, p) not in self._attrs:
+                        e, k = self._xor_encrypt(p)
+                        self._attrs[(mod_hash, p)] = (e, k)
+        return None
+
+    def visit_ImportFrom(self, node):
+        mod = node.module or ''
+        mod_hash = _fnv1a(mod)
+        enc, key = self._xor_encrypt(mod)
+        asname = '__mod_' + str(len(self._imports))
+        self._imports[asname] = (enc, key, mod_hash, set())
+        for alias in node.names:
+            aname = alias.asname or alias.name
+            attr_hash = _fnv1a(aname)
+            if (mod_hash, aname) not in self._attrs:
+                e, k = self._xor_encrypt(aname)
+                self._attrs[(mod_hash, aname)] = (e, k)
+            self._imports[asname][3].add(aname)
+        return None
+
+    def _gen_runtime(self):
+        lines = []
+        lines.append('import importlib, functools')
+        lines.append('')
+        lines.append('_FNV1A = lambda _s: functools.reduce('
+                     'lambda _h,_c: (_h ^ _c) * 16777619 & 4294967295, '
+                     '[ord(_) for _ in _s], 2166136261)')
+        lines.append('')
+        lines.append('_XD = lambda _b,_k: \'\'.join(chr(_c ^ _k) for _c in _b)')
+        lines.append('')
+        hash_pairs = []
+        for alias, (enc, key, mod_hash, attrs) in self._imports.items():
+            hash_pairs.append((mod_hash, enc, key))
+        for (mod_hash, attr_name), (enc, key) in self._attrs.items():
+            attr_hash = _fnv1a(attr_name)
+            hash_pairs.append((attr_hash, enc, key))
+        seen_hash = {}
+        for h, enc, key in hash_pairs:
+            if h not in seen_hash:
+                seen_hash[h] = (enc, key)
+        lines.append('_HM = {')
+        for h, (enc, key) in sorted(seen_hash.items()):
+            enc_repr = repr(bytes(enc))
+            lines.append('    %d: (%s, %d),' % (h, enc_repr, key))
+        lines.append('}')
+        lines.append('')
+        lines.append('_HG = lambda _h: __import__(_XD(*_HM[_h]))')
+        lines.append('_HD = lambda _h: _XD(*_HM[_h])')
+        return '\n'.join(lines)
+
+    def visit_Module(self, node):
+        self.generic_visit(node)
+        if not self._imports:
+            return node
+        runtime = self._gen_runtime()
+        try:
+            rt_tree = ast.parse(runtime)
+            node.body = rt_tree.body + [n for n in node.body if n is not None]
+        except SyntaxError:
+            pass
+        return node
+
+    def visit_Attribute(self, node):
+        self.generic_visit(node)
+        if isinstance(node.value, ast.Name) and node.value.id in self._imports:
+            enc, key, mod_hash, attrs = self._imports[node.value.id]
+            attr_hash = _fnv1a(node.attr)
+            if (mod_hash, node.attr) not in self._attrs:
+                e, k = self._xor_encrypt(node.attr)
+                self._attrs[(mod_hash, node.attr)] = (e, k)
+            return ast.Call(
+                func=ast.Name(id='getattr', ctx=ast.Load()),
+                args=[
+                    ast.Call(
+                        func=ast.Name(id='_HG', ctx=ast.Load()),
+                        args=[ast.Constant(value=mod_hash)],
+                        keywords=[]),
+                    ast.Call(
+                        func=ast.Name(id='_HD', ctx=ast.Load()),
+                        args=[ast.Constant(value=attr_hash)],
+                        keywords=[]),
+                ],
+                keywords=[])
+        return node
+
+
+def apihash_obfuscate(source):
+    try:
+        tree = ast.parse(source)
+        tf = _ApiHasher()
+        tree = tf.visit(tree)
+        ast.fix_missing_locations(tree)
+        return ast.unparse(tree)
+    except SyntaxError:
+        return source
+
+
+# ---------------------------------------------------------------------------
+# FUNCTION ENCRYPTION (on-the-fly decryption at call time)
+# ---------------------------------------------------------------------------
+
+def _build_func_sig(args):
+    parts = []
+    n_pos = len(args.args)
+    n_defaults = len(args.defaults)
+    for i, arg in enumerate(args.args):
+        s = arg.arg
+        if i >= n_pos - n_defaults:
+            s += '=' + ast.unparse(args.defaults[i - (n_pos - n_defaults)])
+        parts.append(s)
+    if args.vararg:
+        parts.append('*' + args.vararg.arg)
+    if not args.vararg and args.kwonlyargs:
+        parts.append('*')
+    for i, arg in enumerate(args.kwonlyargs):
+        s = arg.arg
+        if i < len(args.kw_defaults) and args.kw_defaults[i] is not None:
+            s += '=' + ast.unparse(args.kw_defaults[i])
+        parts.append(s)
+    if args.kwarg:
+        parts.append('**' + args.kwarg.arg)
+    return ', '.join(parts)
+
+
+def _hash_encrypt(key, plaintext):
+    nonce = os.urandom(16)
+    enc_key = hashlib.sha256(b'encv1:' + key + nonce).digest()
+    ciphertext = _xor_stream(enc_key, plaintext)
+    auth_key = hashlib.sha256(b'authv1:' + key + nonce).digest()
+    tag = hashlib.sha256(auth_key + ciphertext).digest()[:16]
+    return nonce + ciphertext + tag
+
+
+def _xor_stream(key, data):
+    result = bytearray()
+    counter = 0
+    while len(result) < len(data):
+        ks = hashlib.sha256(key + counter.to_bytes(8, 'big')).digest()
+        chunk = data[len(result):len(result) + 32]
+        for a, b in zip(chunk, ks):
+            result.append(a ^ b)
+        counter += 1
+    return bytes(result)
+
+
+class _FuncEncRecord:
+    __slots__ = ('idx', 'name', 'is_async', 'blob')
+
+    def __init__(self, idx, name, is_async, blob):
+        self.idx = idx
+        self.name = name
+        self.is_async = is_async
+        self.blob = blob
+
+
+class _FuncEncCollector(ast.NodeVisitor):
+    def __init__(self, key):
+        self.key = key
+        self.funcs = []
+        self._idx = 0
+
+    def _encrypt_body(self, node):
+        body_src = ast.unparse(node.body)
+        sig = _build_func_sig(node.args)
+        wrapped = 'def _f(%s):\n    ' % sig + body_src.replace('\n', '\n    ')
+        blob = _hash_encrypt(self.key, wrapped.encode('utf-8'))
+        self.funcs.append(_FuncEncRecord(
+            idx=self._idx, name=node.name,
+            is_async=isinstance(node, ast.AsyncFunctionDef),
+            blob=blob,
+        ))
+        self._idx += 1
+
+    def visit_FunctionDef(self, node):
+        self.generic_visit(node)
+        self._encrypt_body(node)
+
+    def visit_AsyncFunctionDef(self, node):
+        self.generic_visit(node)
+        self._encrypt_body(node)
+
+    def visit_ClassDef(self, node):
+        self.generic_visit(node)
+
+
+class _FuncEncReplacer(ast.NodeTransformer):
+    def __init__(self, funcs):
+        self._lookup = {f.name: f for f in funcs}
+
+    def visit_FunctionDef(self, node):
+        self.generic_visit(node)
+        rec = self._lookup.get(node.name)
+        if rec is None:
+            return node
+        if rec.is_async:
+            src = ("async def %s(*args, **kwargs):\n"
+                   "    return await _exec_enc_async(%d, _FUNC_KEY, '%s', args, kwargs)"
+                   % (rec.name, rec.idx, rec.name))
+        else:
+            src = ("def %s(*args, **kwargs):\n"
+                   "    return _exec_enc(%d, _FUNC_KEY, '%s', args, kwargs)"
+                   % (rec.name, rec.idx, rec.name))
+        stub = ast.parse(src).body[0]
+        if hasattr(node, 'decorator_list'):
+            stub.decorator_list = node.decorator_list[:]
+        return stub
+
+    def visit_AsyncFunctionDef(self, node):
+        self.generic_visit(node)
+        rec = self._lookup.get(node.name)
+        if rec is None:
+            return node
+        if rec.is_async:
+            src = ("async def %s(*args, **kwargs):\n"
+                   "    return await _exec_enc_async(%d, _FUNC_KEY, '%s', args, kwargs)"
+                   % (rec.name, rec.idx, rec.name))
+        else:
+            src = ("def %s(*args, **kwargs):\n"
+                   "    return _exec_enc(%d, _FUNC_KEY, '%s', args, kwargs)"
+                   % (rec.name, rec.idx, rec.name))
+        stub = ast.parse(src).body[0]
+        if hasattr(node, 'decorator_list'):
+            stub.decorator_list = node.decorator_list[:]
+        return stub
+
+    def visit_ClassDef(self, node):
+        self.generic_visit(node)
+        return node
+
+
+def funcenc_obfuscate(source):
+    import base64
+
+    key = os.urandom(32)
+
+    tree = ast.parse(source)
+    collector = _FuncEncCollector(key)
+    collector.visit(tree)
+
+    if not collector.funcs:
+        return source
+
+    key_b64 = base64.b64encode(key).decode('ascii')
+    blob_lines = []
+    for rec in collector.funcs:
+        b64 = base64.b64encode(rec.blob).decode('ascii')
+        blob_lines.append("    base64.b64decode('%s')," % b64)
+    blobs_joined = '\n'.join(blob_lines)
+
+    runtime = '''\
+import base64
+import hashlib
+import ctypes
+
+_FUNC_KEY = base64.b64decode("%(key)s")
+_FENC_DATA = [
+%(blobs)s
+]
+_FUNC_CACHE = {}
+
+def _exec_enc(idx, key, name, args, kwargs):
+    if name in _FUNC_CACHE:
+        return _FUNC_CACHE[name](*args, **kwargs)
+    raw = _FENC_DATA[idx]
+    nonce, tag = raw[:16], raw[-16:]
+    ct = raw[16:-16]
+    auth_key = hashlib.sha256(b'authv1:' + key + nonce).digest()
+    if hashlib.sha256(auth_key + ct).digest()[:16] != tag:
+        raise RuntimeError("[funcenc] integrity check failed")
+    enc_key = hashlib.sha256(b'encv1:' + key + nonce).digest()
+    plain_bytes = _xor_stream(enc_key, ct)
+    plain_str = plain_bytes.decode('utf-8')
+    ns = {}
+    exec(plain_str, globals(), ns)
+    func = ns['_f']
+    _FUNC_CACHE[name] = func
+    result = func(*args, **kwargs)
+    return result
+
+async def _exec_enc_async(idx, key, name, args, kwargs):
+    if name in _FUNC_CACHE:
+        return await _FUNC_CACHE[name](*args, **kwargs)
+    raw = _FENC_DATA[idx]
+    nonce, tag = raw[:16], raw[-16:]
+    ct = raw[16:-16]
+    auth_key = hashlib.sha256(b'authv1:' + key + nonce).digest()
+    if hashlib.sha256(auth_key + ct).digest()[:16] != tag:
+        raise RuntimeError("[funcenc] integrity check failed")
+    enc_key = hashlib.sha256(b'encv1:' + key + nonce).digest()
+    plain_bytes = _xor_stream(enc_key, ct)
+    plain_str = plain_bytes.decode('utf-8')
+    ns = {}
+    exec(plain_str, globals(), ns)
+    func = ns['_f']
+    _FUNC_CACHE[name] = func
+    result = await func(*args, **kwargs)
+    return result
+
+def _xor_stream(key, data):
+    result = bytearray()
+    counter = 0
+    while len(result) < len(data):
+        ks = hashlib.sha256(key + counter.to_bytes(8, 'big')).digest()
+        chunk = data[len(result):len(result) + 32]
+        for a, b in zip(chunk, ks):
+            result.append(a ^ b)
+        counter += 1
+    return bytes(result)
+
+''' % {'key': key_b64, 'blobs': blobs_joined}
+
+    new_tree = ast.parse(source)
+    replacer = _FuncEncReplacer(collector.funcs)
+    new_tree = replacer.visit(new_tree)
+    ast.fix_missing_locations(new_tree)
+
+    return runtime + '\n' + ast.unparse(new_tree)
+
+
+# ---------------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------------
 if __name__ == '__main__':
@@ -982,8 +1761,8 @@ if __name__ == '__main__':
     source = sys.stdin.read()
     has_all = 'all' in techniques
 
-    # Order matters: cleanup first, then rename, then string processing,
-    # then control flow, then mutation, then junk
+    # Order matters: cleanup → rename → strings → flow → opaque →
+    # mutate → mba → junk → apihash → funcenc
     # 'all' uses vstrings + aflow (advanced versions) instead of basic ones
     if has_all or 'cleanup' in techniques:
         source = cleanup_code(source)
@@ -993,16 +1772,24 @@ if __name__ == '__main__':
         source = virtualize_strings(source)
     elif 'strings' in techniques:
         source = encrypt_strings(source)
-    if has_all or 'flow' in techniques:
+    if has_all or 'aflow' in techniques:
+        source = flatten_advanced(source)
+    elif 'flow' in techniques:
         source = flatten_control_flow(source)
-    elif 'aflow' in techniques:
-        source = flatten_advanced(source)
-    elif has_all:
-        source = flatten_advanced(source)
+    if has_all or 'opaque' in techniques:
+        source = encode_state(source)
     if has_all or 'mutate' in techniques:
         source = mutate_expressions(source)
+    if has_all or 'mba' in techniques:
+        source = mba_obfuscate(source)
     if has_all or 'junk' in techniques:
         source = inject_junk(source)
+    if has_all or 'apihash' in techniques:
+        source = apihash_obfuscate(source)
+
+    # funcenc must run LAST — it encrypts already-obfuscated bodies
+    if has_all or 'funcenc' in techniques:
+        source = funcenc_obfuscate(source)
 
     sys.stdout.write(source)
 

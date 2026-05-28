@@ -10,6 +10,9 @@
 #include "encode/ascii85.h"
 #include "encode/hexcode.h"
 #include "encode/xorcode.h"
+#include "vm/vm.h"
+#include "vm/vm_interp_py.h"
+#include "vm/vm_split.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +21,9 @@
 #include <stdint.h>
 #include <time.h>
 #include <unistd.h>
-#include <zlib.h>
+#include <sys/wait.h>
+#include <fcntl.h>
+#include "crypto/compress.h"
 
 #define HEADER_SIZE 4
 #define SALT_SIZE 16
@@ -67,11 +72,60 @@ static void sb_printf(char **pos, char *end, const char *fmt, ...) {
 
 #define SB_SZ (65536 * 4)
 
+// Scramble anti-analysis fragments (with __S__ placeholders)
+#define ANTI_FRAG_GETTRACE \
+    "    if __S__.gettrace() is not None:\n" \
+    "        __S__.stderr.write('error: debugger detected\\n'); __S__.exit(1)\n"
+#define ANTI_FRAG_BREAKPOINT \
+    "    __S__.breakpointhook = None\n" \
+    "    for _qm in ('pydevd','pdb','ipdb','pdbpp','pydevconsole'):\n" \
+    "        if _qm in __S__.modules:\n" \
+    "            __S__.stderr.write('error: debugger detected\\n'); __S__.exit(1)\n"
+#define ANTI_FRAG_HOOK \
+    "    for _qn in ('__import__','compile','exec'):\n" \
+    "        _qf = getattr(__S__.modules.get('builtins'), _qn, None)\n" \
+    "        if _qf is not None:\n" \
+    "            _qg = getattr(_qf, '__name__', '')\n" \
+    "            if _qg != _qn:\n" \
+    "                __S__.stderr.write('error: hook detected\\n'); __S__.exit(1)\n"
+#define ANTI_FRAG_META \
+    "    if len(__S__.meta_path) > 5:\n" \
+    "        __S__.stderr.write('error: import hook detected\\n'); __S__.exit(1)\n" \
+    "    if getattr(__S__, 'flags', None) and __S__.flags.no_user_site:\n" \
+    "        __S__.stderr.write('error: sandbox detected\\n'); __S__.exit(1)\n"
+
+static char* patch_sys_name(const char *code, const char *sys_name) {
+    const char needle[] = "__S__";
+    size_t needle_len = 5;
+    size_t ns_len = strlen(sys_name);
+    int cnt = 0;
+    const char *pp = code;
+    while ((pp = strstr(pp, needle))) { cnt++; pp += needle_len; }
+    size_t new_len = strlen(code) + cnt * (ns_len - needle_len);
+    char *result = (char *)malloc(new_len + 1);
+    if (!result) return NULL;
+    pp = code;
+    char *wp = result;
+    const char *sp;
+    while ((sp = strstr(pp, needle))) {
+        size_t cp = (size_t)(sp - pp);
+        memcpy(wp, pp, cp); wp += cp;
+        memcpy(wp, sys_name, ns_len); wp += ns_len;
+        pp = sp + needle_len;
+    }
+    size_t trail = strlen(pp);
+    memcpy(wp, pp, trail); wp += trail;
+    *wp = 0;
+    return result;
+}
+
 static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                                const char *algo_id,
                                const char *obf_key, size_t obf_key_len,
                                const char *anti_code, size_t anti_len,
-                               int xor_byte,
+                               int xor_byte, int compress_algo,
+                               int use_vm, int use_scramble,
+                               int vm_xor_key,
                                Buffer *out) {
     char *buf = (char *)malloc(SB_SZ);
     if (!buf) return EXIT_ERR_CRYPTO;
@@ -83,12 +137,11 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
     char n_P[16], n_A[16], n_k[16], n_r[16], n_fn[16];
     char n_0[16], n_1[16], n_2[16], n_3[16], n_4[16], n_5[16];
     char n_6[16], n_7[16], n_8[16], n_9[16], n_t[16], n_ae[16];
-    char n_c[16], n_a[16], n_d[16];
+    char n_c[16], n_a[16], n_d[16], n_vx[16];
     char n_85t[16], n_85d[16], n_zd[16], n_zd_arg[16], n_zd_d[16], n_zd_i[16];
     char n_zd_n[16], n_zd_cnt[16], n_zd_nb[16];
     char n_ad[16], n_ad_arg[16], n_ad_d[16], n_ad_i[16];
     char n_ad_n[16], n_ad_cnt[16], n_ad_nb[16];
-
     rand_name(n_h, sizeof(n_h));
     rand_name(n_m, sizeof(n_m));
     rand_name(n_b, sizeof(n_b));
@@ -114,6 +167,7 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
     rand_name(n_c, sizeof(n_c));
     rand_name(n_a, sizeof(n_a));
     rand_name(n_d, sizeof(n_d));
+    rand_name(n_vx, sizeof(n_vx));
     rand_name(n_85t, sizeof(n_85t));
     rand_name(n_85d, sizeof(n_85d));
     rand_name(n_zd, sizeof(n_zd));
@@ -136,6 +190,16 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
     rand_name(j1, sizeof(j1));
     rand_name(j2, sizeof(j2));
     rand_name(junk_fn, sizeof(junk_fn));
+
+    // Scramble anti-analysis: each fragment gets its own sys name
+    char *scramble_frags[4] = {NULL, NULL, NULL, NULL};
+    if (use_scramble) {
+        // All fragments use the same sys name (n_s) to match the imports
+        scramble_frags[0] = patch_sys_name(ANTI_FRAG_GETTRACE, n_s);
+        scramble_frags[1] = patch_sys_name(ANTI_FRAG_BREAKPOINT, n_s);
+        scramble_frags[2] = patch_sys_name(ANTI_FRAG_HOOK, n_s);
+        scramble_frags[3] = patch_sys_name(ANTI_FRAG_META, n_s);
+    }
 
     // anti_code already has __S__ placeholders injected
     // anti_code already has __S__ placeholders injected
@@ -192,11 +256,19 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
     // Junk: dead assignment
     sb_printf(&p, end, "%s = %s(%s)\n", j2, junk_fn, j1);
 
+    // ── VM interpreter (if enabled) ──
+    if (use_vm) {
+        sb_printf(&p, end, "%s\n", VM_INTERP_SCRIPT);
+    }
+
     // ── main function ──
     sb_printf(&p, end, "def %s():\n", n_fn);
 
     // Anti-analysis code (indented by 4 spaces)
-    if (anti_len > 0) {
+    if (use_scramble) {
+        // Fragment 0: gettrace check (uses same sys name as anti_code)
+        sb_append(&p, end, scramble_frags[0]);
+    } else if (anti_len > 0) {
         sb_append(&p, end, anti_code);
     }
     free(patched_anti);
@@ -207,8 +279,17 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
         sb_printf(&p, end, "    %s = bytes(_ ^ %d for _ in %s).decode()\n",
                   n_k, xor_byte, n_k);
     }
+    // Scramble: position B — breakpointhook + modules check
+    if (use_scramble && scramble_frags[1]) {
+        sb_append(&p, end, scramble_frags[1]);
+    }
 
     sb_printf(&p, end, "    %s = %s.b64decode(%s)\n", n_r, n_b, n_P);
+
+    // Scramble: position C — builtin hook check
+    if (use_scramble && scramble_frags[2]) {
+        sb_append(&p, end, scramble_frags[2]);
+    }
 
     // ── crypto library import ──
     // Randomize: sometimes import at top-level, sometimes inside branch
@@ -221,6 +302,11 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
         sb_printf(&p, end, "    except ImportError:\n");
         sb_printf(&p, end, "        %s.stderr.write(\"error: cryptography not installed\\n\"); %s.exit(1)\n\n",
                   n_s, n_s);
+    }
+
+    // Scramble: position D — meta_path + flags check
+    if (use_scramble && scramble_frags[3]) {
+        sb_append(&p, end, scramble_frags[3]);
     }
 
     // ── generate algorithm blocks (dispatch) ──
@@ -264,13 +350,14 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                       n_m, n_2, n_7, n_s, n_s);
             sb_printf(&p, end, "        %s = %s(%s.AES(%s), %s.ECB())\n",
                       n_8, n_c, n_a, n_4, n_d);
-            sb_printf(&p, end, "        %s = %s.decryptor().update(%s) + %s.finalize()\n",
-                      n_9, n_8, n_1, n_8);
+            sb_printf(&p, end, "        %s = %s.decryptor()\n"
+                      "        %s = %s.update(%s) + %s.finalize()\n",
+                      n_9, n_8, n_9, n_9, n_1, n_9);
             sb_printf(&p, end, "        %s = %s[-1]\n"
                       "        if %s < 1 or %s > 16 or not all(_ == %s for _ in %s[-%s:]):\n"
                       "            %s.stderr.write(\"error: decryption failed\\n\"); %s.exit(1)\n"
                       "        %s = %s[:-%s]\n",
-                      n_9, n_9, n_9, n_9, n_9, n_9, n_9, n_s, n_s, n_9, n_9, n_9);
+                      n_t, n_9, n_t, n_t, n_t, n_9, n_t, n_s, n_s, n_9, n_9, n_t);
         } else if (aid == 1) {
             // AES-CBC
             sb_printf(&p, end, "    %s %s == 1:\n", kw, n_A);
@@ -293,13 +380,14 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                       n_m, n_2, n_7, n_s, n_s);
             sb_printf(&p, end, "        %s = %s(%s.AES(%s), %s.CBC(%s))\n",
                       n_8, n_c, n_a, n_4, n_d, n_5);
-            sb_printf(&p, end, "        %s = %s.decryptor().update(%s) + %s.finalize()\n",
-                      n_9, n_8, n_1, n_8);
+            sb_printf(&p, end, "        %s = %s.decryptor()\n"
+                      "        %s = %s.update(%s) + %s.finalize()\n",
+                      n_9, n_8, n_9, n_9, n_1, n_9);
             sb_printf(&p, end, "        %s = %s[-1]\n"
                       "        if %s < 1 or %s > 16 or not all(_ == %s for _ in %s[-%s:]):\n"
                       "            %s.stderr.write(\"error: decryption failed\\n\"); %s.exit(1)\n"
                       "        %s = %s[:-%s]\n",
-                      n_9, n_9, n_9, n_9, n_9, n_9, n_9, n_s, n_s, n_9, n_9, n_9);
+                      n_t, n_9, n_t, n_t, n_t, n_9, n_t, n_s, n_s, n_9, n_9, n_t);
         } else if (aid == 2) {
             // AES-CTR
             sb_printf(&p, end, "    %s %s == 2:\n", kw, n_A);
@@ -472,12 +560,67 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
               n_s, n_s);
 
     // Decompress and execute
-    sb_printf(&p, end, "    if %s[1] & 1:\n"
-              "        %s = %s.decompress(%s[4:])\n"
-              "    else:\n"
-              "        %s = %s[4:]\n"
-              "    exec(compile(%s, '<protected>', 'exec'), globals())\n\n",
-              n_9, n_9, n_z, n_9, n_9, n_9, n_9);
+    if (use_vm) {
+        // VM mode: deserialize and run through VM interpreter
+        if (vm_xor_key) {
+            sb_printf(&p, end, "    %s = %d\n", n_vx, vm_xor_key);
+            sb_printf(&p, end, "    _xd = bytes(_ ^ %s for _ in %s[4:])\n", n_vx, n_9);
+            sb_printf(&p, end, "    %s, _c, _k, _m = _vm_deserialize(_xd)\n", n_9);
+        } else {
+            sb_printf(&p, end, "    %s, _c, _k, _m = _vm_deserialize(%s[4:])\n", n_9, n_9);
+        }
+        sb_printf(&p, end, "    exec(compile(%s, '<vm>', 'exec'), globals())\n", n_9);
+        sb_printf(&p, end, "    _vm_run(_c, _k, _m, globals(), locals())\n");
+    } else {
+        if (compress_algo != COMPRESS_ID_NONE) {
+            sb_printf(&p, end, "    if %s[1] == %d:\n"
+                      "        import zlib as %s\n"
+                      "        %s = %s.decompress(%s[4:])\n",
+                      n_9, COMPRESS_ID_ZLIB, n_z, n_9, n_z, n_9);
+            sb_printf(&p, end, "    elif %s[1] == %d:\n"
+                      "        import lzma as %s\n"
+                      "        %s = %s.decompress(%s[4:])\n",
+                      n_9, COMPRESS_ID_LZMA, n_z, n_9, n_z, n_9);
+            sb_printf(&p, end, "    elif %s[1] == %d:\n"
+                      "        import bz2 as %s\n"
+                      "        %s = %s.decompress(%s[4:])\n",
+                      n_9, COMPRESS_ID_BZ2, n_z, n_9, n_z, n_9);
+            sb_printf(&p, end, "    elif %s[1] == %d:\n"
+                      "        import brotli as %s\n"
+                      "        %s = %s.decompress(%s[4:])\n",
+                      n_9, COMPRESS_ID_BROTLI, n_z, n_9, n_z, n_9);
+            sb_printf(&p, end, "    elif %s[1] == %d:\n"
+                      "        import zstandard as %s\n"
+                      "        %s = %s.decompress(%s[4:])\n",
+                      n_9, COMPRESS_ID_ZSTD, n_z, n_9, n_z, n_9);
+            sb_printf(&p, end, "    elif %s[1] == %d:\n"
+                      "        import gzip as %s\n"
+                      "        %s = %s.decompress(%s[4:])\n",
+                      n_9, COMPRESS_ID_GZIP, n_z, n_9, n_z, n_9);
+            sb_printf(&p, end, "    elif %s[1] == %d:\n"
+                      "        import lz4.frame as %s\n"
+                      "        %s = %s.decompress(%s[4:])\n",
+                      n_9, COMPRESS_ID_LZ4, n_z, n_9, n_z, n_9);
+            sb_printf(&p, end, "    elif %s[1] == %d:\n"
+                      "        import snappy as %s\n"
+                      "        %s = %s.decompress(%s[4:])\n",
+                      n_9, COMPRESS_ID_SNAPPY, n_z, n_9, n_z, n_9);
+            sb_printf(&p, end, "    elif %s[1] == %d:\n"
+                      "        import gzip as %s\n"
+                      "        %s = %s.decompress(%s[4:])\n",
+                      n_9, COMPRESS_ID_ZOPFLI, n_z, n_9, n_z, n_9);
+            sb_printf(&p, end, "    elif %s[1] == %d:\n"
+                      "        import blosc as %s\n"
+                      "        %s = %s.decompress(%s[4:])\n",
+                      n_9, COMPRESS_ID_BLOSC, n_z, n_9, n_z, n_9);
+            sb_printf(&p, end, "    else:\n"
+                      "        %s = %s[4:]\n", n_9, n_9);
+        } else {
+            sb_printf(&p, end, "    %s = %s[4:]\n", n_9, n_9);
+        }
+        sb_printf(&p, end, "    exec(compile(%s, '<protected>', 'exec'), globals())\n\n",
+                  n_9);
+    }
 
     // Guard
     sb_printf(&p, end, "if __name__ == '__main__':\n"
@@ -485,6 +628,9 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
 
     out->data = (unsigned char *)buf;
     out->size = (size_t)(p - buf);
+    for (int i = 0; i < 4; i++) {
+        if (scramble_frags[i]) free(scramble_frags[i]);
+    }
     return EXIT_OK;
 }
 #undef SB_SZ
@@ -557,6 +703,47 @@ static int needs_key(Algorithm algo) {
            algo == ALGO_CHACHA20 || algo == ALGO_XOR;
 }
 
+// Run python3 with arguments, redirecting stdio to the given files.
+// argv must contain the argument vector starting after "python3" (i.e.,
+// argv[0] = script path, argv[1..] = script args). argv must be NULL-terminated.
+// Returns 0 on success, non-zero on failure (program exit code or -1).
+static int run_python3(const char **argv,
+                        const char *stdin_file,
+                        const char *stdout_file,
+                        const char *stderr_file) {
+    pid_t pid = fork();
+    if (pid == -1) return -1;
+    if (pid == 0) {
+        if (stdin_file) {
+            int fd = open(stdin_file, O_RDONLY);
+            if (fd >= 0) { dup2(fd, STDIN_FILENO); close(fd); }
+        }
+        if (stdout_file) {
+            int fd = open(stdout_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (fd >= 0) { dup2(fd, STDOUT_FILENO); close(fd); }
+        }
+        if (stderr_file) {
+            int fd = open(stderr_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            if (fd >= 0) { dup2(fd, STDERR_FILENO); close(fd); }
+        }
+        // Build full argv: python3, script, args..., NULL
+        int argc = 0;
+        while (argv[argc]) argc++;
+        const char *full_argv[16];
+        int i = 0;
+        full_argv[i++] = "python3";
+        for (int j = 0; j < argc && i < 15; j++)
+            full_argv[i++] = argv[j];
+        full_argv[i] = NULL;
+        execvp("python3", (char *const *)full_argv);
+        _exit(127);
+    }
+    int status;
+    waitpid(pid, &status, 0);
+    if (WIFEXITED(status)) return WEXITSTATUS(status);
+    return -1;
+}
+
 static ExitCode obfuscate_source(const char *src, size_t src_len,
                                   const char *techniques,
                                   Buffer *out) {
@@ -585,15 +772,8 @@ static ExitCode obfuscate_source(const char *src, size_t src_len,
     }
     close(obf_fd); close(in_fd);
 
-    char cmd[8192];
-    int n = snprintf(cmd, sizeof(cmd), "python3 %s %s < %s > %s",
-                     obf_tmpl, techniques, in_tmpl, out_tmpl);
-    if (n < 0 || (size_t)n >= sizeof(cmd)) {
-        close(out_fd); unlink(obf_tmpl); unlink(in_tmpl); unlink(out_tmpl);
-        return EXIT_ERR_INTERNAL;
-    }
-
-    if (system(cmd) != 0) {
+    const char *argv[] = {obf_tmpl, techniques, NULL};
+    if (run_python3(argv, in_tmpl, out_tmpl, NULL) != 0) {
         close(out_fd); unlink(obf_tmpl); unlink(in_tmpl); unlink(out_tmpl);
         return EXIT_ERR_CRYPTO;
     }
@@ -615,10 +795,191 @@ static ExitCode obfuscate_source(const char *src, size_t src_len,
     return EXIT_OK;
 }
 
+static ExitCode vm_split_source(const char *src, size_t src_len,
+                                const char *obf_tmpl_path,
+                                const char *techniques,
+                                Buffer *exec_out, Buffer *vm_out) {
+    // Writes VM_SPLIT_SCRIPT to temp file and runs it to
+    // split obfuscated source into:
+    //   exec_out = function/class defs with FULL obfuscation
+    //   vm_out   = clean module-level code with renamed names
+    char split_tmpl[] = "/tmp/crypto_split_XXXXXX.py";
+    char in_tmpl[]    = "/tmp/crypto_split_in_XXXXXX.py";
+    char out_tmpl[]   = "/tmp/crypto_split_out_XXXXXX";
+
+    int fd_s = mkstemps(split_tmpl, 3);
+    int fd_i = mkstemps(in_tmpl, 3);
+    int fd_o = mkstemps(out_tmpl, 0);
+
+    if (fd_s < 0 || fd_i < 0 || fd_o < 0) {
+        if (fd_s >= 0) { close(fd_s); unlink(split_tmpl); }
+        if (fd_i >= 0) { close(fd_i); unlink(in_tmpl); }
+        if (fd_o >= 0) { close(fd_o); unlink(out_tmpl); }
+        return EXIT_ERR_CRYPTO;
+    }
+
+    size_t slen = strlen(VM_SPLIT_SCRIPT);
+    if (write(fd_s, VM_SPLIT_SCRIPT, slen) != (ssize_t)slen ||
+        write(fd_i, src, src_len) != (ssize_t)src_len) {
+        close(fd_s); close(fd_i); close(fd_o);
+        unlink(split_tmpl); unlink(in_tmpl); unlink(out_tmpl);
+        return EXIT_ERR_FILE;
+    }
+    close(fd_s); close(fd_i);
+
+    const char *tech = techniques ? techniques : "rename";
+    char err_tmpl[sizeof(out_tmpl) + 8];
+    snprintf(err_tmpl, sizeof(err_tmpl), "%s.err", out_tmpl);
+    const char *argv[] = {split_tmpl, obf_tmpl_path, tech, NULL};
+    if (run_python3(argv, in_tmpl, out_tmpl, err_tmpl) != 0) {
+        close(fd_o); unlink(split_tmpl); unlink(in_tmpl); unlink(out_tmpl);
+        return EXIT_ERR_CRYPTO;
+    }
+
+    off_t fsz = lseek(fd_o, 0, SEEK_END);
+    if (fsz <= 0) { close(fd_o); unlink(split_tmpl); unlink(in_tmpl); unlink(out_tmpl); return EXIT_ERR_CRYPTO; }
+    lseek(fd_o, 0, SEEK_SET);
+
+    unsigned char *data = (unsigned char *)malloc((size_t)fsz + 1);
+    if (!data) { close(fd_o); unlink(split_tmpl); unlink(in_tmpl); unlink(out_tmpl); return EXIT_ERR_CRYPTO; }
+
+    ssize_t nr = read(fd_o, data, (size_t)fsz);
+    close(fd_o);
+    unlink(split_tmpl); unlink(in_tmpl); unlink(out_tmpl);
+    if (nr != fsz) { free(data); return EXIT_ERR_FILE; }
+    data[nr] = '\0';
+
+    // Parse markers: #===EXEC_SOURCE=== ... #===VM_SOURCE=== ...
+    const char *exec_marker = "#===EXEC_SOURCE===\n";
+    const char *vm_marker   = "#===VM_SOURCE===\n";
+
+    char *exec_start = strstr((char *)data, exec_marker);
+    char *vm_start   = strstr((char *)data, vm_marker);
+
+    if (!exec_start || !vm_start) {
+        free(data);
+        return EXIT_ERR_CRYPTO;
+    }
+
+    exec_start += strlen(exec_marker);
+    // exec_source: from exec_start to vm_marker - 1 (strip trailing newline)
+    size_t exec_len = (size_t)(vm_start - exec_start);
+    if (exec_len > 0 && exec_start[exec_len - 1] == '\n')
+        exec_len--;
+
+    vm_start += strlen(vm_marker);
+    size_t vm_len = (size_t)(nr - (vm_start - (char *)data));
+    if (vm_len > 0 && vm_start[vm_len - 1] == '\n')
+        vm_len--;
+
+    exec_out->data = (unsigned char *)malloc(exec_len + 1);
+    vm_out->data   = (unsigned char *)malloc(vm_len + 1);
+    if (!exec_out->data || !vm_out->data) {
+        free(exec_out->data); free(vm_out->data); free(data);
+        return EXIT_ERR_CRYPTO;
+    }
+
+    memcpy(exec_out->data, exec_start, exec_len);
+    exec_out->data[exec_len] = '\0';
+    exec_out->size = exec_len;
+
+    memcpy(vm_out->data, vm_start, vm_len);
+    vm_out->data[vm_len] = '\0';
+    vm_out->size = vm_len;
+
+    free(data);
+    return EXIT_OK;
+}
+
+// Clean split (no obfuscation): split source into function/class defs (exec)
+// and module-level code (VM). Uses a pass-through "obfuscation" script.
+static ExitCode vm_split_source_clean(const char *src, size_t src_len,
+                                       Buffer *exec_out, Buffer *vm_out) {
+    char obf_tmpl[] = "/tmp/crypto_nop_XXXXXX.py";
+    int obf_fd = mkstemps(obf_tmpl, 3);
+    if (obf_fd < 0) return EXIT_ERR_CRYPTO;
+
+    const char *nop_script = "#!/usr/bin/env python3\nimport sys\nsys.stdout.write(sys.stdin.read())\n";
+    size_t slen = strlen(nop_script);
+    if (write(obf_fd, nop_script, slen) != (ssize_t)slen) {
+        close(obf_fd); unlink(obf_tmpl);
+        return EXIT_ERR_FILE;
+    }
+    close(obf_fd);
+
+    ExitCode ret = vm_split_source(src, src_len, obf_tmpl, "rename", exec_out, vm_out);
+    unlink(obf_tmpl);
+    return ret;
+}
+
+// ── VM bytecode obfuscation ─────────────────────────────────────────────
+// Insert NOP instructions at random positions and fix up jump targets.
+static void vm_obfuscate_program(VmProgram *prog) {
+    int n = prog->count;
+    if (n <= 3) return;
+
+    int extra = n / 4 + 1;
+    if (extra > 20) extra = 20;
+    int new_count = n + extra;
+
+    VmInstr *new_instrs = (VmInstr *)calloc((size_t)new_count, sizeof(VmInstr));
+    if (!new_instrs) return;
+
+    // Choose random NOP positions
+    char *is_nop = (char *)calloc((size_t)new_count, 1);
+    if (!is_nop) { free(new_instrs); return; }
+    int inserted = 0;
+    while (inserted < extra) {
+        int pos = rand() % new_count;
+        if (!is_nop[pos]) {
+            is_nop[pos] = 1;
+            inserted++;
+        }
+    }
+
+    // Build old→new index mapping and fill new array
+    int *old_to_new = (int *)malloc((size_t)n * sizeof(int));
+    if (!old_to_new) { free(new_instrs); free(is_nop); return; }
+    int src_i = 0;
+    for (int dst_i = 0; dst_i < new_count; dst_i++) {
+        if (is_nop[dst_i]) {
+            new_instrs[dst_i].op  = 0; // NOP
+            new_instrs[dst_i].rd  = (uint8_t)(rand() % 64);
+            new_instrs[dst_i].rs1 = (uint8_t)(rand() % 64);
+            new_instrs[dst_i].rs2 = (uint8_t)(rand() % 64);
+            new_instrs[dst_i].imm = rand();
+        } else {
+            new_instrs[dst_i] = prog->instrs[src_i];
+            old_to_new[src_i] = dst_i;
+            src_i++;
+        }
+    }
+
+    // Fix jump targets (opcodes 30=JMP, 31=JMP_IF_TRUE, 32=JMP_IF_FALSE)
+    for (int i = 0; i < new_count; i++) {
+        if (new_instrs[i].op == 30 ||
+            new_instrs[i].op == 31 ||
+            new_instrs[i].op == 32) {
+            int old_target = new_instrs[i].imm;
+            if (old_target >= 0 && old_target < n) {
+                new_instrs[i].imm = old_to_new[old_target];
+            }
+        }
+    }
+
+    free(prog->instrs);
+    free(is_nop);
+    free(old_to_new);
+    prog->instrs = new_instrs;
+    prog->count = new_count;
+}
+
 ExitCode protect_file(const char *input, const char *output,
                       Algorithm algo, const char *key,
                       const char *obf_techniques,
-                      const char *anti_analysis) {
+                      const char *anti_analysis,
+                      int compress_algo, int compress_level,
+                      int use_vm) {
     int sa_id = stub_algo_id(algo);
     if (sa_id < 0) {
         fprintf(stderr, "error: unsupported algorithm for protect\n");
@@ -632,15 +993,74 @@ ExitCode protect_file(const char *input, const char *output,
     srand((unsigned)(time(NULL) ^ (uintptr_t)sa_id ^ (uintptr_t)input ^ (uintptr_t)output));
     int xor_byte = rand_range(1, 254);
 
+    // ── anti-analysis assembly (with __S__ placeholder) ──
+    int use_debug = 0, use_hook = 0, use_scramble = 0, use_opaque = 0;
+    if (anti_analysis && anti_analysis[0]) {
+        const char *p = anti_analysis;
+        while (*p) {
+            while (*p == ' ' || *p == ',') p++;
+            if      (strncmp(p, "debug", 5) == 0) { use_debug = 1; p += 5; }
+            else if (strncmp(p, "hook",  4) == 0) { use_hook  = 1; p += 4; }
+            else if (strncmp(p, "scramble", 8) == 0) { use_scramble = 1; p += 8; }
+            else if (strncmp(p, "opaque", 6) == 0) { use_opaque = 1; p += 6; }
+            else if (strncmp(p, "all", 3) == 0) { use_debug = use_hook = use_scramble = use_opaque = 1; p += 3; }
+            else    { while (*p && *p != ',') p++; }
+        }
+    }
+
     FileBuffer buf;
     ExitCode ret = file_read(input, &buf);
     if (ret != EXIT_OK) return ret;
 
     Buffer obf_buf = {0};
+    Buffer exec_buf = {0};
+    Buffer vm_buf_src = {0};
     unsigned char *src_data = buf.data;
     size_t src_size = buf.size;
 
-    if (obf_techniques && obf_techniques[0]) {
+    int vm_obf_enabled = 0;
+
+    if (use_vm) {
+        if (obf_techniques && obf_techniques[0]) {
+            // VM + obf: split + obfuscate in one pipeline pass.
+            // Pipeline handles rename-only pass for name mapping, then
+            // applies remaining techniques to func defs only.
+            char obf_tmpl[] = "/tmp/crypto_vmobf_XXXXXX.py";
+            int obf_fd = mkstemps(obf_tmpl, 3);
+            if (obf_fd < 0) { file_buffer_free(&buf); return EXIT_ERR_CRYPTO; }
+            size_t slen = strlen(PYOBF_SCRIPT);
+            if (write(obf_fd, PYOBF_SCRIPT, slen) != (ssize_t)slen) {
+                close(obf_fd); unlink(obf_tmpl);
+                file_buffer_free(&buf); return EXIT_ERR_FILE;
+            }
+            close(obf_fd);
+
+            ret = vm_split_source((const char *)buf.data, buf.size,
+                                  obf_tmpl, obf_techniques,
+                                  &exec_buf, &vm_buf_src);
+            unlink(obf_tmpl);
+            if (ret != EXIT_OK) {
+                fprintf(stderr, "[vm] error: split+obf failed\n");
+                file_buffer_free(&buf);
+                return ret;
+            }
+            printf("[vm] split+obf: %s (%zu bytes exec + %zu bytes VM source)\n",
+                   obf_techniques, exec_buf.size, vm_buf_src.size);
+            vm_obf_enabled = 1;
+        } else {
+            // VM only (no obfuscation): clean split
+            ret = vm_split_source_clean((const char *)buf.data, buf.size,
+                                        &exec_buf, &vm_buf_src);
+            if (ret != EXIT_OK) {
+                fprintf(stderr, "[vm] error: clean split failed\n");
+                file_buffer_free(&buf);
+                return ret;
+            }
+            printf("[vm] split: %zu bytes exec + %zu bytes VM source\n",
+                   exec_buf.size, vm_buf_src.size);
+        }
+    } else if (obf_techniques && obf_techniques[0]) {
+        // Normal obfuscation (non-VM mode)
         ret = obfuscate_source((const char *)buf.data, buf.size,
                                 obf_techniques, &obf_buf);
         if (ret == EXIT_OK) {
@@ -653,27 +1073,98 @@ ExitCode protect_file(const char *input, const char *output,
         }
     }
 
+    int vm_xor_key = 0;
     size_t key_len = key ? strlen(key) : 0;
 
-    unsigned char hdr[HEADER_SIZE] = {1, 1, 0, 0};
-    hdr[2] = (unsigned char)sa_id;
+    unsigned char *pt = NULL;
+    size_t ptsz = 0;
+    Buffer vm_buf = {0};
 
-    uLongf cmax = compressBound(src_size);
-    Bytef *comp = (Bytef *)malloc(cmax);
-    if (!comp) { file_buffer_free(&buf); free(obf_buf.data); return EXIT_ERR_CRYPTO; }
-    uLongf csz = cmax;
-    if (compress(comp, &csz, src_data, src_size) != Z_OK) {
-        free(comp); file_buffer_free(&buf); free(obf_buf.data);
-        fprintf(stderr, "error: compression failed\n");
-        return EXIT_ERR_CRYPTO;
+    if (use_vm) {
+        // VM mode: compile VM source to VM bytecodes
+        VmProgram vm_prog;
+        vm_program_init(&vm_prog);
+
+        const char *vm_src = (const char *)(vm_buf_src.data ? vm_buf_src.data : src_data);
+        size_t vm_src_len = vm_buf_src.data ? vm_buf_src.size : src_size;
+
+        // Compile CLEAN VM source (always clean — no obfuscation in VM source)
+        ret = vm_compile_source(vm_src, vm_src_len, &vm_prog, use_opaque);
+        if (ret != EXIT_OK) {
+            fprintf(stderr, "[vm] error: VM compilation failed\n");
+            file_buffer_free(&buf); free(obf_buf.data);
+            free(exec_buf.data); free(vm_buf_src.data);
+            return ret;
+        }
+
+        // Obfuscate VM bytecode (if obfuscation enabled)
+        if (vm_obf_enabled) {
+            vm_obfuscate_program(&vm_prog);
+        }
+
+        // Always replace hot source with exec_source.
+        // When exec_source is empty (no function defs), exec() does nothing
+        // and only _vm_run executes module-level code (no duplicate).
+        free(vm_prog.hot_src);
+        vm_prog.hot_src = strdup(exec_buf.data ? (const char *)exec_buf.data : "");
+        if (!vm_prog.hot_src) {
+            vm_program_free(&vm_prog);
+            file_buffer_free(&buf); free(obf_buf.data);
+            free(exec_buf.data); free(vm_buf_src.data);
+            return EXIT_ERR_CRYPTO;
+        }
+
+        // Serialize VM program
+        ret = vm_serialize(&vm_prog, &vm_buf);
+        if (ret != EXIT_OK) {
+            vm_program_free(&vm_prog);
+            file_buffer_free(&buf); free(obf_buf.data);
+            free(exec_buf.data); free(vm_buf_src.data);
+            return ret;
+        }
+
+        // XOR-encrypt the serialized VM data (if obfuscation enabled)
+        if (vm_obf_enabled) {
+            vm_xor_key = rand_range(1, 255);
+            for (size_t i = 0; i < vm_buf.size; i++) {
+                vm_buf.data[i] ^= (unsigned char)vm_xor_key;
+            }
+            printf("[vm] XOR-encrypted VM data with key %d\n", vm_xor_key);
+        }
+
+        printf("[vm] compiled %zu bytes -> %zu bytes VM (%d instrs, %d consts, %d names)\n",
+               vm_src_len, vm_buf.size, vm_prog.count, vm_prog.const_count, vm_prog.name_count);
+
+        // Build header: version=2 for VM mode
+        unsigned char hdr[HEADER_SIZE] = {2, (unsigned char)compress_algo, (unsigned char)sa_id, 0};
+        ptsz = HEADER_SIZE + vm_buf.size;
+        pt = (unsigned char *)malloc(ptsz);
+        if (!pt) {
+            free(vm_buf.data); vm_program_free(&vm_prog);
+            file_buffer_free(&buf); free(obf_buf.data);
+            free(exec_buf.data); free(vm_buf_src.data);
+            return EXIT_ERR_CRYPTO;
+        }
+        memcpy(pt, hdr, HEADER_SIZE);
+        memcpy(pt + HEADER_SIZE, vm_buf.data, vm_buf.size);
+        vm_program_free(&vm_prog);
+    } else {
+        // Normal mode: compress source
+        Buffer comp = {0};
+        ret = compress_data(src_data, src_size, compress_algo, compress_level, &comp);
+        if (ret != EXIT_OK) {
+            file_buffer_free(&buf); free(obf_buf.data);
+            return ret;
+        }
+
+        unsigned char hdr[HEADER_SIZE] = {1, (unsigned char)compress_algo, (unsigned char)sa_id, 0};
+        ptsz = HEADER_SIZE + comp.size;
+        pt = (unsigned char *)malloc(ptsz);
+        if (!pt) { free(comp.data); file_buffer_free(&buf); free(obf_buf.data); return EXIT_ERR_CRYPTO; }
+        memcpy(pt, hdr, HEADER_SIZE);
+        memcpy(pt + HEADER_SIZE, comp.data, comp.size);
+        free(comp.data);
     }
-
-    size_t ptsz = HEADER_SIZE + csz;
-    unsigned char *pt = (unsigned char *)malloc(ptsz);
-    if (!pt) { free(comp); file_buffer_free(&buf); free(obf_buf.data); return EXIT_ERR_CRYPTO; }
-    memcpy(pt, hdr, HEADER_SIZE);
-    memcpy(pt + HEADER_SIZE, comp, csz);
-    free(comp);
 
     Buffer enc = {0};
     switch (algo) {
@@ -715,12 +1206,12 @@ ExitCode protect_file(const char *input, const char *output,
             break;
     }
     free(pt);
-    if (ret != EXIT_OK) { file_buffer_free(&buf); free(obf_buf.data); return ret; }
+    if (ret != EXIT_OK) { file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data); return ret; }
 
     Buffer b64 = {0};
     ret = base64_encode(enc.data, enc.size, &b64);
     free(enc.data);
-    if (ret != EXIT_OK) { file_buffer_free(&buf); free(obf_buf.data); return ret; }
+    if (ret != EXIT_OK) { file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data); return ret; }
 
     char algo_id[12];
     snprintf(algo_id, sizeof(algo_id), "%d", sa_id);
@@ -730,28 +1221,17 @@ ExitCode protect_file(const char *input, const char *output,
     if (needs_key(algo)) {
         obf_len = key_len * 2;
         obf_key = (char *)malloc(obf_len + 1);
-        if (!obf_key) { free(b64.data); file_buffer_free(&buf); free(obf_buf.data); return EXIT_ERR_CRYPTO; }
+        if (!obf_key) { free(b64.data); file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data); return EXIT_ERR_CRYPTO; }
         key_obfuscate(key, key_len, xor_byte, obf_key);
     } else {
         obf_key = (char *)malloc(1);
-        if (!obf_key) { free(b64.data); file_buffer_free(&buf); free(obf_buf.data); return EXIT_ERR_CRYPTO; }
+        if (!obf_key) { free(b64.data); file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data); return EXIT_ERR_CRYPTO; }
         obf_key[0] = '\0';
         obf_len = 0;
     }
 
-    // ── anti-analysis assembly (with __S__ placeholder) ──
-    int use_debug = 0, use_hook = 0;
-    if (anti_analysis && anti_analysis[0]) {
-        const char *p = anti_analysis;
-        while (*p) {
-            while (*p == ' ' || *p == ',') p++;
-            if      (strncmp(p, "debug", 5) == 0) { use_debug = 1; p += 5; }
-            else if (strncmp(p, "hook",  4) == 0) { use_hook  = 1; p += 4; }
-            else    { while (*p && *p != ',') p++; }
-        }
-    }
-
     char anti_buf[4096];
+    // ── build anti-analysis buffer ──
     size_t anti_pos = 0;
     if (use_debug) {
         size_t sl = strlen(ANTI_DEBUG_CODE);
@@ -776,10 +1256,13 @@ ExitCode protect_file(const char *input, const char *output,
     srand((unsigned)(time(NULL) ^ (uintptr_t)&stub_buf));
     ret = generate_stub((const char *)b64.data, b64.size,
                          algo_id, obf_key, obf_len,
-                         anti_code, anti_len, xor_byte, &stub_buf);
+                         anti_code, anti_len, xor_byte, compress_algo,
+                         use_vm, use_scramble,
+                         vm_xor_key,
+                         &stub_buf);
     free(b64.data); free(obf_key);
     if (ret != EXIT_OK) {
-        file_buffer_free(&buf); free(obf_buf.data);
+        file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data);
         return ret;
     }
 
@@ -789,13 +1272,13 @@ ExitCode protect_file(const char *input, const char *output,
     FILE *f = fopen(output, "w");
     if (!f) {
         fprintf(stderr, "error: cannot write '%s'\n", output);
-        free(stub_buf.data); file_buffer_free(&buf); free(obf_buf.data);
+        free(stub_buf.data); file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data);
         return EXIT_ERR_FILE;
     }
     size_t written = fwrite(stub_buf.data, 1, stub_buf.size, f);
     fclose(f);
 
-    free(stub_buf.data); file_buffer_free(&buf); free(obf_buf.data);
+    free(stub_buf.data); file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data);
 
     if (written != stub_buf.size) {
         fprintf(stderr, "error: failed to write '%s'\n", output);

@@ -1,6 +1,7 @@
 #include "cli/cli.h"
 #include "cli/protect.h"
 #include "crypto/common.h"
+#include "crypto/compress.h"
 #include "encode/encoder.h"
 #include "crypto/cipher.h"
 
@@ -44,10 +45,23 @@ static void print_usage(void) {
     printf("      --keyenv <var>      Read key from environment variable\n");
     printf("      --keygen [<len>]    Generate random key (default 32, max 1024)\n");
     printf("      --obf <tech>        Obfuscation techniques: rename,strings,\n");
-    printf("                          vstrings,cleanup,flow,aflow,junk,\n");
-    printf("                          mutate,all (comma-separated, protect only)\n");
+    printf("                          vstrings,cleanup,flow,aflow,opaque,\n");
+    printf("                          mutate,mba,junk,apihash,funcenc,all\n");
+    printf("                          (comma-separated, protect only)\n");
+    printf("      --obf-none <tech>   Enable all obfuscation EXCEPT <tech>\n");
+    printf("                          (mutually exclusive with --obf)\n");
     printf("      --anti-analysis <t> Anti-analysis protection: debug,\n");
-    printf("                          hook (comma-separated, protect only)\n");
+    printf("                          hook, scramble, opaque (comma-separated,\n");
+    printf("                          protect only)\n");
+    printf("      --compress <algo>   Compression algorithm: zlib, lzma, bz2,\n");
+    printf("                          brotli, zstd, gzip, lz4, snappy,\n");
+    printf("                          zopfli, blosc (default: zlib for protect,\n");
+    printf("                          none for encode/encrypt)\n");
+    printf("      --compress-level <n> Compression level (1-9, default 6)\n");
+    printf("      --no-compress       Disable compression\n");
+    printf("      --vm                Enable Register VM protection\n");
+    printf("                          (when --vm is active, --obf all uses\n");
+    printf("                          full obfuscation via code-split pipeline)\n");
     printf("  -o, --output <file>     Output file\n");
     printf("  -v, --version           Show version\n");
     printf("  -h, --help              Show this help\n");
@@ -112,7 +126,8 @@ static int is_valid_obf_techniques(const char *s) {
     if (sl >= sizeof(buf)) return 0;
     memcpy(buf, s, sl + 1);
     const char *valid[] = {"rename","strings","vstrings","cleanup",
-                           "flow","aflow","junk","mutate","all", NULL};
+                           "flow","aflow","opaque","junk","mutate",
+                           "mba","apihash","funcenc","all", NULL};
     char *tok = strtok(buf, ",");
     if (!tok) return 0;
     while (tok) {
@@ -124,6 +139,23 @@ static int is_valid_obf_techniques(const char *s) {
         tok = strtok(NULL, ",");
     }
     return 1;
+}
+
+static const char *build_except_techniques(const char *exclude) {
+    static char buf[256];
+    const char *valid[] = {"rename","strings","vstrings","cleanup",
+                           "flow","aflow","opaque","junk","mutate",
+                           "mba","apihash","funcenc","all", NULL};
+    buf[0] = '\0';
+    int first = 1;
+    for (int i = 0; valid[i]; i++) {
+        if (strcmp(valid[i], "all") == 0) continue;
+        if (strcmp(valid[i], exclude) == 0) continue;
+        if (!first) strcat(buf, ",");
+        strcat(buf, valid[i]);
+        first = 0;
+    }
+    return buf;
 }
 
 static CommandMode parse_command(const char *arg) {
@@ -198,9 +230,14 @@ int cli_run(int argc, char **argv) {
     const char *keyfile  = NULL;
     const char *keyenv   = NULL;
     const char *obf_tech = NULL;
+    const char *obf_none = NULL;
     const char *anti_analysis = NULL;
     int keygen = 0;
     int keylen = 32;
+    int compress_algo = COMPRESS_ID_NONE;
+    int compress_level = 6;
+    int compress_set = 0;
+    int use_vm = 0;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) {
@@ -228,15 +265,65 @@ int cli_run(int argc, char **argv) {
             }
         } else if (strcmp(argv[i], "--obf") == 0) {
             if (i + 1 >= argc) { fprintf(stderr, "error: --obf requires techniques\n"); return EXIT_ERR_ARGS; }
+            if (obf_none) {
+                fprintf(stderr, "error: --obf and --obf-none are mutually exclusive\n");
+                return EXIT_ERR_ARGS;
+            }
             const char *tech = argv[++i];
             if (!is_valid_obf_techniques(tech)) {
-                fprintf(stderr, "error: invalid --obf techniques '%s'. Valid: rename,strings,vstrings,cleanup,flow,aflow,junk,mutate,all\n", tech);
+                fprintf(stderr, "error: invalid --obf techniques '%s'. Valid: rename,strings,vstrings,cleanup,flow,aflow,opaque,mutate,mba,junk,apihash,funcenc,all\n", tech);
                 return EXIT_ERR_ARGS;
             }
             obf_tech = tech;
+        } else if (strcmp(argv[i], "--obf-none") == 0) {
+            if (i + 1 >= argc) { fprintf(stderr, "error: --obf-none requires a technique\n"); return EXIT_ERR_ARGS; }
+            if (obf_tech) {
+                fprintf(stderr, "error: --obf-none and --obf are mutually exclusive\n");
+                return EXIT_ERR_ARGS;
+            }
+            const char *tech = argv[++i];
+            if (strchr(tech, ',')) {
+                fprintf(stderr, "error: --obf-none accepts only one technique (no commas)\n");
+                return EXIT_ERR_ARGS;
+            }
+            if (!is_valid_obf_techniques(tech)) {
+                fprintf(stderr, "error: invalid --obf-none technique '%s'. Valid: rename,strings,vstrings,cleanup,flow,aflow,opaque,junk,mutate,mba,apihash,funcenc\n", tech);
+                return EXIT_ERR_ARGS;
+            }
+            if (strcmp(tech, "all") == 0) {
+                fprintf(stderr, "error: --obf-none all would mean no obfuscation; use --obf none\n");
+                return EXIT_ERR_ARGS;
+            }
+            obf_none = tech;
         } else if (strcmp(argv[i], "--anti-analysis") == 0) {
-            if (i + 1 >= argc) { fprintf(stderr, "error: --anti-analysis requires debug,hook\n"); return EXIT_ERR_ARGS; }
+            if (i + 1 >= argc) { fprintf(stderr, "error: --anti-analysis requires debug,hook,scramble,opaque\n"); return EXIT_ERR_ARGS; }
             anti_analysis = argv[++i];
+        } else if (strcmp(argv[i], "--compress") == 0) {
+            if (i + 1 >= argc) { fprintf(stderr, "error: --compress requires an algorithm name\n"); return EXIT_ERR_ARGS; }
+            const char *name = argv[++i];
+            if (strcmp(name, "zlib") == 0)   compress_algo = COMPRESS_ID_ZLIB;
+            else if (strcmp(name, "lzma") == 0)  compress_algo = COMPRESS_ID_LZMA;
+            else if (strcmp(name, "bz2") == 0)   compress_algo = COMPRESS_ID_BZ2;
+            else if (strcmp(name, "brotli") == 0) compress_algo = COMPRESS_ID_BROTLI;
+            else if (strcmp(name, "zstd") == 0)  compress_algo = COMPRESS_ID_ZSTD;
+            else if (strcmp(name, "gzip") == 0)  compress_algo = COMPRESS_ID_GZIP;
+            else if (strcmp(name, "lz4") == 0)   compress_algo = COMPRESS_ID_LZ4;
+            else if (strcmp(name, "snappy") == 0) compress_algo = COMPRESS_ID_SNAPPY;
+            else if (strcmp(name, "zopfli") == 0) compress_algo = COMPRESS_ID_ZOPFLI;
+            else if (strcmp(name, "blosc") == 0)  compress_algo = COMPRESS_ID_BLOSC;
+            else if (strcmp(name, "none") == 0)   compress_algo = COMPRESS_ID_NONE;
+            else { fprintf(stderr, "error: unknown compression algorithm '%s'\n", name); return EXIT_ERR_ARGS; }
+            compress_set = 1;
+        } else if (strcmp(argv[i], "--compress-level") == 0) {
+            if (i + 1 >= argc) { fprintf(stderr, "error: --compress-level requires a number\n"); return EXIT_ERR_ARGS; }
+            int n = atoi(argv[++i]);
+            if (n < 1 || n > 9) { fprintf(stderr, "error: --compress-level must be 1-9\n"); return EXIT_ERR_ARGS; }
+            compress_level = n;
+        } else if (strcmp(argv[i], "--no-compress") == 0) {
+            compress_algo = COMPRESS_ID_NONE;
+            compress_set = 1;
+        } else if (strcmp(argv[i], "--vm") == 0) {
+            use_vm = 1;
         } else if (argv[i][0] != '-') {
             CommandMode m = parse_command(argv[i]);
             if (mode == MODE_UNKNOWN && m != MODE_UNKNOWN) {
@@ -277,6 +364,12 @@ int cli_run(int argc, char **argv) {
     if (algo == ALGO_NONE) {
         fprintf(stderr, "error: could not determine algorithm\n");
         return EXIT_ERR_ARGS;
+    }
+
+    // Default compression: zlib for protect, none for encode/encrypt
+    if (!compress_set) {
+        if (mode == MODE_PROTECT)
+            compress_algo = COMPRESS_ID_ZLIB;
     }
 
     const char *key = NULL;
@@ -334,11 +427,17 @@ int cli_run(int argc, char **argv) {
 
     ExitCode ret;
     switch (mode) {
-        case MODE_ENCODE:  ret = encode_file(input, output, algo, key);  break;
+        case MODE_ENCODE:  ret = encode_file(input, output, algo, key, compress_algo, compress_level);  break;
         case MODE_DECODE:  ret = decode_file(input, output, algo, key);  break;
-        case MODE_ENCRYPT: ret = encrypt_file(input, output, algo, key); break;
+        case MODE_ENCRYPT: ret = encrypt_file(input, output, algo, key, compress_algo, compress_level); break;
         case MODE_DECRYPT: ret = decrypt_file(input, output, algo, key); break;
-        case MODE_PROTECT: ret = protect_file(input, output, algo, key, obf_tech, anti_analysis); break;
+        case MODE_PROTECT: {
+            const char *techs = obf_none ? build_except_techniques(obf_none) : obf_tech;
+            ret = protect_file(input, output, algo, key, techs,
+                               anti_analysis, compress_algo,
+                               compress_level, use_vm);
+            break;
+        }
         default:           ret = EXIT_ERR_ARGS;                           break;
     }
 

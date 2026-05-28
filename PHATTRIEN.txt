@@ -1,0 +1,29 @@
+==============================================================================
+  CRYPTO v1.1.0 - KẾ HOẠCH PHÁT TRIỂN KỸ THUẬT LÀM RỐI (OBFUSCATION)
+==============================================================================
+
+1. CÁC KỸ THUẬT LÀM RỐI MẠNH (OBFUSCATION TECHNIQUES)
+
+1.1. Mixed Boolean-Arithmetic (MBA)
+     Biến đổi biểu thức toán học thành dạng hỗn hợp logic bitwise phức tạp.
+
+1.2. On-the-Fly Function Decryption
+     Giải mã hàm động tại runtime, tránh lưu mã nguồn sạch trong RAM.
+
+1.3. State-Variable Encoding & Opaque Constants
+     Mã hóa biến trạng thái trong Control Flow Flattening.
+
+1.4. API Hashing & Dynamic Import Obfuscation
+     Làm rối import thư viện thông qua mã băm API, ẩn dấu vết statically.
+
+1.5. Decompiler-Breaker
+     Chèn bytecode làm crash các công cụ dịch ngược Python phổ biến.
+
+1.6. Time-locked & Environmental Keying
+     Ràng buộc khóa giải mã với môi trường phần cứng hoặc thời gian thực.
+
+2. LỘ TRÌNH PHÁT TRIỂN ƯU TIÊN
+
+- Ưu tiên 1: API Hashing & Dynamic Import Obfuscation (Tận dụng AST hiện tại)
+- Ưu tiên 2: On-the-Fly Function Decryption (Tăng cường bảo vệ bộ nhớ)
+- Ưu tiên 3: Tích hợp MBA vào bộ biên dịch bytecode của VM
