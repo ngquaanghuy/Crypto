@@ -408,3 +408,63 @@ TEST_CASE("large buffer roundtrip (64KB)") {
 
     free(raw);
 }
+
+// ─── Rolling XOR ─────────────────────────────────────────────────────────────────
+
+TEST_CASE("rolling-xor roundtrip") {
+    const char *input = "rolling xor secret data!";
+    size_t ilen = strlen(input);
+    const char *key = "rollkey";
+
+    Buffer enc = {0}, dec = {0};
+    CHECK(rolling_xor_encrypt((const unsigned char *)input, ilen,
+                             (const unsigned char *)key, strlen(key), &enc) == EXIT_OK);
+    CHECK(enc.size == ilen);
+
+    CHECK(rolling_xor_decrypt(enc.data, enc.size,
+                             (const unsigned char *)key, strlen(key), &dec) == EXIT_OK);
+    CHECK(dec.size == ilen);
+    CHECK(memcmp(input, dec.data, ilen) == 0);
+
+    free(enc.data); free(dec.data);
+}
+
+// ─── Multi-pass XOR ──────────────────────────────────────────────────────────────
+
+TEST_CASE("multi-pass-xor roundtrip") {
+    const char *input = "multi-pass xor secret data!";
+    size_t ilen = strlen(input);
+    const char *key = "multipass";
+    int passes[] = {1, 3, 5, 10};
+
+    for (int p : passes) {
+        Buffer enc = {0}, dec = {0};
+        REQUIRE(multi_pass_xor_encrypt((const unsigned char *)input, ilen,
+                                      (const unsigned char *)key, strlen(key), p, &enc) == EXIT_OK);
+        REQUIRE(multi_pass_xor_decrypt(enc.data, enc.size,
+                                      (const unsigned char *)key, strlen(key), p, &dec) == EXIT_OK);
+        CHECK(dec.size == ilen);
+        CHECK(memcmp(input, dec.data, ilen) == 0);
+        free(enc.data); free(dec.data);
+    }
+}
+
+// ─── PRNG XOR ────────────────────────────────────────────────────────────────────
+
+TEST_CASE("prng-xor roundtrip") {
+    const char *input = "prng xor secret data!";
+    size_t ilen = strlen(input);
+    const char *key = "prngkey";
+
+    Buffer enc = {0}, dec = {0};
+    CHECK(prng_xor_encrypt((const unsigned char *)input, ilen,
+                          (const unsigned char *)key, strlen(key), &enc) == EXIT_OK);
+    CHECK(enc.size > ilen);
+
+    CHECK(prng_xor_decrypt(enc.data, enc.size,
+                          (const unsigned char *)key, strlen(key), &dec) == EXIT_OK);
+    CHECK(dec.size == ilen);
+    CHECK(memcmp(input, dec.data, ilen) == 0);
+
+    free(enc.data); free(dec.data);
+}
