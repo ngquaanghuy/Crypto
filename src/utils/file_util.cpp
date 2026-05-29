@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <dirent.h>
 
 ExitCode file_read(const char *path, FileBuffer *buf) {
     buf->data = NULL;
@@ -68,4 +70,38 @@ void file_buffer_free(FileBuffer *buf) {
         buf->data = NULL;
         buf->size = 0;
     }
+}
+
+char *tmpdir_create(void) {
+    char tmpl[] = "/tmp/crypto_XXXXXX";
+    char *dir = mkdtemp(tmpl);
+    if (!dir) {
+        fprintf(stderr, "error: failed to create temp directory\n");
+        return NULL;
+    }
+    return strdup(dir);
+}
+
+void tmpdir_destroy(char *dir_path) {
+    if (!dir_path) return;
+    DIR *d = opendir(dir_path);
+    if (d) {
+        struct dirent *e;
+        while ((e = readdir(d)) != NULL) {
+            if (e->d_name[0] == '.') continue;
+            char *p = tmpdir_path(dir_path, e->d_name);
+            if (p) { unlink(p); free(p); }
+        }
+        closedir(d);
+    }
+    rmdir(dir_path);
+    free(dir_path);
+}
+
+char *tmpdir_path(const char *dir_path, const char *name) {
+    size_t len = strlen(dir_path) + 1 + strlen(name) + 1;
+    char *p = (char *)malloc(len);
+    if (!p) return NULL;
+    snprintf(p, len, "%s/%s", dir_path, name);
+    return p;
 }

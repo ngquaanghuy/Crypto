@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <fcntl.h>
 #include "crypto/compress.h"
@@ -933,33 +934,6 @@ static int stub_algo_id(Algorithm algo) {
     }
 }
 
-static const char *algo_name(Algorithm algo) {
-    switch (algo) {
-        case ALGO_AES_ECB:  return "aes-256-ecb";
-        case ALGO_AES_CBC:  return "aes-256-cbc";
-        case ALGO_AES_CTR:  return "aes-256-ctr";
-        case ALGO_AES_GCM:  return "aes-256-gcm";
-        case ALGO_ROLLING_XOR: return "rolling-xor";
-        case ALGO_MULTI_PASS_XOR: return "multi-pass-xor";
-        case ALGO_PRNG_XOR: return "prng-xor";
-        case ALGO_CHACHA20: return "chacha20";
-        case ALGO_XOR:      return "xor";
-        case ALGO_BASE64:   return "base64";
-        case ALGO_BASE32:   return "base32";
-        case ALGO_BASE85:   return "base85";
-        case ALGO_ASCII85:  return "ascii85";
-        case ALGO_HEX:      return "hex";
-        default:            return "?";
-    }
-}
-
-static int needs_key(Algorithm algo) {
-    return algo == ALGO_AES_ECB || algo == ALGO_AES_CBC ||
-           algo == ALGO_AES_CTR || algo == ALGO_AES_GCM ||
-           algo == ALGO_CHACHA20 || algo == ALGO_XOR || algo == ALGO_ROLLING_XOR ||
-           algo == ALGO_MULTI_PASS_XOR || algo == ALGO_PRNG_XOR;
-}
-
 // Run python3 with arguments, redirecting stdio to the given files.
 // argv must contain the argument vector starting after "python3" (i.e.,
 // argv[0] = script path, argv[1..] = script args). argv must be NULL-terminated.
@@ -1003,53 +977,69 @@ static int run_python3(const char **argv,
 
 static ExitCode obfuscate_source(const char *src, size_t src_len,
                                   const char *techniques,
-                                  Buffer *out) {
-    char obf_tmpl[] = "/tmp/crypto_obf_XXXXXX.py";
-    char in_tmpl[]  = "/tmp/crypto_in_XXXXXX.py";
-    char out_tmpl[] = "/tmp/crypto_out_XXXXXX.py";
+                                  Buffer *out, int seed = -1) {
+    char *tmpdir = tmpdir_create();
+    char *obf_path = NULL, *in_path = NULL, *out_path = NULL;
+    int obf_fd = -1, in_fd = -1, out_fd = -1;
+    off_t fsz = 0;
+    ExitCode ret_err = EXIT_ERR_CRYPTO;
 
-    int obf_fd = mkstemps(obf_tmpl, 3);
-    int in_fd  = mkstemps(in_tmpl, 3);
-    int out_fd = mkstemps(out_tmpl, 3);
-    int have_fds = (obf_fd >= 0 && in_fd >= 0 && out_fd >= 0) ? 1 : 0;
+    if (!tmpdir) return EXIT_ERR_CRYPTO;
 
-    if (!have_fds) {
-        if (obf_fd >= 0) { close(obf_fd); unlink(obf_tmpl); }
-        if (in_fd >= 0)  { close(in_fd);  unlink(in_tmpl); }
-        if (out_fd >= 0) { close(out_fd); unlink(out_tmpl); }
-        return EXIT_ERR_CRYPTO;
-    }
+    obf_path = tmpdir_path(tmpdir, "obf.py");
+    in_path  = tmpdir_path(tmpdir, "in.py");
+    out_path = tmpdir_path(tmpdir, "out");
+    if (!obf_path || !in_path || !out_path) goto obf_cleanup;
 
+    obf_fd = open(obf_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    in_fd  = open(in_path,  O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    out_fd = open(out_path, O_RDWR   | O_CREAT | O_TRUNC, 0600);
+    if (obf_fd < 0 || in_fd < 0 || out_fd < 0) goto obf_cleanup;
+
+    {
     size_t slen = strlen(PYOBF_SCRIPT);
     if (write(obf_fd, PYOBF_SCRIPT, slen) != (ssize_t)slen ||
         write(in_fd, src, src_len) != (ssize_t)src_len) {
-        close(obf_fd); close(in_fd); close(out_fd);
-        unlink(obf_tmpl); unlink(in_tmpl); unlink(out_tmpl);
-        return EXIT_ERR_FILE;
+        ret_err = EXIT_ERR_FILE; goto obf_cleanup;
     }
-    close(obf_fd); close(in_fd);
-
-    const char *argv[] = {obf_tmpl, techniques, NULL};
-    if (run_python3(argv, in_tmpl, out_tmpl, NULL) != 0) {
-        close(out_fd); unlink(obf_tmpl); unlink(in_tmpl); unlink(out_tmpl);
-        return EXIT_ERR_CRYPTO;
     }
 
-    off_t fsz = lseek(out_fd, 0, SEEK_END);
-    if (fsz <= 0) { close(out_fd); unlink(obf_tmpl); unlink(in_tmpl); unlink(out_tmpl); return EXIT_ERR_CRYPTO; }
+    close(obf_fd); obf_fd = -1;
+    close(in_fd);  in_fd  = -1;
+
+    {
+    char seed_arg[16] = {0};
+    const char *argv[4] = {obf_path, techniques, NULL, NULL};
+    if (seed >= 0) {
+        snprintf(seed_arg, sizeof(seed_arg), "%d", seed);
+        argv[2] = seed_arg;
+    }
+    if (run_python3(argv, in_path, out_path, NULL) != 0)
+        goto obf_cleanup;
+    }
+
+    fsz = lseek(out_fd, 0, SEEK_END);
+    if (fsz <= 0) goto obf_cleanup;
     lseek(out_fd, 0, SEEK_SET);
 
     out->data = (unsigned char *)malloc((size_t)fsz + 1);
-    if (!out->data) { close(out_fd); unlink(obf_tmpl); unlink(in_tmpl); unlink(out_tmpl); return EXIT_ERR_CRYPTO; }
+    if (!out->data) goto obf_cleanup;
 
+    {
     ssize_t nr = read(out_fd, out->data, (size_t)fsz);
-    if (nr != fsz) { free(out->data); out->data = NULL; close(out_fd); unlink(obf_tmpl); unlink(in_tmpl); unlink(out_tmpl); return EXIT_ERR_FILE; }
+    if (nr != fsz) { free(out->data); out->data = NULL; ret_err = EXIT_ERR_FILE; goto obf_cleanup; }
     out->data[nr] = '\0';
     out->size = (size_t)nr;
+    }
+    ret_err = EXIT_OK;
 
-    close(out_fd);
-    unlink(obf_tmpl); unlink(in_tmpl); unlink(out_tmpl);
-    return EXIT_OK;
+obf_cleanup:
+    if (obf_fd >= 0) close(obf_fd);
+    if (in_fd  >= 0) close(in_fd);
+    if (out_fd >= 0) close(out_fd);
+    free(obf_path); free(in_path); free(out_path);
+    tmpdir_destroy(tmpdir);
+    return ret_err;
 }
 
 static ExitCode vm_split_source(const char *src, size_t src_len,
@@ -1236,13 +1226,13 @@ ExitCode protect_file(const char *input, const char *output,
                       const char *obf_techniques,
                       const char *anti_analysis,
                       int compress_algo, int compress_level,
-                      int use_vm) {
+                      int use_vm, int obf_seed) {
     int sa_id = stub_algo_id(algo);
     if (sa_id < 0) {
         fprintf(stderr, "error: unsupported algorithm for protect\n");
         return EXIT_ERR_ARGS;
     }
-    if (needs_key(algo) && (!key || strlen(key) == 0)) {
+    if (algo_needs_key(algo) && (!key || strlen(key) == 0)) {
         fprintf(stderr, "error: protect requires a non-empty key for this algorithm\n");
         return EXIT_ERR_ARGS;
     }
@@ -1319,7 +1309,7 @@ ExitCode protect_file(const char *input, const char *output,
     } else if (obf_techniques && obf_techniques[0]) {
         // Normal obfuscation (non-VM mode)
         ret = obfuscate_source((const char *)buf.data, buf.size,
-                                 obf_techniques, &obf_buf);
+                                 obf_techniques, &obf_buf, obf_seed);
         if (ret == EXIT_OK) {
             printf("[obf] obfuscated with: %s (%zu -> %zu bytes)\n",
                    obf_techniques, buf.size, obf_buf.size);
@@ -1564,7 +1554,7 @@ ExitCode protect_file(const char *input, const char *output,
 
     char *obf_key = NULL;
     size_t obf_len = 0;
-    if (needs_key(algo)) {
+    if (algo_needs_key(algo)) {
         obf_len = key_len * 2;
         obf_key = (char *)malloc(obf_len + 1);
         if (!obf_key) { free(b64.data); file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data); return EXIT_ERR_CRYPTO; }

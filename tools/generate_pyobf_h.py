@@ -18,9 +18,13 @@ def _cli_code():
 if __name__ == '__main__':
     techniques = [t.strip() for t in sys.argv[1].split(',')] \\
         if len(sys.argv) > 1 else ['all']
+    seed = int(sys.argv[2]) if len(sys.argv) > 2 else None
 
     source = sys.stdin.read()
     has_all = 'all' in techniques
+
+    if seed is not None:
+        random.seed(seed)
 
     if has_all or 'cleanup' in techniques:
         source = cleanup_code(source)

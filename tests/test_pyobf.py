@@ -289,6 +289,40 @@ print(f())
 '''
         _check('all', src, '-1\n', 'exception')
 
+    def test_match_case(self):
+        src = '''def f(val):
+    match val:
+        case 'hello':
+            return 1
+        case n:
+            return n
+'''
+        obf = _apply('rename', src)
+        try:
+            compile(obf, '<test>', 'exec')
+        except SyntaxError as e:
+            self.fail(f'match/case rename produced invalid syntax: {e}')
+
+    def test_type_alias(self):
+        src = 'type Point = tuple[int, int]\nx = Point\n'
+        obf = _apply('rename', src)
+        try:
+            compile(obf, '<test>', 'exec')
+        except SyntaxError as e:
+            self.fail(f'type alias rename produced invalid syntax: {e}')
+
+    def test_trystar(self):
+        src = '''try:
+    pass
+except* ValueError as e:
+    print(e)
+'''
+        obf = _apply('rename', src)
+        try:
+            compile(obf, '<test>', 'exec')
+        except SyntaxError as e:
+            self.fail(f'trystar rename produced invalid syntax: {e}')
+
     def test_empty_file(self):
         src = ''
         obf = _apply('rename', src)

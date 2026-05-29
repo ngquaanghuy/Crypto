@@ -11,18 +11,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char *algo_name(Algorithm algo) {
-    switch (algo) {
-        case ALGO_BASE64:  return "base64";
-        case ALGO_BASE32:  return "base32";
-        case ALGO_BASE85:  return "base85";
-        case ALGO_ASCII85: return "ascii85";
-        case ALGO_HEX:     return "hex";
-        case ALGO_XOR:     return "xor";
-        default:           return "none";
-    }
-}
-
 static ExitCode dispatch_encode(const unsigned char *data, size_t size,
                                 Algorithm algo, const unsigned char *key,
                                 size_t key_size, Buffer *out) {
@@ -70,6 +58,11 @@ ExitCode encode_file(const char *input, const char *output,
     ExitCode ret = file_read(input, &buf);
     if (ret != EXIT_OK) return ret;
 
+    // Progress indicator for large files
+    const size_t PROGRESS_THRESHOLD = 65536;
+    if (buf.size >= PROGRESS_THRESHOLD)
+        fprintf(stderr, "\r  [encode] processing %zu bytes...", buf.size);
+
     // Compress with header
     Buffer comp = {0};
     if (compress_algo > COMPRESS_ID_NONE) {
@@ -91,6 +84,9 @@ ExitCode encode_file(const char *input, const char *output,
     free(comp.data);
 
     size_t key_size = key ? strlen(key) : 0;
+
+    if (buf.size >= PROGRESS_THRESHOLD)
+        fprintf(stderr, "\r  [encode] encoding...");
 
     Buffer out = {NULL, 0};
     ret = dispatch_encode(pt, ptsz, algo,
@@ -120,9 +116,13 @@ ExitCode decode_file(const char *input, const char *output,
 
     size_t key_size = key ? strlen(key) : 0;
 
+    const size_t PROGRESS_THRESHOLD = 65536;
+    if (buf.size >= PROGRESS_THRESHOLD)
+        fprintf(stderr, "\r  [decode] decoding %zu bytes...", buf.size);
+
     Buffer out = {NULL, 0};
     ret = dispatch_decode(buf.data, buf.size, algo,
-                          (const unsigned char *)key, key_size, &out);
+                           (const unsigned char *)key, key_size, &out);
     if (ret != EXIT_OK) {
         file_buffer_free(&buf);
         return ret;

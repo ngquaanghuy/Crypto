@@ -40,40 +40,20 @@ for _name in dir(_pyobf_core):
 del _globals, _name, _core_dir
 
 if __name__ == '__main__':
-    techniques = [t.strip() for t in sys.argv[1].split(',')] \
-        if len(sys.argv) > 1 else ['all']
+    seed = None
+    techniques_arg = 'all'
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i] == '--seed':
+            i += 1
+            seed = int(sys.argv[i]) if i < len(sys.argv) else None
+        elif sys.argv[i].startswith('-'):
+            sys.stderr.write(f'error: unknown option {sys.argv[i]}\\n')
+            sys.exit(1)
+        else:
+            techniques_arg = sys.argv[i]
+        i += 1
 
     source = sys.stdin.read()
-    has_all = 'all' in techniques
-
-    # Order matters: cleanup → rename → strings → flow → opaque →
-    # mutate → mba → junk → apihash → funcenc
-    # 'all' uses vstrings + aflow (advanced versions) instead of basic ones
-    if has_all or 'cleanup' in techniques:
-        source = cleanup_code(source)
-    if has_all or 'rename' in techniques:
-        source = rename_code(source)
-    if has_all or 'vstrings' in techniques:
-        source = virtualize_strings(source)
-    elif 'strings' in techniques:
-        source = encrypt_strings(source)
-    if has_all or 'aflow' in techniques:
-        source = flatten_advanced(source)
-    elif 'flow' in techniques:
-        source = flatten_control_flow(source)
-    if has_all or 'opaque' in techniques:
-        source = encode_state(source)
-    if has_all or 'mutate' in techniques:
-        source = mutate_expressions(source)
-    if has_all or 'mba' in techniques:
-        source = mba_obfuscate(source)
-    if has_all or 'junk' in techniques:
-        source = inject_junk(source)
-    if has_all or 'apihash' in techniques:
-        source = apihash_obfuscate(source)
-
-    # funcenc must run LAST — it encrypts already-obfuscated bodies
-    if has_all or 'funcenc' in techniques:
-        source = funcenc_obfuscate(source)
-
+    source = obfuscate(techniques_arg, source, seed=seed)
     sys.stdout.write(source)

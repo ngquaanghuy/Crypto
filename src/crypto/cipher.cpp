@@ -18,21 +18,6 @@ static AesMode algo_to_aes_mode(Algorithm algo) {
     }
 }
 
-static const char *algo_name(Algorithm algo) {
-    switch (algo) {
-        case ALGO_AES_ECB:  return "aes-256-ecb";
-        case ALGO_AES_CBC:  return "aes-256-cbc";
-        case ALGO_AES_CTR:  return "aes-256-ctr";
-        case ALGO_AES_GCM:  return "aes-256-gcm";
-        case ALGO_ROLLING_XOR: return "rolling-xor";
-        case ALGO_MULTI_PASS_XOR: return "multi-pass-xor";
-        case ALGO_PRNG_XOR: return "prng-xor";
-        case ALGO_CHACHA20: return "chacha20";
-        case ALGO_XOR:      return "xor";
-        default:            return "none";
-    }
-}
-
 static int is_aes(Algorithm algo) {
     return algo == ALGO_AES_ECB || algo == ALGO_AES_CBC ||
            algo == ALGO_AES_CTR || algo == ALGO_AES_GCM;
@@ -89,6 +74,11 @@ ExitCode encrypt_file(const char *input, const char *output,
     ExitCode ret = file_read(input, &buf);
     if (ret != EXIT_OK) return ret;
 
+    // Progress indicator for large files
+    const size_t PROGRESS_THRESHOLD = 65536;
+    if (buf.size >= PROGRESS_THRESHOLD)
+        fprintf(stderr, "\r  [encrypt] processing %zu bytes...", buf.size);
+
     // Compress with header
     Buffer comp = {0};
     if (compress_algo > COMPRESS_ID_NONE) {
@@ -110,6 +100,9 @@ ExitCode encrypt_file(const char *input, const char *output,
     free(comp.data);
 
     size_t key_size = key ? strlen(key) : 0;
+
+    if (buf.size >= PROGRESS_THRESHOLD)
+        fprintf(stderr, "\r  [encrypt] encrypting...");
 
     Buffer out = {NULL, 0};
     ret = dispatch_encrypt(pt, ptsz, algo,
@@ -138,6 +131,10 @@ ExitCode decrypt_file(const char *input, const char *output,
     if (ret != EXIT_OK) return ret;
 
     size_t key_size = key ? strlen(key) : 0;
+
+    const size_t PROGRESS_THRESHOLD = 65536;
+    if (buf.size >= PROGRESS_THRESHOLD)
+        fprintf(stderr, "\r  [decrypt] decrypting %zu bytes...", buf.size);
 
     Buffer out = {NULL, 0};
     ret = dispatch_decrypt(buf.data, buf.size, algo,

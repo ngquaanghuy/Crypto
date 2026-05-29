@@ -4,7 +4,8 @@ CMakeFiles/crypto.dir/src/utils/compress.cpp.o: \
  /home/ngquanghuy/Crypto/include/crypto/compress.h \
  /home/ngquanghuy/Crypto/include/crypto/common.h \
  /usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h \
- /home/ngquanghuy/Crypto/include/crypto/file_util.h /usr/include/stdio.h \
+ /home/ngquanghuy/Crypto/include/crypto/compress_script.h \
+ /usr/include/stdio.h \
  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
  /usr/include/features.h /usr/include/features-time64.h \
  /usr/include/x86_64-linux-gnu/bits/wordsize.h \
@@ -107,8 +108,4 @@ CMakeFiles/crypto.dir/src/utils/compress.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/types/struct_iovec.h \
  /usr/include/linux/falloc.h /usr/include/x86_64-linux-gnu/bits/stat.h \
  /usr/include/x86_64-linux-gnu/bits/struct_stat.h \
- /usr/include/x86_64-linux-gnu/bits/fcntl2.h \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/stdint.h /usr/include/stdint.h \
- /usr/include/x86_64-linux-gnu/bits/wchar.h \
- /usr/include/x86_64-linux-gnu/bits/stdint-uintn.h \
- /usr/include/x86_64-linux-gnu/bits/stdint-least.h
+ /usr/include/x86_64-linux-gnu/bits/fcntl2.h

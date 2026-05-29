@@ -65,6 +65,8 @@ static void print_usage(void) {
     printf("      --vm                Enable Register VM protection\n");
     printf("                          (when --vm is active, --obf all uses\n");
     printf("                          full obfuscation via code-split pipeline)\n");
+    printf("      --seed <int>        Seed for reproducible obfuscation output\n");
+    printf("                          (protect only, any non-negative integer)\n");
     printf("  -o, --output <file>     Output file\n");
     printf("  -v, --version           Show version\n");
     printf("  -h, --help              Show this help\n");
@@ -97,27 +99,6 @@ static Algorithm parse_algorithm(const char *name) {
     return ALGO_NONE;
 }
 
-
-static const char *algo_name(Algorithm algo) {
-    switch (algo) {
-        case ALGO_BASE64:  return "base64";
-        case ALGO_BASE32:  return "base32";
-        case ALGO_BASE85:  return "base85";
-        case ALGO_ASCII85: return "ascii85";
-        case ALGO_HEX:     return "hex";
-        case ALGO_XOR:      return "xor";
-        case ALGO_ROLLING_XOR: return "rolling-xor";
-        case ALGO_XOR_BIT_ROTATION: return "xor-bit-rotation";
-        case ALGO_MULTI_PASS_XOR: return "multi-pass-xor";
-        case ALGO_PRNG_XOR: return "prng-xor";
-        case ALGO_AES_ECB:  return "aes-ecb";
-        case ALGO_AES_CBC:  return "aes-cbc";
-        case ALGO_AES_CTR:  return "aes-ctr";
-        case ALGO_AES_GCM:  return "aes-gcm";
-        case ALGO_CHACHA20: return "chacha20";
-        default:           return "none";
-    }
-}
 
 static const char *default_output(const char *input, const char *suffix) {
     const char *dot = strrchr(input, '.');
@@ -256,6 +237,7 @@ int cli_run(int argc, char **argv) {
     int compress_level = 6;
     int compress_set = 0;
     int use_vm = 0;
+    int obf_seed = -1;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) {
@@ -343,6 +325,10 @@ int cli_run(int argc, char **argv) {
             compress_set = 1;
         } else if (strcmp(argv[i], "--vm") == 0) {
             use_vm = 1;
+        } else if (strcmp(argv[i], "--seed") == 0) {
+            if (i + 1 >= argc) { fprintf(stderr, "error: --seed requires an integer\n"); return EXIT_ERR_ARGS; }
+            obf_seed = atoi(argv[++i]);
+            if (obf_seed < 0) { fprintf(stderr, "error: --seed must be a non-negative integer\n"); return EXIT_ERR_ARGS; }
         } else if (argv[i][0] != '-') {
             CommandMode m = parse_command(argv[i]);
             if (mode == MODE_UNKNOWN && m != MODE_UNKNOWN) {
@@ -416,13 +402,7 @@ int cli_run(int argc, char **argv) {
     }
 
     {
-        int needs_key = (algo == ALGO_XOR || algo == ALGO_ROLLING_XOR ||
-                         algo == ALGO_MULTI_PASS_XOR ||
-                         algo == ALGO_PRNG_XOR ||
-                         algo == ALGO_AES_ECB || algo == ALGO_AES_CBC ||
-                         algo == ALGO_AES_CTR || algo == ALGO_AES_GCM ||
-                         algo == ALGO_CHACHA20);
-        if (needs_key && (!key || key[0] == '\0')) {
+        if (algo_needs_key(algo) && (!key || key[0] == '\0')) {
             fprintf(stderr, "error: no key available for %s\n", algo_name(algo));
             if (key_needs_free) free((char *)key);
             return EXIT_ERR_ARGS;
@@ -456,7 +436,7 @@ int cli_run(int argc, char **argv) {
             const char *techs = obf_none ? build_except_techniques(obf_none) : obf_tech;
             ret = protect_file(input, output, algo, key, techs,
                                anti_analysis, compress_algo,
-                               compress_level, use_vm);
+                               compress_level, use_vm, obf_seed);
             break;
         }
         default:           ret = EXIT_ERR_ARGS;                           break;

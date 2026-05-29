@@ -38,8 +38,6 @@ import re
 import string
 import sys
 
-random.seed()
-
 # ---------------------------------------------------------------------------
 # HELPERS
 # ---------------------------------------------------------------------------
@@ -146,6 +144,16 @@ class _RenameTransformer(ast.NodeTransformer):
     def _is_global_scope(self):
         return len(self.scope_stack) == 1
 
+    def _extract_match_names(self, pattern):
+        """Extract bound names from ast.Match patterns (Python 3.10+)."""
+        names = set()
+        for node in ast.walk(pattern):
+            if isinstance(node, ast.MatchAs) and node.name:
+                names.add(node.name)
+            elif isinstance(node, ast.MatchStar) and node.name:
+                names.add(node.name)
+        return names
+
     def _extract_locals(self, node):
         locals_ = set()
         for child in ast.walk(node):
@@ -162,6 +170,8 @@ class _RenameTransformer(ast.NodeTransformer):
                     locals_.add(arg.arg)
                 for arg in child.args.posonlyargs:
                     locals_.add(arg.arg)
+            elif type(child).__name__ == 'match_case':
+                locals_.update(self._extract_match_names(child.pattern))
         return locals_
 
     def visit_FunctionDef(self, node):
@@ -227,6 +237,24 @@ class _RenameTransformer(ast.NodeTransformer):
         return node
 
     def visit_Attribute(self, node):
+        self.generic_visit(node)
+        return node
+
+    def visit_MatchAs(self, node):
+        """Rename capture names in match/case patterns (Python 3.10+)."""
+        if node.name and not _should_skip(node.name):
+            if node.name not in self.name_map:
+                self.name_map[node.name] = self._new_name()
+            node.name = self.name_map[node.name]
+        self.generic_visit(node)
+        return node
+
+    def visit_MatchStar(self, node):
+        """Rename *rest capture in match/case sequence patterns."""
+        if node.name and not _should_skip(node.name):
+            if node.name not in self.name_map:
+                self.name_map[node.name] = self._new_name()
+            node.name = self.name_map[node.name]
         self.generic_visit(node)
         return node
 
@@ -320,6 +348,9 @@ class _StringEncryptor(ast.NodeTransformer):
     def visit_JoinedStr(self, node):
         return node
 
+    def visit_MatchValue(self, node):
+        return node
+
     def visit_Constant(self, node):
         if isinstance(node.value, str) and len(node.value) >= 3:
             s = node.value
@@ -409,6 +440,9 @@ class _StringVirtualizer(ast.NodeTransformer):
             return ast.Constant(value=s)
 
     def visit_JoinedStr(self, node):
+        return node
+
+    def visit_MatchValue(self, node):
         return node
 
     def visit_Constant(self, node):
@@ -1629,11 +1663,10 @@ def apihash_obfuscate(source):
 
 import hashlib
 import hmac
-import os as _os
 
 def _hash_encrypt(key, plaintext):
     """SHA-256-CTR encryption + authentication tag (pure Python)."""
-    nonce = _os.urandom(16)
+    nonce = random.randbytes(16)
     enc_key = hashlib.sha256(b'encv1:' + key + nonce).digest()
     ciphertext = _xor_stream(enc_key, plaintext)
     auth_key = hashlib.sha256(b'authv1:' + key + nonce).digest()
@@ -1679,7 +1712,7 @@ def funcenc_obfuscate(source):
     should be applied *before* this step so their transformations are
     encrypted as well.
     """
-    key = _os.urandom(32)
+    key = random.randbytes(32)
 
     # 1. Discover functions, encrypt bodies, build records
     tree = ast.parse(source)
@@ -1898,7 +1931,7 @@ def multi_pass_xor_obfuscate(source):
     import base64
 
     num_passes = random.randint(3, 8)
-    key = _os.urandom(32)
+    key = random.randbytes(32)
     data = source.encode('utf-8')
 
     # Multi-pass XOR encrypt
@@ -1952,8 +1985,8 @@ def prng_xor_obfuscate(source):
     import base64
     import struct
 
-    key = _os.urandom(32)
-    nonce = _os.urandom(12)
+    key = random.randbytes(32)
+    nonce = random.randbytes(12)
     data = source.encode('utf-8')
 
     # Pure-Python ChaCha20 encryption
@@ -2055,12 +2088,15 @@ exec(compile(bytes(_r),'<x>','exec'),globals())
     return stub
 
 
-def obfuscate(techniques, source):
+def obfuscate(techniques, source, seed=None):
     """Apply a comma-separated list of obfuscation techniques to *source*.
 
     *techniques* can be 'all' or a comma-separated list of technique names.
+    *seed*, if given, is passed to random.seed() for reproducible output.
     Returns the obfuscated source code.
     """
+    if seed is not None:
+        random.seed(seed)
     if isinstance(techniques, str):
         tech_list = [t.strip() for t in techniques.split(',')]
     else:
@@ -2111,9 +2147,13 @@ def obfuscate(techniques, source):
 if __name__ == '__main__':
     techniques = [t.strip() for t in sys.argv[1].split(',')] \
         if len(sys.argv) > 1 else ['all']
+    seed = int(sys.argv[2]) if len(sys.argv) > 2 else None
 
     source = sys.stdin.read()
     has_all = 'all' in techniques
+
+    if seed is not None:
+        random.seed(seed)
 
     if has_all or 'cleanup' in techniques:
         source = cleanup_code(source)

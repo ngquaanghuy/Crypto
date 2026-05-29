@@ -8,6 +8,6 @@ ExitCode protect_file(const char *input, const char *output,
                       const char *obf_techniques,
                       const char *anti_analysis,
                       int compress_algo, int compress_level,
-                      int use_vm);
+                      int use_vm, int obf_seed = -1);
 
 #endif

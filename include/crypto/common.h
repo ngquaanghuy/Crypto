@@ -49,4 +49,33 @@ typedef struct {
     size_t         size;
 } Buffer;
 
+static inline const char *algo_name(Algorithm algo) {
+    switch (algo) {
+        case ALGO_BASE64:  return "base64";
+        case ALGO_BASE32:  return "base32";
+        case ALGO_BASE85:  return "base85";
+        case ALGO_ASCII85: return "ascii85";
+        case ALGO_HEX:     return "hex";
+        case ALGO_XOR:     return "xor";
+        case ALGO_ROLLING_XOR: return "rolling-xor";
+        case ALGO_XOR_BIT_ROTATION: return "xor-bit-rotation";
+        case ALGO_MULTI_PASS_XOR: return "multi-pass-xor";
+        case ALGO_PRNG_XOR: return "prng-xor";
+        case ALGO_AES_ECB:  return "aes-256-ecb";
+        case ALGO_AES_CBC:  return "aes-256-cbc";
+        case ALGO_AES_CTR:  return "aes-256-ctr";
+        case ALGO_AES_GCM:  return "aes-256-gcm";
+        case ALGO_CHACHA20: return "chacha20";
+        default:            return "none";
+    }
+}
+
+static inline int algo_needs_key(Algorithm algo) {
+    return algo == ALGO_XOR || algo == ALGO_ROLLING_XOR ||
+           algo == ALGO_MULTI_PASS_XOR || algo == ALGO_PRNG_XOR ||
+           algo == ALGO_AES_ECB || algo == ALGO_AES_CBC ||
+           algo == ALGO_AES_CTR || algo == ALGO_AES_GCM ||
+           algo == ALGO_CHACHA20;
+}
+
 #endif

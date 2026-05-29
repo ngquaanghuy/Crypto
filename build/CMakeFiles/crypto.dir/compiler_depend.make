@@ -1384,22 +1384,36 @@ CMakeFiles/crypto.dir/src/utils/file_util.cpp.o: /home/ngquanghuy/Crypto/src/uti
   /usr/include/c++/13/cstdlib \
   /usr/include/c++/13/pstl/pstl_config.h \
   /usr/include/c++/13/stdlib.h \
+  /usr/include/dirent.h \
   /usr/include/endian.h \
   /usr/include/features-time64.h \
   /usr/include/features.h \
+  /usr/include/linux/close_range.h \
+  /usr/include/linux/limits.h \
   /usr/include/stdc-predef.h \
   /usr/include/stdio.h \
   /usr/include/stdlib.h \
   /usr/include/string.h \
   /usr/include/strings.h \
+  /usr/include/unistd.h \
   /usr/include/x86_64-linux-gnu/bits/atomic_wide_counter.h \
   /usr/include/x86_64-linux-gnu/bits/byteswap.h \
+  /usr/include/x86_64-linux-gnu/bits/confname.h \
+  /usr/include/x86_64-linux-gnu/bits/dirent.h \
+  /usr/include/x86_64-linux-gnu/bits/dirent_ext.h \
   /usr/include/x86_64-linux-gnu/bits/endian.h \
   /usr/include/x86_64-linux-gnu/bits/endianness.h \
+  /usr/include/x86_64-linux-gnu/bits/environments.h \
   /usr/include/x86_64-linux-gnu/bits/floatn-common.h \
   /usr/include/x86_64-linux-gnu/bits/floatn.h \
+  /usr/include/x86_64-linux-gnu/bits/getopt_core.h \
+  /usr/include/x86_64-linux-gnu/bits/getopt_posix.h \
   /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
+  /usr/include/x86_64-linux-gnu/bits/local_lim.h \
   /usr/include/x86_64-linux-gnu/bits/long-double.h \
+  /usr/include/x86_64-linux-gnu/bits/posix1_lim.h \
+  /usr/include/x86_64-linux-gnu/bits/posix_opt.h \
+  /usr/include/x86_64-linux-gnu/bits/pthread_stack_min-dynamic.h \
   /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h \
   /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h \
   /usr/include/x86_64-linux-gnu/bits/select-decl.h \
@@ -1440,6 +1454,9 @@ CMakeFiles/crypto.dir/src/utils/file_util.cpp.o: /home/ngquanghuy/Crypto/src/uti
   /usr/include/x86_64-linux-gnu/bits/types/timer_t.h \
   /usr/include/x86_64-linux-gnu/bits/typesizes.h \
   /usr/include/x86_64-linux-gnu/bits/uintn-identity.h \
+  /usr/include/x86_64-linux-gnu/bits/unistd-decl.h \
+  /usr/include/x86_64-linux-gnu/bits/unistd.h \
+  /usr/include/x86_64-linux-gnu/bits/unistd_ext.h \
   /usr/include/x86_64-linux-gnu/bits/waitflags.h \
   /usr/include/x86_64-linux-gnu/bits/waitstatus.h \
   /usr/include/x86_64-linux-gnu/bits/wordsize.h \
@@ -1671,6 +1688,8 @@ CMakeFiles/crypto.dir/src/vm/vm_stub.cpp.o: /home/ngquanghuy/Crypto/src/vm/vm_st
 
 /home/ngquanghuy/Crypto/include/vm/vm_py.h:
 
+/usr/include/x86_64-linux-gnu/bits/dirent_ext.h:
+
 /home/ngquanghuy/Crypto/src/utils/file_util.cpp:
 
 /home/ngquanghuy/Crypto/src/encode/base85.cpp:
@@ -1735,6 +1754,8 @@ CMakeFiles/crypto.dir/src/vm/vm_stub.cpp.o: /home/ngquanghuy/Crypto/src/vm/vm_st
 
 /home/ngquanghuy/Crypto/src/encode/base64.h:
 
+/usr/include/x86_64-linux-gnu/bits/dirent.h:
+
 /usr/include/x86_64-linux-gnu/bits/types/idtype_t.h:
 
 /home/ngquanghuy/Crypto/src/encode/base32.h:
@@ -1748,6 +1769,8 @@ CMakeFiles/crypto.dir/src/vm/vm_stub.cpp.o: /home/ngquanghuy/Crypto/src/vm/vm_st
 /home/ngquanghuy/Crypto/src/crypto/aes.h:
 
 /home/ngquanghuy/Crypto/include/vm/vm_split.h:
+
+/usr/include/dirent.h:
 
 /home/ngquanghuy/Crypto/include/vm/vm_interp_py.h:
 
