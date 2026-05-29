@@ -1,10 +1,10 @@
-Start testing: May 28 12:49 +07
+Start testing: May 29 13:03 +07
 ----------------------------------------------------------
 1/1 Testing: test_crypto
 1/1 Test: test_crypto
 Command: "/home/ngquanghuy/Crypto/build/test_crypto"
 Directory: /home/ngquanghuy/Crypto/build
-"test_crypto" start time: May 28 12:49 +07
+"test_crypto" start time: May 29 13:03 +07
 Output:
 ----------------------------------------------------------
 error: hex string length must be even
@@ -39,11 +39,11 @@ hot src: if 1 < 2:
 [doctest] assertions: 693 | 693 passed | 0 failed |
 [doctest] Status: SUCCESS!
 <end of output>
-Test time =  15.27 sec
+Test time =  16.46 sec
 ----------------------------------------------------------
 Test Passed.
-"test_crypto" end time: May 28 12:49 +07
-"test_crypto" time elapsed: 00:00:15
+"test_crypto" end time: May 29 13:03 +07
+"test_crypto" time elapsed: 00:00:16
 ----------------------------------------------------------
 
-End testing: May 28 12:49 +07
+End testing: May 29 13:03 +07

@@ -37,8 +37,9 @@ static void print_usage(void) {
     printf("\n");
     printf("Options:\n");
     printf("  -a, --algorithm <algo>  Algorithm: base64, base32, base85,\n");
-    printf("                          ascii85, hex, xor, aes-ecb, aes-cbc,\n");
-    printf("                          aes-ctr, aes-gcm, chacha20\n");
+    printf("                          ascii85, hex, xor, rolling-xor, xor-bit-rotation,\n");
+    printf("                          multi-pass-xor, prng-xor,\n");
+    printf("                          aes-ecb, aes-cbc, aes-ctr, aes-gcm, chacha20\n");
     printf("                          (default: aes-gcm for encrypt/protect)\n");
     printf("  -k, --key <key>         Encryption/encoding key\n");
     printf("      --keyfile <file>    Read key from file\n");
@@ -46,8 +47,10 @@ static void print_usage(void) {
     printf("      --keygen [<len>]    Generate random key (default 32, max 1024)\n");
     printf("      --obf <tech>        Obfuscation techniques: rename,strings,\n");
     printf("                          vstrings,cleanup,flow,aflow,opaque,\n");
-    printf("                          mutate,mba,junk,apihash,funcenc,all\n");
+    printf("                          mutate,mba,junk,apihash,funcenc,\n");
+    printf("                          rolling-xor,multi-pass-xor,prng-xor,all\n");
     printf("                          (comma-separated, protect only)\n");
+    printf("\n");
     printf("      --obf-none <tech>   Enable all obfuscation EXCEPT <tech>\n");
     printf("                          (mutually exclusive with --obf)\n");
     printf("      --anti-analysis <t> Anti-analysis protection: debug,\n");
@@ -70,6 +73,7 @@ static void print_usage(void) {
 }
 
 static void print_version(void) {
+
     printf("%s v%s\n", CRYPTO_NAME, CRYPTO_VERSION);
 }
 
@@ -80,6 +84,10 @@ static Algorithm parse_algorithm(const char *name) {
     if (strcmp(name, "ascii85") == 0) return ALGO_ASCII85;
     if (strcmp(name, "hex")     == 0) return ALGO_HEX;
     if (strcmp(name, "xor")      == 0) return ALGO_XOR;
+    if (strcmp(name, "rolling-xor") == 0) return ALGO_ROLLING_XOR;
+    if (strcmp(name, "xor-bit-rotation") == 0) return ALGO_XOR_BIT_ROTATION;
+    if (strcmp(name, "multi-pass-xor") == 0) return ALGO_MULTI_PASS_XOR;
+    if (strcmp(name, "prng-xor") == 0) return ALGO_PRNG_XOR;
     if (strcmp(name, "aes-ecb")  == 0) return ALGO_AES_ECB;
     if (strcmp(name, "aes-cbc")  == 0) return ALGO_AES_CBC;
     if (strcmp(name, "aes-ctr")  == 0) return ALGO_AES_CTR;
@@ -89,6 +97,7 @@ static Algorithm parse_algorithm(const char *name) {
     return ALGO_NONE;
 }
 
+
 static const char *algo_name(Algorithm algo) {
     switch (algo) {
         case ALGO_BASE64:  return "base64";
@@ -97,6 +106,10 @@ static const char *algo_name(Algorithm algo) {
         case ALGO_ASCII85: return "ascii85";
         case ALGO_HEX:     return "hex";
         case ALGO_XOR:      return "xor";
+        case ALGO_ROLLING_XOR: return "rolling-xor";
+        case ALGO_XOR_BIT_ROTATION: return "xor-bit-rotation";
+        case ALGO_MULTI_PASS_XOR: return "multi-pass-xor";
+        case ALGO_PRNG_XOR: return "prng-xor";
         case ALGO_AES_ECB:  return "aes-ecb";
         case ALGO_AES_CBC:  return "aes-cbc";
         case ALGO_AES_CTR:  return "aes-ctr";
@@ -120,14 +133,16 @@ static const char *default_output(const char *input, const char *suffix) {
 
 static int is_valid_obf_techniques(const char *s) {
     if (!s || !*s) return 0;
-    // Copy and validate each token
     char buf[256];
     size_t sl = strlen(s);
     if (sl >= sizeof(buf)) return 0;
     memcpy(buf, s, sl + 1);
     const char *valid[] = {"rename","strings","vstrings","cleanup",
-                           "flow","aflow","opaque","junk","mutate",
-                           "mba","apihash","funcenc","all", NULL};
+                                "flow","aflow","opaque","junk","mutate",
+                                "mba","apihash","funcenc","rolling-xor",
+                                "xor-bit-rotation","multi-pass-xor","prng-xor","all", NULL};
+
+
     char *tok = strtok(buf, ",");
     if (!tok) return 0;
     while (tok) {
@@ -144,8 +159,11 @@ static int is_valid_obf_techniques(const char *s) {
 static const char *build_except_techniques(const char *exclude) {
     static char buf[256];
     const char *valid[] = {"rename","strings","vstrings","cleanup",
-                           "flow","aflow","opaque","junk","mutate",
-                           "mba","apihash","funcenc","all", NULL};
+                                "flow","aflow","opaque","junk","mutate",
+                                "mba","apihash","funcenc","rolling-xor",
+                                "xor-bit-rotation","multi-pass-xor","prng-xor","all", NULL};
+
+
     buf[0] = '\0';
     int first = 1;
     for (int i = 0; valid[i]; i++) {
@@ -271,9 +289,10 @@ int cli_run(int argc, char **argv) {
             }
             const char *tech = argv[++i];
             if (!is_valid_obf_techniques(tech)) {
-                fprintf(stderr, "error: invalid --obf techniques '%s'. Valid: rename,strings,vstrings,cleanup,flow,aflow,opaque,mutate,mba,junk,apihash,funcenc,all\n", tech);
+                fprintf(stderr, "error: invalid --obf techniques '%s'\n", tech);
                 return EXIT_ERR_ARGS;
             }
+
             obf_tech = tech;
         } else if (strcmp(argv[i], "--obf-none") == 0) {
             if (i + 1 >= argc) { fprintf(stderr, "error: --obf-none requires a technique\n"); return EXIT_ERR_ARGS; }
@@ -287,7 +306,7 @@ int cli_run(int argc, char **argv) {
                 return EXIT_ERR_ARGS;
             }
             if (!is_valid_obf_techniques(tech)) {
-                fprintf(stderr, "error: invalid --obf-none technique '%s'. Valid: rename,strings,vstrings,cleanup,flow,aflow,opaque,junk,mutate,mba,apihash,funcenc\n", tech);
+                fprintf(stderr, "error: invalid --obf-none technique '%s'\n", tech);
                 return EXIT_ERR_ARGS;
             }
             if (strcmp(tech, "all") == 0) {
@@ -397,7 +416,9 @@ int cli_run(int argc, char **argv) {
     }
 
     {
-        int needs_key = (algo == ALGO_XOR ||
+        int needs_key = (algo == ALGO_XOR || algo == ALGO_ROLLING_XOR ||
+                         algo == ALGO_MULTI_PASS_XOR ||
+                         algo == ALGO_PRNG_XOR ||
                          algo == ALGO_AES_ECB || algo == ALGO_AES_CBC ||
                          algo == ALGO_AES_CTR || algo == ALGO_AES_GCM ||
                          algo == ALGO_CHACHA20);

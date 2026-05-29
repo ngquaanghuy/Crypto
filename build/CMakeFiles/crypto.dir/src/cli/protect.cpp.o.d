@@ -47,6 +47,11 @@ CMakeFiles/crypto.dir/src/cli/protect.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/stdint-least.h \
  /home/ngquanghuy/Crypto/include/vm/vm_interp_py.h \
  /home/ngquanghuy/Crypto/include/vm/vm_split.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/rand.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/macros.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/opensslconf.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/configuration.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/opensslv.h \
  /usr/include/c++/13/stdlib.h /usr/include/c++/13/cstdlib \
  /usr/include/x86_64-linux-gnu/c++/13/bits/c++config.h \
  /usr/include/x86_64-linux-gnu/c++/13/bits/os_defines.h \
@@ -82,14 +87,53 @@ CMakeFiles/crypto.dir/src/cli/protect.cpp.o: \
  /usr/include/x86_64-linux-gnu/bits/stdlib-bsearch.h \
  /usr/include/x86_64-linux-gnu/bits/stdlib-float.h \
  /usr/include/x86_64-linux-gnu/bits/stdlib.h \
- /usr/include/c++/13/bits/std_abs.h /usr/include/string.h \
- /usr/include/strings.h \
- /usr/include/x86_64-linux-gnu/bits/strings_fortified.h \
- /usr/include/x86_64-linux-gnu/bits/string_fortified.h \
+ /usr/include/c++/13/bits/std_abs.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/types.h \
+ /usr/lib/gcc/x86_64-linux-gnu/13/include/limits.h \
+ /usr/lib/gcc/x86_64-linux-gnu/13/include/syslimits.h \
+ /usr/include/limits.h /usr/include/x86_64-linux-gnu/bits/posix1_lim.h \
+ /usr/include/x86_64-linux-gnu/bits/local_lim.h \
+ /usr/include/linux/limits.h \
+ /usr/include/x86_64-linux-gnu/bits/pthread_stack_min-dynamic.h \
+ /usr/include/x86_64-linux-gnu/bits/posix2_lim.h \
+ /usr/include/x86_64-linux-gnu/bits/xopen_lim.h \
+ /usr/include/x86_64-linux-gnu/bits/uio_lim.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/e_os2.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/safestack.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/stack.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/randerr.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/symhacks.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/cryptoerr_legacy.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/evp.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/core.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/core_dispatch.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/indicator.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/params.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/bn.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/crypto.h \
  /usr/include/time.h /usr/include/x86_64-linux-gnu/bits/time.h \
  /usr/include/x86_64-linux-gnu/bits/timex.h \
  /usr/include/x86_64-linux-gnu/bits/types/struct_tm.h \
  /usr/include/x86_64-linux-gnu/bits/types/struct_itimerspec.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/cryptoerr.h \
+ /usr/include/pthread.h /usr/include/sched.h \
+ /usr/include/x86_64-linux-gnu/bits/sched.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct_sched_param.h \
+ /usr/include/x86_64-linux-gnu/bits/cpu-set.h \
+ /usr/include/x86_64-linux-gnu/bits/setjmp.h \
+ /usr/include/x86_64-linux-gnu/bits/types/struct___jmp_buf_tag.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/bnerr.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/bio.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/bioerr.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/evperr.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/objects.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/obj_mac.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/asn1.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/asn1err.h \
+ /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/objectserr.h \
+ /usr/include/string.h /usr/include/strings.h \
+ /usr/include/x86_64-linux-gnu/bits/strings_fortified.h \
+ /usr/include/x86_64-linux-gnu/bits/string_fortified.h \
  /usr/include/unistd.h /usr/include/x86_64-linux-gnu/bits/posix_opt.h \
  /usr/include/x86_64-linux-gnu/bits/environments.h \
  /usr/include/x86_64-linux-gnu/bits/confname.h \

@@ -13,7 +13,7 @@
 #include "vm/vm.h"
 #include "vm/vm_interp_py.h"
 #include "vm/vm_split.h"
-
+#include <openssl/rand.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,11 +25,134 @@
 #include <fcntl.h>
 #include "crypto/compress.h"
 
+
 #define HEADER_SIZE 4
 #define SALT_SIZE 16
 #define HMAC_SIZE 32
 
-// ── helpers ─────────────────────────────────────────────────────────────────
+// ... helper to check if a technique is in the list ...
+static int has_tech(const char *techs, const char *target) {
+    if (!techs) return 0;
+    const char *p = techs;
+    while (*p) {
+        if (strcmp(p, "all") == 0) return 1;
+        if (strncmp(p, target, strlen(target)) == 0 && (!p[strlen(target)] || p[strlen(target)] == ',')) {
+            return 1;
+        }
+        p = strchr(p, ',');
+        if (!p) break;
+        p++;
+    }
+    return 0;
+}
+
+static ExitCode apply_rolling_xor_obfuscation(const char *src, size_t src_len, Buffer *out) {
+    if (!src || src_len == 0) return EXIT_ERR_INTERNAL;
+
+    unsigned char key[32];
+    if (RAND_bytes(key, 32) != 1) return EXIT_ERR_CRYPTO;
+
+    Buffer encrypted = {0};
+    ExitCode ret = rolling_xor_encrypt((const unsigned char *)src, src_len, key, 32, &encrypted);
+    if (ret != EXIT_OK) return ret;
+
+    Buffer b64 = {0};
+    ret = base64_encode(encrypted.data, encrypted.size, &b64);
+    free(encrypted.data);
+    if (ret != EXIT_OK) return ret;
+
+    char key_hex[65];
+    for (int i = 0; i < 32; i++) sprintf(key_hex + i * 2, "%02x", key[i]);
+    key_hex[64] = '\0';
+
+    // Construct the Python wrapper
+    // Using a compact form to avoid too much overhead
+    const char *fmt = 
+        "def _rx(_d, _k):\n"
+        "    _s = _k[0]\n"
+        "    _r = bytearray()\n"
+        "    for i in range(len(_d)):\n"
+        "        _v = _d[i] ^ _s\n"
+        "        _r.append(_v)\n"
+        "        _s = (_d[i] ^ _k[(i+1)%%len(_k)])\n"
+        "        _s = (((_s << 3) & 0xFF) | (_s >> 5)) ^ 0x5A\n"
+        "    return bytes(_r)\n"
+        "import base64 as _b64\n"
+        "exec(_rx(_b64.b64decode(\"%s\"), bytes.fromhex(\"%s\")))\n";
+    
+    // Ensure b64.data is null-terminated for sprintf
+    char *b64_str = (char *)malloc(b64.size + 1);
+    memcpy(b64_str, b64.data, b64.size);
+    b64_str[b64.size] = '\0';
+
+    size_t needed = strlen(fmt) + b64.size + 65 + 10;
+    char *res = (char *)malloc(needed);
+    if (!res) { 
+        free(b64_str); 
+        free(b64.data); 
+        return EXIT_ERR_CRYPTO; 
+    }
+
+    sprintf(res, fmt, b64_str, key_hex);
+    free(b64_str);
+
+    
+    out->data = (unsigned char *)res;
+    out->size = strlen(res);
+    free(b64.data);
+    return EXIT_OK;
+}
+
+static ExitCode apply_xor_bit_rotation_obfuscation(const char *src, size_t src_len, Buffer *out) {
+    if (!src || src_len == 0) return EXIT_ERR_INTERNAL;
+
+    unsigned char key[32];
+    if (RAND_bytes(key, 32) != 1) return EXIT_ERR_CRYPTO;
+
+    Buffer encrypted = {0};
+    ExitCode ret = xor_bit_rotation_encrypt((const unsigned char *)src, src_len, key, 32, &encrypted);
+    if (ret != EXIT_OK) return ret;
+
+    Buffer b64 = {0};
+    ret = base64_encode(encrypted.data, encrypted.size, &b64);
+    free(encrypted.data);
+    if (ret != EXIT_OK) return ret;
+
+    char key_hex[65];
+    for (int i = 0; i < 32; i++) sprintf(key_hex + i * 2, "%02x", key[i]);
+    key_hex[64] = '\0';
+
+    const char *fmt = 
+        "def _xbr(_d, _k):\n"
+        "    _r = bytearray()\n"
+        "    for i in range(len(_d)):\n"
+        "        _v = ((_d[i] >> 3) | (_d[i] << 5)) & 0xFF\n"
+        "        _v = _v ^ _k[i %% len(_k)]\n"
+        "        _r.append(_v)\n"
+        "    return bytes(_r)\n"
+        "import base64 as _b64\n"
+        "exec(_xbr(_b64.b64decode(\"%s\"), bytes.fromhex(\"%s\")))\n";
+    
+    char *b64_str = (char *)malloc(b64.size + 1);
+    memcpy(b64_str, b64.data, b64.size);
+    b64_str[b64.size] = '\0';
+
+    size_t needed = strlen(fmt) + b64.size + 65 + 10;
+    char *res = (char *)malloc(needed);
+    if (!res) { 
+        free(b64_str); 
+        free(b64.data); 
+        return EXIT_ERR_CRYPTO; 
+    }
+
+    sprintf(res, fmt, b64_str, key_hex);
+    free(b64_str);
+    
+    out->data = (unsigned char *)res;
+    out->size = strlen(res);
+    free(b64.data);
+    return EXIT_OK;
+}
 
 // Return a random int in [lo, hi]
 static int rand_range(int lo, int hi) {
@@ -120,13 +243,16 @@ static char* patch_sys_name(const char *code, const char *sys_name) {
 }
 
 static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
-                               const char *algo_id,
-                               const char *obf_key, size_t obf_key_len,
-                               const char *anti_code, size_t anti_len,
-                               int xor_byte, int compress_algo,
-                               int use_vm, int use_scramble,
-                               int vm_xor_key,
-                               Buffer *out) {
+                                   const char *algo_id,
+                                   const char *obf_key, size_t obf_key_len,
+                                   const char *anti_code, size_t anti_len,
+                                   int xor_byte, int compress_algo,
+                                   int use_vm, int use_scramble,
+                                   const char *vm_xor_key, int vm_obf_algo,
+                                   Buffer *out) {
+
+
+
     char *buf = (char *)malloc(SB_SZ);
     if (!buf) return EXIT_ERR_CRYPTO;
     char *p = buf;
@@ -311,19 +437,19 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
 
     // ── generate algorithm blocks (dispatch) ──
     // Build a shuffled order for _A values
-    // We always include all 11 algorithms, but in random order
-    int order[11] = {0,1,2,3,4,5,6,7,8,9,10};
+    // We always include all 14 algorithms, but in random order
+    int order[14] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13};
     // Fisher-Yates shuffle
-    for (int i = 10; i > 0; i--) {
+    for (int i = 13; i > 0; i--) {
         int j = rand() % (i + 1);
         int tmp = order[i]; order[i] = order[j]; order[j] = tmp;
     }
 
     // Track which blocks have been emitted
-    int emitted[11] = {0};
+    int emitted[13] = {0};
     int is_first = 1;
 
-    for (int oi = 0; oi < 11; oi++) {
+    for (int oi = 0; oi < 14; oi++) {
         int aid = order[oi];
         const char *kw = is_first ? "if" : "elif";
         is_first = 0;
@@ -550,7 +676,113 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
         } else if (aid == 10) {
             sb_printf(&p, end, "    %s %s == 10:\n"
                       "        %s = bytes.fromhex(%s.decode('ascii'))\n", kw, n_A, n_9, n_r);
+        } else if (aid == 11) {
+            // Rolling XOR
+            sb_printf(&p, end, "    %s %s == 11:\n", kw, n_A);
+            sb_printf(&p, end, "        %s = %s[:16]; %s = %s[-32:]; %s = %s[16:-32]\n", n_0, n_r, n_2, n_r, n_1, n_r);
+            sb_printf(&p, end, "        %s = %s.pbkdf2_hmac('sha256', %s.encode(), %s, 100000, dklen=64)\n", n_3, n_h, n_k, n_0);
+            sb_printf(&p, end, "        %s = %s[:32]; %s = %s[32:64]\n", n_4, n_3, n_6, n_3);
+            sb_printf(&p, end, "        %s = %s.new(%s, %s, %s.sha256).digest()\n", n_7, n_m, n_6, n_1, n_h);
+            sb_printf(&p, end, "        if not %s.compare_digest(%s, %s):\n"
+                      "            %s.stderr.write(\"error: integrity check failed\\n\"); %s.exit(1)\n",
+                      n_m, n_2, n_7, n_s, n_s);
+            sb_printf(&p, end, "        %s = %s[0]\n", n_t, n_4);
+            sb_printf(&p, end, "        %s = bytearray()\n", n_9);
+            sb_printf(&p, end, "        for %s in range(len(%s)):\n", n_vx, n_1);
+            sb_printf(&p, end, "            %s = %s[%s] ^ %s\n", n_0, n_1, n_vx, n_t);
+            sb_printf(&p, end, "            %s.append(%s)\n", n_9, n_0);
+            sb_printf(&p, end, "            %s = %s[%s] ^ %s[ (%s + 1) %% len(%s) ]\n", n_t, n_1, n_vx, n_4, n_vx, n_4);
+            sb_printf(&p, end, "            %s = (((%s << 3) & 0xFF) | (%s >> 5)) ^ 0x5A\n", n_t, n_t, n_t);
+            sb_printf(&p, end, "        %s = bytes(%s)\n", n_9, n_9);
+        } else if (aid == 12) {
+            // Multi-pass XOR
+            sb_printf(&p, end, "    %s %s == 12:\n", kw, n_A);
+            sb_printf(&p, end, "        %s = %s[:16]; %s = %s[-32:]; %s = %s[16:-32]\n",
+                      n_0, n_r, n_2, n_r, n_1, n_r);
+            sb_printf(&p, end, "        %s = %s.pbkdf2_hmac('sha256', %s.encode(), %s, 100000, dklen=64)\n",
+                      n_3, n_h, n_k, n_0);
+            sb_printf(&p, end, "        %s = %s[:32]; %s = %s[32:64]\n",
+                      n_4, n_3, n_6, n_3);
+            sb_printf(&p, end, "        %s = %s.new(%s, %s, %s.sha256).digest()\n",
+                      n_7, n_m, n_6, n_1, n_h);
+            sb_printf(&p, end, "        if not %s.compare_digest(%s, %s):\n"
+                      "            %s.stderr.write(\"error: integrity check failed\\n\"); %s.exit(1)\n",
+                      n_m, n_2, n_7, n_s, n_s);
+            sb_printf(&p, end, "        %s = 3 + (%s[0] & 7)\n", n_t, n_0);
+            sb_printf(&p, end, "        %s = bytearray(%s)\n", n_0, n_1);
+            sb_printf(&p, end, "        for %s in range(%s - 1, -1, -1):\n", n_vx, n_t);
+            sb_printf(&p, end, "            %s = (3 + %s) & 7\n", junk_fn, n_vx);
+            sb_printf(&p, end, "            %s = (%s * 0x1B + 0x5A) & 0xFF\n", j1, n_vx);
+            sb_printf(&p, end, "            for %s in range(len(%s)):\n", n_5, n_0);
+            sb_printf(&p, end, "                %s = %s[%s]\n", n_t, n_0, n_5);
+            sb_printf(&p, end, "                %s ^= %s\n", n_t, j1);
+            sb_printf(&p, end, "                %s = ((%s >> %s) | ((%s << (8 - %s)) & 0xFF))\n",
+                      n_t, n_t, junk_fn, n_t, junk_fn);
+            sb_printf(&p, end, "                %s ^= %s[(%s * len(%s) + %s) %% len(%s)]\n",
+                      n_t, n_4, n_vx, n_0, n_5, n_4);
+            sb_printf(&p, end, "                %s[%s] = %s\n", n_0, n_5, n_t);
+            sb_printf(&p, end, "        %s = bytes(%s)\n", n_9, n_0);
+        } else if (aid == 13) {
+            // PRNG-XOR (ChaCha20-based)
+            sb_printf(&p, end, "    %s %s == 13:\n", kw, n_A);
+            sb_printf(&p, end, "        %s = %s[:16]; %s = %s[-32:]; %s = %s[16:-32]\n",
+                      n_0, n_r, n_2, n_r, n_1, n_r);
+            sb_printf(&p, end, "        %s = %s.pbkdf2_hmac('sha256', %s.encode(), %s, 100000, dklen=80)\n",
+                      n_3, n_h, n_k, n_0);
+            sb_printf(&p, end, "        %s = %s[:32]; %s = %s[32:48]; %s = %s[48:80]\n",
+                      n_4, n_3, n_5, n_3, n_6, n_3);
+            sb_printf(&p, end, "        %s = %s.new(%s, %s, %s.sha256).digest()\n",
+                      n_7, n_m, n_6, n_1, n_h);
+            sb_printf(&p, end, "        if not %s.compare_digest(%s, %s):\n"
+                      "            %s.stderr.write(\"error: integrity check failed\\n\"); %s.exit(1)\n",
+                      n_m, n_2, n_7, n_s, n_s);
+            // Inline pure-Python ChaCha20 decrypt
+            sb_printf(&p, end, "        import struct as %s\n", j2);
+            sb_printf(&p, end, "        def %s(k,c,n):\n"
+                      "            s=[0x61707865,0x3320646e,0x79622d32,0x6b206574]\n"
+                      "            for i in range(0,32,4):s.append(%s.unpack('<I',k[i:i+4])[0])\n"
+                      "            s.append(c&0xFFFFFFFF)\n"
+                      "            for i in range(0,12,4):s.append(%s.unpack('<I',n[i:i+4])[0])\n"
+                      "            w=list(s)\n"
+                      "            def q(a,b,c,d):\n"
+                      "                a=(a+b)&0xFFFFFFFF;d^=a;d=((d<<16)|(d>>16))&0xFFFFFFFF\n"
+                      "                c=(c+d)&0xFFFFFFFF;b^=c;b=((b<<12)|(b>>20))&0xFFFFFFFF\n"
+                      "                a=(a+b)&0xFFFFFFFF;d^=a;d=((d<<8)|(d>>24))&0xFFFFFFFF\n"
+                      "                c=(c+d)&0xFFFFFFFF;b^=c;b=((b<<7)|(b>>25))&0xFFFFFFFF\n"
+                      "                return a,b,c,d\n"
+                      "            for _ in range(10):\n"
+                      "                w[0],w[4],w[8],w[12]=q(w[0],w[4],w[8],w[12])\n"
+                      "                w[1],w[5],w[9],w[13]=q(w[1],w[5],w[9],w[13])\n"
+                      "                w[2],w[6],w[10],w[14]=q(w[2],w[6],w[10],w[14])\n"
+                      "                w[3],w[7],w[11],w[15]=q(w[3],w[7],w[11],w[15])\n"
+                      "                w[0],w[5],w[10],w[15]=q(w[0],w[5],w[10],w[15])\n"
+                      "                w[1],w[6],w[11],w[12]=q(w[1],w[6],w[11],w[12])\n"
+                      "                w[2],w[7],w[8],w[13]=q(w[2],w[7],w[8],w[13])\n"
+                      "                w[3],w[4],w[9],w[14]=q(w[3],w[4],w[9],w[14])\n"
+                      "            r=bytearray()\n"
+                      "            for i in range(16):r.extend(%s.pack('<I',(s[i]+w[i])&0xFFFFFFFF))\n"
+                      "            return bytes(r)\n",
+                      junk_fn, j2, j2, j2, j2);
+            // OpenSSL EVP_chacha20 uses 16-byte IV: counter(4) || nonce(12)
+            sb_printf(&p, end, "        %s = %s.unpack('<I',%s[:4])[0]\n", n_vx, j2, n_5);
+            sb_printf(&p, end, "        %s = %s[4:]\n", n_5, n_5);
+            sb_printf(&p, end, "        %s = bytearray()\n", n_0);
+            sb_printf(&p, end, "        while len(%s) < len(%s):\n", n_0, n_1);
+            sb_printf(&p, end, "            %s = %s(%s, %s, %s)\n", n_t, junk_fn, n_4, n_vx, n_5);
+            sb_printf(&p, end, "            for %s in range(min(64, len(%s) - len(%s))):\n",
+                      j1, n_1, n_0);
+            sb_printf(&p, end, "                %s.append(%s[len(%s)] ^ %s[%s])\n",
+                      n_0, n_1, n_0, n_t, j1);
+            sb_printf(&p, end, "            %s += 1\n", n_vx);
+            sb_printf(&p, end, "        %s = bytes(%s)\n", n_9, n_0);
         }
+
+
+
+
+
+
+
         emitted[aid] = 1;
     }
 
@@ -563,8 +795,26 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
     if (use_vm) {
         // VM mode: deserialize and run through VM interpreter
         if (vm_xor_key) {
-            sb_printf(&p, end, "    %s = %d\n", n_vx, vm_xor_key);
-            sb_printf(&p, end, "    _xd = bytes(_ ^ %s for _ in %s[4:])\n", n_vx, n_9);
+            if (vm_obf_algo == 1) {
+                sb_printf(&p, end, "    _v_k = bytes.fromhex(\"%s\")\n", vm_xor_key);
+                sb_printf(&p, end, "    _v_s = _v_k[0]\n");
+                sb_printf(&p, end, "    _v_r = bytearray()\n");
+                sb_printf(&p, end, "    for i in range(len(%s[4:])):\n", n_9);
+                sb_printf(&p, end, "        _v_v = %s[4+i] ^ _v_s\n", n_9, n_9);
+                sb_printf(&p, end, "        _v_r.append(_v_v)\n");
+                sb_printf(&p, end, "        _v_s = (%s[4+i] ^ _v_k[(i+1)%%len(_v_k)])\n", n_9);
+                sb_printf(&p, end, "        _v_s = (((_v_s << 3) & 0xFF) | (_v_s >> 5)) ^ 0x5A\n");
+                sb_printf(&p, end, "    _xd = bytes(_v_r)\n");
+            } else if (vm_obf_algo == 2) {
+                sb_printf(&p, end, "    _v_k = bytes.fromhex(\"%s\")\n", vm_xor_key);
+                sb_printf(&p, end, "    _v_r = bytearray()\n");
+                sb_printf(&p, end, "    for i in range(len(%s[4:])):\n", n_9);
+                sb_printf(&p, end, "        _v_v = ((%s[4+i] >> 3) | (%s[4+i] << 5)) & 0xFF\n", n_9, n_9);
+                sb_printf(&p, end, "        _v_v = _v_v ^ _v_k[i %% len(_v_k)]\n");
+                sb_printf(&p, end, "        _v_r.append(_v_v)\n");
+                sb_printf(&p, end, "    _xd = bytes(_v_r)\n");
+            }
+
             sb_printf(&p, end, "    %s, _c, _k, _m = _vm_deserialize(_xd)\n", n_9);
         } else {
             sb_printf(&p, end, "    %s, _c, _k, _m = _vm_deserialize(%s[4:])\n", n_9, n_9);
@@ -671,6 +921,9 @@ static int stub_algo_id(Algorithm algo) {
         case ALGO_AES_GCM:  return 3;
         case ALGO_CHACHA20: return 4;
         case ALGO_XOR:      return 5;
+        case ALGO_ROLLING_XOR: return 11;
+        case ALGO_MULTI_PASS_XOR: return 12;
+        case ALGO_PRNG_XOR: return 13;
         case ALGO_BASE64:   return 6;
         case ALGO_BASE32:   return 7;
         case ALGO_BASE85:   return 8;
@@ -686,6 +939,9 @@ static const char *algo_name(Algorithm algo) {
         case ALGO_AES_CBC:  return "aes-256-cbc";
         case ALGO_AES_CTR:  return "aes-256-ctr";
         case ALGO_AES_GCM:  return "aes-256-gcm";
+        case ALGO_ROLLING_XOR: return "rolling-xor";
+        case ALGO_MULTI_PASS_XOR: return "multi-pass-xor";
+        case ALGO_PRNG_XOR: return "prng-xor";
         case ALGO_CHACHA20: return "chacha20";
         case ALGO_XOR:      return "xor";
         case ALGO_BASE64:   return "base64";
@@ -700,7 +956,8 @@ static const char *algo_name(Algorithm algo) {
 static int needs_key(Algorithm algo) {
     return algo == ALGO_AES_ECB || algo == ALGO_AES_CBC ||
            algo == ALGO_AES_CTR || algo == ALGO_AES_GCM ||
-           algo == ALGO_CHACHA20 || algo == ALGO_XOR;
+           algo == ALGO_CHACHA20 || algo == ALGO_XOR || algo == ALGO_ROLLING_XOR ||
+           algo == ALGO_MULTI_PASS_XOR || algo == ALGO_PRNG_XOR;
 }
 
 // Run python3 with arguments, redirecting stdio to the given files.
@@ -1062,18 +1319,41 @@ ExitCode protect_file(const char *input, const char *output,
     } else if (obf_techniques && obf_techniques[0]) {
         // Normal obfuscation (non-VM mode)
         ret = obfuscate_source((const char *)buf.data, buf.size,
-                                obf_techniques, &obf_buf);
+                                 obf_techniques, &obf_buf);
         if (ret == EXIT_OK) {
             printf("[obf] obfuscated with: %s (%zu -> %zu bytes)\n",
                    obf_techniques, buf.size, obf_buf.size);
             src_data = obf_buf.data;
             src_size = obf_buf.size;
+
+            if (has_tech(obf_techniques, "rolling-xor")) {
+                Buffer rx_buf = {0};
+                if (apply_rolling_xor_obfuscation((const char *)src_data, src_size, &rx_buf) == EXIT_OK) {
+                    printf("[obf] applied rolling-xor wrapper (%zu -> %zu bytes)\n", src_size, rx_buf.size);
+                    free(obf_buf.data);
+                    obf_buf = rx_buf;
+                    src_data = obf_buf.data;
+                    src_size = obf_buf.size;
+                }
+            }
+            if (has_tech(obf_techniques, "xor-bit-rotation")) {
+                Buffer xbr_buf = {0};
+                if (apply_xor_bit_rotation_obfuscation((const char *)src_data, src_size, &xbr_buf) == EXIT_OK) {
+                    printf("[obf] applied xor-bit-rotation wrapper (%zu -> %zu bytes)\n", src_size, xbr_buf.size);
+                    free(obf_buf.data);
+                    obf_buf = xbr_buf;
+                    src_data = obf_buf.data;
+                    src_size = obf_buf.size;
+                }
+            }
         } else {
             fprintf(stderr, "[obf] warning: obfuscation failed, using original\n");
         }
     }
 
-    int vm_xor_key = 0;
+
+    char *vm_xor_key_hex = NULL;
+    int vm_obf_algo = 0;
     size_t key_len = key ? strlen(key) : 0;
 
     unsigned char *pt = NULL;
@@ -1101,8 +1381,26 @@ ExitCode protect_file(const char *input, const char *output,
         if (vm_obf_enabled) {
             vm_obfuscate_program(&vm_prog);
         }
+        
+        if (obf_techniques && has_tech(obf_techniques, "rolling-xor")) {
+            Buffer rx_exec = {0};
+            if (apply_rolling_xor_obfuscation((const char *)exec_buf.data, exec_buf.size, &rx_exec) == EXIT_OK) {
+                printf("[vm] applied rolling-xor wrapper to exec source\n");
+                free(exec_buf.data);
+                exec_buf = rx_exec;
+            }
+        }
+        if (obf_techniques && has_tech(obf_techniques, "xor-bit-rotation")) {
+            Buffer xbr_exec = {0};
+            if (apply_xor_bit_rotation_obfuscation((const char *)exec_buf.data, exec_buf.size, &xbr_exec) == EXIT_OK) {
+                printf("[vm] applied xor-bit-rotation wrapper to exec source\n");
+                free(exec_buf.data);
+                exec_buf = xbr_exec;
+            }
+        }
 
         // Always replace hot source with exec_source.
+
         // When exec_source is empty (no function defs), exec() does nothing
         // and only _vm_run executes module-level code (no duplicate).
         free(vm_prog.hot_src);
@@ -1125,11 +1423,50 @@ ExitCode protect_file(const char *input, const char *output,
 
         // XOR-encrypt the serialized VM data (if obfuscation enabled)
         if (vm_obf_enabled) {
-            vm_xor_key = rand_range(1, 255);
-            for (size_t i = 0; i < vm_buf.size; i++) {
-                vm_buf.data[i] ^= (unsigned char)vm_xor_key;
+            if (obf_techniques && has_tech(obf_techniques, "rolling-xor")) {
+                vm_obf_algo = 1;
+                unsigned char vkey[32];
+                if (RAND_bytes(vkey, 32) != 1) { file_buffer_free(&buf); return EXIT_ERR_CRYPTO; }
+                
+                Buffer encrypted_vm = {0};
+                if (rolling_xor_encrypt(vm_buf.data, vm_buf.size, vkey, 32, &encrypted_vm) == EXIT_OK) {
+                    free(vm_buf.data);
+                    vm_buf = encrypted_vm;
+                    
+                    vm_xor_key_hex = (char *)malloc(65);
+                    for (int i = 0; i < 32; i++) sprintf(vm_xor_key_hex + i * 2, "%02x", vkey[i]);
+                    vm_xor_key_hex[64] = '\0';
+                    printf("[vm] Rolling-XOR-encrypted VM data\n");
+                } else {
+                    file_buffer_free(&buf); return EXIT_ERR_CRYPTO;
+                }
+            } else if (obf_techniques && has_tech(obf_techniques, "xor-bit-rotation")) {
+                vm_obf_algo = 2;
+                unsigned char vkey[32];
+                if (RAND_bytes(vkey, 32) != 1) { file_buffer_free(&buf); return EXIT_ERR_CRYPTO; }
+                
+                Buffer encrypted_vm = {0};
+                if (xor_bit_rotation_encrypt(vm_buf.data, vm_buf.size, vkey, 32, &encrypted_vm) == EXIT_OK) {
+                    free(vm_buf.data);
+                    vm_buf = encrypted_vm;
+                    
+                    vm_xor_key_hex = (char *)malloc(65);
+                    for (int i = 0; i < 32; i++) sprintf(vm_xor_key_hex + i * 2, "%02x", vkey[i]);
+                    vm_xor_key_hex[64] = '\0';
+                    printf("[vm] XOR-Bit-Rotation-encrypted VM data\n");
+                } else {
+                    file_buffer_free(&buf); return EXIT_ERR_CRYPTO;
+                }
+            } else {
+                vm_obf_algo = 0;
+                int v_key = rand_range(1, 255);
+                for (size_t i = 0; i < vm_buf.size; i++) {
+                    vm_buf.data[i] ^= (unsigned char)v_key;
+                }
+                vm_xor_key_hex = (char *)malloc(12);
+                sprintf(vm_xor_key_hex, "%d", v_key);
+                printf("[vm] XOR-encrypted VM data with key %d\n", v_key);
             }
-            printf("[vm] XOR-encrypted VM data with key %d\n", vm_xor_key);
         }
 
         printf("[vm] compiled %zu bytes -> %zu bytes VM (%d instrs, %d consts, %d names)\n",
@@ -1185,6 +1522,15 @@ ExitCode protect_file(const char *input, const char *output,
             break;
         case ALGO_XOR:
             ret = xor_encrypt_protect(pt, ptsz, (const unsigned char *)key, key_len, &enc);
+            break;
+        case ALGO_ROLLING_XOR:
+            ret = rolling_xor_encrypt_protect(pt, ptsz, (const unsigned char *)key, key_len, &enc);
+            break;
+        case ALGO_MULTI_PASS_XOR:
+            ret = multi_pass_xor_encrypt_protect(pt, ptsz, (const unsigned char *)key, key_len, &enc);
+            break;
+        case ALGO_PRNG_XOR:
+            ret = prng_xor_encrypt_protect(pt, ptsz, (const unsigned char *)key, key_len, &enc);
             break;
         case ALGO_BASE64:
             ret = base64_encode(pt, ptsz, &enc);
@@ -1255,12 +1601,13 @@ ExitCode protect_file(const char *input, const char *output,
     Buffer stub_buf = {0};
     srand((unsigned)(time(NULL) ^ (uintptr_t)&stub_buf));
     ret = generate_stub((const char *)b64.data, b64.size,
-                         algo_id, obf_key, obf_len,
-                         anti_code, anti_len, xor_byte, compress_algo,
-                         use_vm, use_scramble,
-                         vm_xor_key,
-                         &stub_buf);
-    free(b64.data); free(obf_key);
+                           algo_id, obf_key, obf_len,
+                           anti_code, anti_len, xor_byte, compress_algo,
+                           use_vm, use_scramble,
+                           vm_xor_key_hex, vm_obf_algo,
+                           &stub_buf);
+    free(b64.data); free(obf_key); free(vm_xor_key_hex);
+
     if (ret != EXIT_OK) {
         file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data);
         return ret;

@@ -24,6 +24,9 @@ static const char *algo_name(Algorithm algo) {
         case ALGO_AES_CBC:  return "aes-256-cbc";
         case ALGO_AES_CTR:  return "aes-256-ctr";
         case ALGO_AES_GCM:  return "aes-256-gcm";
+        case ALGO_ROLLING_XOR: return "rolling-xor";
+        case ALGO_MULTI_PASS_XOR: return "multi-pass-xor";
+        case ALGO_PRNG_XOR: return "prng-xor";
         case ALGO_CHACHA20: return "chacha20";
         case ALGO_XOR:      return "xor";
         default:            return "none";
@@ -36,14 +39,18 @@ static int is_aes(Algorithm algo) {
 }
 
 static ExitCode dispatch_encrypt(const unsigned char *data, size_t size,
-                                 Algorithm algo, const unsigned char *key,
-                                 size_t key_size, Buffer *out) {
+                                  Algorithm algo, const unsigned char *key,
+                                  size_t key_size, Buffer *out) {
     if (is_aes(algo))
         return aes_encrypt(data, size, key, key_size, algo_to_aes_mode(algo), out);
     switch (algo) {
         case ALGO_CHACHA20: return chacha20_encrypt(data, size, key, key_size, out);
+        case ALGO_ROLLING_XOR: return rolling_xor_encrypt(data, size, key, key_size, out);
+        case ALGO_MULTI_PASS_XOR: return multi_pass_xor_encrypt(data, size, key, key_size, 3, out);
+        case ALGO_PRNG_XOR: return prng_xor_encrypt(data, size, key, key_size, out);
         case ALGO_XOR:      return xor_transform(data, size, key, key_size, out);
         default:
+
             out->data = (unsigned char *)malloc(size);
             if (!out->data) return EXIT_ERR_CRYPTO;
             memcpy(out->data, data, size);
@@ -53,14 +60,18 @@ static ExitCode dispatch_encrypt(const unsigned char *data, size_t size,
 }
 
 static ExitCode dispatch_decrypt(const unsigned char *data, size_t size,
-                                 Algorithm algo, const unsigned char *key,
-                                 size_t key_size, Buffer *out) {
+                                  Algorithm algo, const unsigned char *key,
+                                  size_t key_size, Buffer *out) {
     if (is_aes(algo))
         return aes_decrypt(data, size, key, key_size, algo_to_aes_mode(algo), out);
     switch (algo) {
         case ALGO_CHACHA20: return chacha20_decrypt(data, size, key, key_size, out);
+        case ALGO_ROLLING_XOR: return rolling_xor_decrypt(data, size, key, key_size, out);
+        case ALGO_MULTI_PASS_XOR: return multi_pass_xor_decrypt(data, size, key, key_size, 3, out);
+        case ALGO_PRNG_XOR: return prng_xor_decrypt(data, size, key, key_size, out);
         case ALGO_XOR:      return xor_transform(data, size, key, key_size, out);
         default:
+
             out->data = (unsigned char *)malloc(size);
             if (!out->data) return EXIT_ERR_CRYPTO;
             memcpy(out->data, data, size);

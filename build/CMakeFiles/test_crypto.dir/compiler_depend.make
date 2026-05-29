@@ -611,6 +611,7 @@ CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.o: /home/ngquanghuy/Crypto/src
 
 CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.o: /home/ngquanghuy/Crypto/src/encode/xorcode.cpp \
   /home/ngquanghuy/Crypto/include/crypto/common.h \
+  /home/ngquanghuy/Crypto/src/crypto/chacha20.h \
   /home/ngquanghuy/Crypto/src/encode/xorcode.h \
   /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/asn1.h \
   /home/ngquanghuy/vcpkg/installed/x64-linux/include/openssl/asn1err.h \

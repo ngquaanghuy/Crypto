@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-#define CRYPTO_VERSION    "1.1.0"
+#define CRYPTO_VERSION    "1.2.0"
 #define CRYPTO_NAME       "Crypto"
 #define CRYPTO_DEFAULT_KEY "Crypto-Default-Key-v1.0"
 
@@ -31,6 +31,10 @@ typedef enum {
     ALGO_ASCII85,
     ALGO_HEX,
     ALGO_XOR,
+    ALGO_ROLLING_XOR,
+    ALGO_XOR_BIT_ROTATION,
+    ALGO_MULTI_PASS_XOR,
+    ALGO_PRNG_XOR,
     ALGO_AES_ECB,
     ALGO_AES_CBC,
     ALGO_AES_CTR,
@@ -38,6 +42,7 @@ typedef enum {
     ALGO_CHACHA20,
     ALGO_NONE,
 } Algorithm;
+
 
 typedef struct {
     unsigned char *data;
