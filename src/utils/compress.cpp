@@ -81,7 +81,7 @@ static const char COMPRESS_SCRIPT[] =
     "            sys.stdout.buffer.write(snappy.decompress(data))\n"
     "        elif algo_id == 9:\n"
     "            import gzip\n"
-    "            sys.stdout.buffer.write(gzip.decompress(data))\n"
+    "            sys.stdout.buffer.write(zopfli.gzip.decompress(data))\n"
     "        elif algo_id == 10:\n"
     "            import blosc\n"
     "            sys.stdout.buffer.write(blosc.decompress(data))\n"
