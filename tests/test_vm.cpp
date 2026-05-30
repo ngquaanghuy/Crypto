@@ -12,16 +12,10 @@ TEST_CASE("vm compile simple expression") {
 
     ExitCode ret = vm_compile_source(source, strlen(source), &prog, 0);
     CHECK(ret == EXIT_OK);
-    CHECK(prog.hot_src != (char*)0);
+    CHECK(prog.opcode_map != (uint8_t*)0);
     CHECK(prog.count > 0);
     CHECK(prog.const_count > 0);
     CHECK(prog.name_count > 0);
-
-    // Check hot source contains the reconstructed code
-    if (prog.hot_src) {
-        printf("hot src: %s\n", prog.hot_src);
-        CHECK(strstr(prog.hot_src, "x") != (char*)0);
-    }
 
     // Check instructions
     if (prog.instrs && prog.count > 0) {
@@ -60,13 +54,8 @@ TEST_CASE("vm compile function call") {
 
     ExitCode ret = vm_compile_source(source, strlen(source), &prog, 0);
     CHECK(ret == EXIT_OK);
-    CHECK(prog.hot_src != (char*)0);
+    CHECK(prog.opcode_map != (uint8_t*)0);
     CHECK(prog.count > 0);
-
-    if (prog.hot_src) {
-        printf("hot src: %s\n", prog.hot_src);
-        CHECK(strstr(prog.hot_src, "print") != (char*)0);
-    }
 
     vm_program_free(&prog);
 }
@@ -78,11 +67,7 @@ TEST_CASE("vm compile arithmetic") {
 
     ExitCode ret = vm_compile_source(source, strlen(source), &prog, 0);
     CHECK(ret == EXIT_OK);
-
-    if (prog.hot_src) {
-        printf("hot src: %s\n", prog.hot_src);
-        CHECK(strstr(prog.hot_src, "print") != (char*)0);
-    }
+    CHECK(prog.opcode_map != (uint8_t*)0);
 
     vm_program_free(&prog);
 }
@@ -94,10 +79,7 @@ TEST_CASE("vm compile comparison") {
 
     ExitCode ret = vm_compile_source(source, strlen(source), &prog, 0);
     CHECK(ret == EXIT_OK);
-
-    if (prog.hot_src) {
-        printf("hot src: %s\n", prog.hot_src);
-    }
+    CHECK(prog.opcode_map != (uint8_t*)0);
 
     vm_program_free(&prog);
 }

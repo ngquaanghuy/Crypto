@@ -96,6 +96,18 @@ def convert(source, opaque=0):
                 _op = getattr(dis.opmap, _n, None)
                 if _op is not None:
                     SPECIAL_MAP[_n] = 'BUILD_TUPLE'
+    
+    def insert_junk(code_bytes):
+        import random
+        res = bytearray()
+        i = 0
+        while i < len(code_bytes):
+            res.extend(code_bytes[i:i+8])
+            i += 8
+            if random.random() < 0.1: # 10% chance to insert junk
+                # Junk: Opcode 0 (pass), random regs, random imm
+                res.extend(struct.pack('<BBBBi', 0, random.randint(0,63), random.randint(0,63), random.randint(0,63), random.randint(0, 0x7FFFFFFF)))
+        return res
 
     # Helper: evaluate an IIFE (IImmediately Invoked Function Expression)
     # at compile time. Scans instructions starting at `start` for the pattern:
@@ -416,28 +428,40 @@ def convert(source, opaque=0):
                 fn_reg = 0
             
             # Move args to consecutive registers after fn_reg.
-            # First, save any live registers that would be overwritten by MOVE targets.
-            _live = set(reg_stack)
-            _saved = {}
+            # Build list of (target, source) moves
+            _moves = []
             for _i, _a in enumerate(args):
                 _tgt = fn_reg + 1 + _i
+                if _a != _tgt:
+                    _moves.append((_tgt, _a))
+            # Detect source-target overlap between moves: if a source is also a target
+            # of a later move, save it first.
+            _saved = {}
+            for _i, (_tgt, _src) in enumerate(_moves):
+                for _j in range(_i):
+                    _prev_tgt = _moves[_j][0]
+                    if _src == _prev_tgt and _src not in _saved:
+                        _tmp = alloc_reg()
+                        vm_code.extend(struct.pack('<BBBBi', 6, _tmp, _src, 0, 0))
+                        _saved[_src] = _tmp
+                        if _src in reg_stack:
+                            reg_stack[reg_stack.index(_src)] = _tmp
+            # Also save any live registers that would be overwritten by MOVE targets.
+            _live = set(reg_stack)
+            for _tgt, _src in _moves:
                 if _tgt in _live and _tgt not in _saved:
                     _tmp = alloc_reg()
                     vm_code.extend(struct.pack('<BBBBi', 6, _tmp, _tgt, 0, 0))
                     _saved[_tgt] = _tmp
                     reg_stack[reg_stack.index(_tgt)] = _tmp
-            # Now generate MOVE instructions for each arg (source → target).
-            # Handle source/target overlap: if a source reg is also a target, use the saved copy.
-            for _i, _a in enumerate(args):
-                _tgt = fn_reg + 1 + _i
-                if _a == _tgt:
-                    continue
-                if _a in _saved:
-                    vm_code.extend(struct.pack('<BBBBi', 6, _tgt, _saved[_a], 0, 0))
+            # Generate MOVE instructions, using saved copies where needed.
+            for _tgt, _src in _moves:
+                if _src in _saved:
+                    vm_code.extend(struct.pack('<BBBBi', 6, _tgt, _saved[_src], 0, 0))
                 elif _tgt in _saved:
-                    vm_code.extend(struct.pack('<BBBBi', 6, _tgt, _a, 0, 0))
+                    vm_code.extend(struct.pack('<BBBBi', 6, _tgt, _src, 0, 0))
                 else:
-                    vm_code.extend(struct.pack('<BBBBi', 6, _tgt, _a, 0, 0))
+                    vm_code.extend(struct.pack('<BBBBi', 6, _tgt, _src, 0, 0))
             for _r in _saved.values():
                 free_reg(_r)
             # Now free all used registers
@@ -611,16 +635,12 @@ def convert(source, opaque=0):
             else:
                 vm_code.extend(struct.pack('<BBBBi', 53, reg, 0, 0, pat))
 
-    # Use original source for hot path (already valid Python)
-    hot_bytes = source.encode('utf-8')
-
     # Serialize
     out = bytearray()
-
-    # Hot source
-    out += struct.pack('<I', len(hot_bytes))
-    out += hot_bytes
-
+    
+    # Apply Junk Insertion to bytecode
+    vm_code = insert_junk(vm_code)
+    
     # Consts
     out += struct.pack('<I', len(all_consts))
     for v in all_consts:
@@ -666,8 +686,17 @@ if __name__ == '__main__':
         sys.stderr.write("error: no input\n")
         sys.exit(1)
     opaque_flag = 0
-    if len(sys.argv) > 1 and sys.argv[1] == '--opaque':
-        opaque_flag = 1
+    seed_val = -1
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i] == '--opaque':
+            opaque_flag = 1
+        elif sys.argv[i] == '--seed' and i + 1 < len(sys.argv):
+            seed_val = int(sys.argv[i + 1])
+            i += 1
+        i += 1
+    if seed_val >= 0:
+        random.seed(seed_val)
     try:
         convert(src, opaque_flag)
     except Exception as e:

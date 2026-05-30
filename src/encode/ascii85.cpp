@@ -72,7 +72,7 @@ ExitCode ascii85_decode(const unsigned char *in, size_t in_size, Buffer *out) {
     if (!in || !out || in_size == 0) return EXIT_ERR_INTERNAL;
     init_tbl();
 
-    size_t max_out = (in_size * 4) / 5 + 4;
+    size_t max_out = in_size * 4 + 4;
     out->data = (unsigned char *)malloc(max_out);
     if (!out->data) return EXIT_ERR_CRYPTO;
 

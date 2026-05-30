@@ -62,8 +62,8 @@ typedef struct __attribute__((packed)) {
 typedef struct {
     VmInstr *instrs;
     int count;
-    // Reconstructed hot-path Python source
-    char *hot_src;
+    // Opcode mapping for obfuscation
+    uint8_t *opcode_map;
     // Constant pool
     uint8_t *const_types;
     char   **const_strs;  // all constants serialized as strings
@@ -78,7 +78,7 @@ void vm_program_free(VmProgram *prog);
 
 // Compile Python source → VM program (calls Python via temp files)
 ExitCode vm_compile_source(const char *source, size_t source_len,
-                            VmProgram *prog, int opaque);
+                            VmProgram *prog, int opaque, int seed = -1);
 
 // Serialize VM program to binary blob
 ExitCode vm_serialize(const VmProgram *prog, Buffer *out);
@@ -87,8 +87,10 @@ ExitCode vm_serialize(const VmProgram *prog, Buffer *out);
 ExitCode vm_deserialize(const unsigned char *data, size_t size,
                          VmProgram *prog);
 
-// Reconstruct hot-path Python source from VM instructions
-// Returns allocated string, caller must free
-char* vm_reconstruct_hot_src(const VmProgram *prog);
+// Encrypt & HMAC VM blob for storage in stub
+// Plaintext format: opcode_map[256] + consts + names + code
+// Output format: IV[16] + AES-256-CTR ciphertext + HMAC-SHA256[32]
+int vm_encrypt_blob(const unsigned char *plaintext, int plaintext_len,
+                    unsigned char **ciphertext, int *ciphertext_len);
 
 #endif

@@ -2,7 +2,8 @@ CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.o: \
  /home/ngquanghuy/Crypto/src/encode/xorcode.cpp \
  /usr/include/stdc-predef.h /home/ngquanghuy/Crypto/src/encode/xorcode.h \
  /home/ngquanghuy/Crypto/include/crypto/common.h \
- /usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h /usr/include/stdio.h \
+ /usr/lib/gcc/x86_64-linux-gnu/13/include/stddef.h \
+ /home/ngquanghuy/Crypto/src/crypto/chacha20.h /usr/include/stdio.h \
  /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
  /usr/include/features.h /usr/include/features-time64.h \
  /usr/include/x86_64-linux-gnu/bits/wordsize.h \

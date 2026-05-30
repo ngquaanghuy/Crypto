@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <string>
 #include <openssl/rand.h>
 
 static char *generate_key(int len) {
@@ -138,23 +139,23 @@ static int is_valid_obf_techniques(const char *s) {
 }
 
 static const char *build_except_techniques(const char *exclude) {
-    static char buf[256];
+    static std::string buf;
     const char *valid[] = {"rename","strings","vstrings","cleanup",
                                 "flow","aflow","opaque","junk","mutate",
                                 "mba","apihash","funcenc","rolling-xor",
                                 "xor-bit-rotation","multi-pass-xor","prng-xor","all", NULL};
 
 
-    buf[0] = '\0';
+    buf.clear();
     int first = 1;
     for (int i = 0; valid[i]; i++) {
         if (strcmp(valid[i], "all") == 0) continue;
         if (strcmp(valid[i], exclude) == 0) continue;
-        if (!first) strcat(buf, ",");
-        strcat(buf, valid[i]);
+        if (!first) buf += ",";
+        buf += valid[i];
         first = 0;
     }
-    return buf;
+    return buf.c_str();
 }
 
 static CommandMode parse_command(const char *arg) {
