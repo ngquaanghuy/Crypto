@@ -26,10 +26,13 @@ AntiDebugResult anti_debug_check_all(void);
 /* Sanitize environment: strip PYTHONPATH, LD_PRELOAD, etc. Returns new env. */
 char **anti_debug_sanitize_environment(void);
 
-/* Check if ptrace is being used (Linux: /proc/self/status TracerPid). */
+/* Check if debugger/tracer is attached (Linux: /proc/self/status TracerPid,
+ * Windows: IsDebuggerPresent/CheckRemoteDebuggerPresent,
+ * MacOS: sysctl KERN_PROC/P_TRACED). */
 int anti_debug_check_tracerpid(void);
 
-/* Attempt PTRACE_TRACEME; returns 0 if not traced. */
+/* Attempt PTRACE_TRACEME (Linux) or equivalent on other platforms;
+ * returns 0 if not traced. */
 int anti_debug_check_ptrace(void);
 
 /* Scan /proc/self/maps for suspicious libraries (debuggers, injectors). */
