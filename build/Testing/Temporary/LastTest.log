@@ -1,10 +1,10 @@
-Start testing: May 29 13:03 +07
+Start testing: May 31 00:09 +07
 ----------------------------------------------------------
 1/1 Testing: test_crypto
 1/1 Test: test_crypto
 Command: "/home/ngquanghuy/Crypto/build/test_crypto"
 Directory: /home/ngquanghuy/Crypto/build
-"test_crypto" start time: May 29 13:03 +07
+"test_crypto" start time: May 31 00:09 +07
 Output:
 ----------------------------------------------------------
 error: hex string length must be even
@@ -15,35 +15,62 @@ error: integrity check failed (wrong key or corrupted data)
 error: AES requires a non-empty key
 error: integrity check failed (wrong key or corrupted data)
 error: integrity check failed (wrong key or corrupted data)
-[doctest] doctest version is "2.5.0"
-[doctest] run with "--help" for options
-hot src: x = 1 + 2
+[vm] VM source:
+x = 1 + 2
 
-VM instructions (4):
-  [0] op=1 rd=0 rs1=0 rs2=0 imm=2
-  [1] op=3 rd=0 rs1=0 rs2=0 imm=0
-  [2] op=1 rd=0 rs1=0 rs2=0 imm=1
-  [3] op=42 rd=0 rs1=0 rs2=0 imm=0
-hot src: print(1 + 2)
+---
+[vm] VM source:
+print(1 + 2)
 
-hot src: a = 10
+---
+[vm] VM source:
+a = 10
 b = 20
 c = a + b * 3
 print(c)
 
-hot src: if 1 < 2:
+---
+[vm] VM source:
+if 1 < 2:
     print('ok')
 
+---
+[doctest] doctest version is "2.5.0"
+[doctest] run with "--help" for options
 ===============================================================================
-[doctest] test cases:  29 |  29 passed | 0 failed | 0 skipped
-[doctest] assertions: 693 | 693 passed | 0 failed |
-[doctest] Status: SUCCESS!
+/home/ngquanghuy/Crypto/tests/test_obfuscate.cpp:248:
+TEST SUITE: Flow Flattening
+TEST CASE:  flowflatten_generate_python produces valid flattened code
+
+/home/ngquanghuy/Crypto/tests/test_obfuscate.cpp:269: ERROR: CHECK_EQ( rc, 0 ) is NOT correct!
+  values: CHECK_EQ( 256, 0 )
+
+===============================================================================
+/home/ngquanghuy/Crypto/tests/test_obfuscate.cpp:386:
+TEST SUITE: XOR Key Generation
+TEST CASE:  xorgen_chacha20_encrypt/decrypt round-trip
+
+/home/ngquanghuy/Crypto/tests/test_obfuscate.cpp:408: ERROR: CHECK_EQ( ret, EXIT_OK ) is NOT correct!
+  values: CHECK_EQ( 3, 0 )
+
+/home/ngquanghuy/Crypto/tests/test_obfuscate.cpp:409: FATAL ERROR: REQUIRE( decrypted != nullptr ) is NOT correct!
+  values: REQUIRE( nullptr != nullptr )
+
+VM instructions (4):
+  [0] op=51 rd=0 rs1=0 rs2=0 imm=2
+  [1] op=247 rd=0 rs1=0 rs2=0 imm=0
+  [2] op=51 rd=0 rs1=0 rs2=0 imm=1
+  [3] op=42 rd=0 rs1=0 rs2=0 imm=0
+===============================================================================
+[doctest] test cases:  69 |  67 passed | 2 failed | 0 skipped
+[doctest] assertions: 971 | 968 passed | 3 failed |
+[doctest] Status: FAILURE!
 <end of output>
-Test time =  16.46 sec
+Test time =  16.03 sec
 ----------------------------------------------------------
-Test Passed.
-"test_crypto" end time: May 29 13:03 +07
+Test Failed.
+"test_crypto" end time: May 31 00:09 +07
 "test_crypto" time elapsed: 00:00:16
 ----------------------------------------------------------
 
-End testing: May 29 13:03 +07
+End testing: May 31 00:09 +07

@@ -16,11 +16,18 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/ngquanghuy/Crypto/src/encode/base85.cpp" "CMakeFiles/test_crypto.dir/src/encode/base85.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/encode/base85.cpp.o.d"
   "/home/ngquanghuy/Crypto/src/encode/hexcode.cpp" "CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/encode/hexcode.cpp.o.d"
   "/home/ngquanghuy/Crypto/src/encode/xorcode.cpp" "CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/encode/xorcode.cpp.o.d"
+  "/home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp" "CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o.d"
+  "/home/ngquanghuy/Crypto/src/obfuscate/flow_flatten.cpp" "CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o.d"
+  "/home/ngquanghuy/Crypto/src/obfuscate/junk.cpp" "CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o.d"
+  "/home/ngquanghuy/Crypto/src/obfuscate/obfuscate.cpp" "CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o.d"
+  "/home/ngquanghuy/Crypto/src/obfuscate/rename.cpp" "CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o.d"
+  "/home/ngquanghuy/Crypto/src/obfuscate/xor_gen.cpp" "CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o.d"
   "/home/ngquanghuy/Crypto/src/utils/compress.cpp" "CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/utils/compress.cpp.o.d"
   "/home/ngquanghuy/Crypto/src/utils/file_util.cpp" "CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.o.d"
   "/home/ngquanghuy/Crypto/src/vm/vm_compile.cpp" "CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/vm/vm_compile.cpp.o.d"
   "/home/ngquanghuy/Crypto/src/vm/vm_stub.cpp" "CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o.d"
   "/home/ngquanghuy/Crypto/tests/test_all.cpp" "CMakeFiles/test_crypto.dir/tests/test_all.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/tests/test_all.cpp.o.d"
+  "/home/ngquanghuy/Crypto/tests/test_obfuscate.cpp" "CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o.d"
   "/home/ngquanghuy/Crypto/tests/test_vm.cpp" "CMakeFiles/test_crypto.dir/tests/test_vm.cpp.o" "gcc" "CMakeFiles/test_crypto.dir/tests/test_vm.cpp.o.d"
   )
 

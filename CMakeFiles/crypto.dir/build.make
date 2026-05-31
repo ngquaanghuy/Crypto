@@ -307,6 +307,90 @@ CMakeFiles/crypto.dir/src/vm/vm_stub.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/crypto.dir/src/vm/vm_stub.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/vm/vm_stub.cpp -o CMakeFiles/crypto.dir/src/vm/vm_stub.cpp.s
 
+CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o: CMakeFiles/crypto.dir/flags.make
+CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o: src/obfuscate/anti_debug.cpp
+CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o: CMakeFiles/crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Building CXX object CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o -MF CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o.d -o CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp
+
+CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp > CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.i
+
+CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp -o CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.s
+
+CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.o: CMakeFiles/crypto.dir/flags.make
+CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.o: src/obfuscate/rename.cpp
+CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.o: CMakeFiles/crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_19) "Building CXX object CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.o -MF CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.o.d -o CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/rename.cpp
+
+CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/src/obfuscate/rename.cpp > CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.i
+
+CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/obfuscate/rename.cpp -o CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.s
+
+CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.o: CMakeFiles/crypto.dir/flags.make
+CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.o: src/obfuscate/flow_flatten.cpp
+CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.o: CMakeFiles/crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_20) "Building CXX object CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.o -MF CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.o.d -o CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/flow_flatten.cpp
+
+CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/src/obfuscate/flow_flatten.cpp > CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.i
+
+CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/obfuscate/flow_flatten.cpp -o CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.s
+
+CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.o: CMakeFiles/crypto.dir/flags.make
+CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.o: src/obfuscate/junk.cpp
+CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.o: CMakeFiles/crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_21) "Building CXX object CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.o -MF CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.o.d -o CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/junk.cpp
+
+CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/src/obfuscate/junk.cpp > CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.i
+
+CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/obfuscate/junk.cpp -o CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.s
+
+CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.o: CMakeFiles/crypto.dir/flags.make
+CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.o: src/obfuscate/xor_gen.cpp
+CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.o: CMakeFiles/crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_22) "Building CXX object CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.o -MF CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.o.d -o CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/xor_gen.cpp
+
+CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/src/obfuscate/xor_gen.cpp > CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.i
+
+CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/obfuscate/xor_gen.cpp -o CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.s
+
+CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.o: CMakeFiles/crypto.dir/flags.make
+CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.o: src/obfuscate/obfuscate.cpp
+CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.o: CMakeFiles/crypto.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_23) "Building CXX object CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.o -MF CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.o.d -o CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/obfuscate.cpp
+
+CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/ngquanghuy/Crypto/src/obfuscate/obfuscate.cpp > CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.i
+
+CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/ngquanghuy/Crypto/src/obfuscate/obfuscate.cpp -o CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.s
+
 # Object files for target crypto
 crypto_OBJECTS = \
 "CMakeFiles/crypto.dir/src/main.cpp.o" \
@@ -325,7 +409,13 @@ crypto_OBJECTS = \
 "CMakeFiles/crypto.dir/src/crypto/aes.cpp.o" \
 "CMakeFiles/crypto.dir/src/crypto/chacha20.cpp.o" \
 "CMakeFiles/crypto.dir/src/vm/vm_compile.cpp.o" \
-"CMakeFiles/crypto.dir/src/vm/vm_stub.cpp.o"
+"CMakeFiles/crypto.dir/src/vm/vm_stub.cpp.o" \
+"CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o" \
+"CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.o" \
+"CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.o" \
+"CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.o" \
+"CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.o" \
+"CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.o"
 
 # External object files for target crypto
 crypto_EXTERNAL_OBJECTS =
@@ -347,11 +437,17 @@ crypto: CMakeFiles/crypto.dir/src/crypto/aes.cpp.o
 crypto: CMakeFiles/crypto.dir/src/crypto/chacha20.cpp.o
 crypto: CMakeFiles/crypto.dir/src/vm/vm_compile.cpp.o
 crypto: CMakeFiles/crypto.dir/src/vm/vm_stub.cpp.o
+crypto: CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o
+crypto: CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.o
+crypto: CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.o
+crypto: CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.o
+crypto: CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.o
+crypto: CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.o
 crypto: CMakeFiles/crypto.dir/build.make
 crypto: /usr/lib/x86_64-linux-gnu/libcrypto.so
 crypto: /usr/lib/x86_64-linux-gnu/libz.so
 crypto: CMakeFiles/crypto.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_18) "Linking CXX executable crypto"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/ngquanghuy/Crypto/CMakeFiles --progress-num=$(CMAKE_PROGRESS_24) "Linking CXX executable crypto"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/crypto.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

@@ -103,6 +103,42 @@
 },
 {
   "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp",
+  "output": "CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/rename.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/obfuscate/rename.cpp",
+  "output": "CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/flow_flatten.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/obfuscate/flow_flatten.cpp",
+  "output": "CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/junk.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/obfuscate/junk.cpp",
+  "output": "CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/xor_gen.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/obfuscate/xor_gen.cpp",
+  "output": "CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/obfuscate.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/obfuscate/obfuscate.cpp",
+  "output": "CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
   "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/tests/test_all.cpp.o -c /home/ngquanghuy/Crypto/tests/test_all.cpp",
   "file": "/home/ngquanghuy/Crypto/tests/test_all.cpp",
   "output": "CMakeFiles/test_crypto.dir/tests/test_all.cpp.o"
@@ -112,6 +148,12 @@
   "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/tests/test_vm.cpp.o -c /home/ngquanghuy/Crypto/tests/test_vm.cpp",
   "file": "/home/ngquanghuy/Crypto/tests/test_vm.cpp",
   "output": "CMakeFiles/test_crypto.dir/tests/test_vm.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o -c /home/ngquanghuy/Crypto/tests/test_obfuscate.cpp",
+  "file": "/home/ngquanghuy/Crypto/tests/test_obfuscate.cpp",
+  "output": "CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o"
 },
 {
   "directory": "/home/ngquanghuy/Crypto/build",
@@ -184,5 +226,41 @@
   "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o -c /home/ngquanghuy/Crypto/src/vm/vm_stub.cpp",
   "file": "/home/ngquanghuy/Crypto/src/vm/vm_stub.cpp",
   "output": "CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/rename.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/obfuscate/rename.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/flow_flatten.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/obfuscate/flow_flatten.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/junk.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/obfuscate/junk.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/xor_gen.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/obfuscate/xor_gen.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/obfuscate.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/obfuscate/obfuscate.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o"
 }
 ]

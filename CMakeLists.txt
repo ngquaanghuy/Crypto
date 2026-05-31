@@ -29,6 +29,12 @@ set(CRYPTO_SOURCES
     src/crypto/chacha20.cpp
     src/vm/vm_compile.cpp
     src/vm/vm_stub.cpp
+    src/obfuscate/anti_debug.cpp
+    src/obfuscate/rename.cpp
+    src/obfuscate/flow_flatten.cpp
+    src/obfuscate/junk.cpp
+    src/obfuscate/xor_gen.cpp
+    src/obfuscate/obfuscate.cpp
 )
 
 add_executable(crypto ${CRYPTO_SOURCES})
@@ -47,6 +53,7 @@ if(CRYPTO_BUILD_TESTS)
     add_executable(test_crypto
         tests/test_all.cpp
         tests/test_vm.cpp
+        tests/test_obfuscate.cpp
     src/utils/file_util.cpp
     src/utils/compress.cpp
         src/encode/base64.cpp
@@ -59,6 +66,12 @@ if(CRYPTO_BUILD_TESTS)
         src/crypto/chacha20.cpp
         src/vm/vm_compile.cpp
         src/vm/vm_stub.cpp
+        src/obfuscate/anti_debug.cpp
+        src/obfuscate/rename.cpp
+        src/obfuscate/flow_flatten.cpp
+        src/obfuscate/junk.cpp
+        src/obfuscate/xor_gen.cpp
+        src/obfuscate/obfuscate.cpp
     )
 
     target_include_directories(test_crypto PRIVATE

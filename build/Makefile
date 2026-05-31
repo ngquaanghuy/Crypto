@@ -852,6 +852,168 @@ src/main.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/main.cpp.s
 .PHONY : src/main.cpp.s
 
+src/obfuscate/anti_debug.o: src/obfuscate/anti_debug.cpp.o
+.PHONY : src/obfuscate/anti_debug.o
+
+# target to build an object file
+src/obfuscate/anti_debug.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.o
+.PHONY : src/obfuscate/anti_debug.cpp.o
+
+src/obfuscate/anti_debug.i: src/obfuscate/anti_debug.cpp.i
+.PHONY : src/obfuscate/anti_debug.i
+
+# target to preprocess a source file
+src/obfuscate/anti_debug.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.i
+.PHONY : src/obfuscate/anti_debug.cpp.i
+
+src/obfuscate/anti_debug.s: src/obfuscate/anti_debug.cpp.s
+.PHONY : src/obfuscate/anti_debug.s
+
+# target to generate assembly for a file
+src/obfuscate/anti_debug.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/anti_debug.cpp.s
+.PHONY : src/obfuscate/anti_debug.cpp.s
+
+src/obfuscate/flow_flatten.o: src/obfuscate/flow_flatten.cpp.o
+.PHONY : src/obfuscate/flow_flatten.o
+
+# target to build an object file
+src/obfuscate/flow_flatten.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.o
+.PHONY : src/obfuscate/flow_flatten.cpp.o
+
+src/obfuscate/flow_flatten.i: src/obfuscate/flow_flatten.cpp.i
+.PHONY : src/obfuscate/flow_flatten.i
+
+# target to preprocess a source file
+src/obfuscate/flow_flatten.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.i
+.PHONY : src/obfuscate/flow_flatten.cpp.i
+
+src/obfuscate/flow_flatten.s: src/obfuscate/flow_flatten.cpp.s
+.PHONY : src/obfuscate/flow_flatten.s
+
+# target to generate assembly for a file
+src/obfuscate/flow_flatten.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/flow_flatten.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/flow_flatten.cpp.s
+.PHONY : src/obfuscate/flow_flatten.cpp.s
+
+src/obfuscate/junk.o: src/obfuscate/junk.cpp.o
+.PHONY : src/obfuscate/junk.o
+
+# target to build an object file
+src/obfuscate/junk.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.o
+.PHONY : src/obfuscate/junk.cpp.o
+
+src/obfuscate/junk.i: src/obfuscate/junk.cpp.i
+.PHONY : src/obfuscate/junk.i
+
+# target to preprocess a source file
+src/obfuscate/junk.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.i
+.PHONY : src/obfuscate/junk.cpp.i
+
+src/obfuscate/junk.s: src/obfuscate/junk.cpp.s
+.PHONY : src/obfuscate/junk.s
+
+# target to generate assembly for a file
+src/obfuscate/junk.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/junk.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/junk.cpp.s
+.PHONY : src/obfuscate/junk.cpp.s
+
+src/obfuscate/obfuscate.o: src/obfuscate/obfuscate.cpp.o
+.PHONY : src/obfuscate/obfuscate.o
+
+# target to build an object file
+src/obfuscate/obfuscate.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.o
+.PHONY : src/obfuscate/obfuscate.cpp.o
+
+src/obfuscate/obfuscate.i: src/obfuscate/obfuscate.cpp.i
+.PHONY : src/obfuscate/obfuscate.i
+
+# target to preprocess a source file
+src/obfuscate/obfuscate.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.i
+.PHONY : src/obfuscate/obfuscate.cpp.i
+
+src/obfuscate/obfuscate.s: src/obfuscate/obfuscate.cpp.s
+.PHONY : src/obfuscate/obfuscate.s
+
+# target to generate assembly for a file
+src/obfuscate/obfuscate.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/obfuscate.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/obfuscate.cpp.s
+.PHONY : src/obfuscate/obfuscate.cpp.s
+
+src/obfuscate/rename.o: src/obfuscate/rename.cpp.o
+.PHONY : src/obfuscate/rename.o
+
+# target to build an object file
+src/obfuscate/rename.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.o
+.PHONY : src/obfuscate/rename.cpp.o
+
+src/obfuscate/rename.i: src/obfuscate/rename.cpp.i
+.PHONY : src/obfuscate/rename.i
+
+# target to preprocess a source file
+src/obfuscate/rename.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.i
+.PHONY : src/obfuscate/rename.cpp.i
+
+src/obfuscate/rename.s: src/obfuscate/rename.cpp.s
+.PHONY : src/obfuscate/rename.s
+
+# target to generate assembly for a file
+src/obfuscate/rename.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/rename.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/rename.cpp.s
+.PHONY : src/obfuscate/rename.cpp.s
+
+src/obfuscate/xor_gen.o: src/obfuscate/xor_gen.cpp.o
+.PHONY : src/obfuscate/xor_gen.o
+
+# target to build an object file
+src/obfuscate/xor_gen.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.o
+.PHONY : src/obfuscate/xor_gen.cpp.o
+
+src/obfuscate/xor_gen.i: src/obfuscate/xor_gen.cpp.i
+.PHONY : src/obfuscate/xor_gen.i
+
+# target to preprocess a source file
+src/obfuscate/xor_gen.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.i
+.PHONY : src/obfuscate/xor_gen.cpp.i
+
+src/obfuscate/xor_gen.s: src/obfuscate/xor_gen.cpp.s
+.PHONY : src/obfuscate/xor_gen.s
+
+# target to generate assembly for a file
+src/obfuscate/xor_gen.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/obfuscate/xor_gen.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/obfuscate/xor_gen.cpp.s
+.PHONY : src/obfuscate/xor_gen.cpp.s
+
 src/utils/compress.o: src/utils/compress.cpp.o
 .PHONY : src/utils/compress.o
 
@@ -984,6 +1146,30 @@ tests/test_all.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/tests/test_all.cpp.s
 .PHONY : tests/test_all.cpp.s
 
+tests/test_obfuscate.o: tests/test_obfuscate.cpp.o
+.PHONY : tests/test_obfuscate.o
+
+# target to build an object file
+tests/test_obfuscate.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.o
+.PHONY : tests/test_obfuscate.cpp.o
+
+tests/test_obfuscate.i: tests/test_obfuscate.cpp.i
+.PHONY : tests/test_obfuscate.i
+
+# target to preprocess a source file
+tests/test_obfuscate.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.i
+.PHONY : tests/test_obfuscate.cpp.i
+
+tests/test_obfuscate.s: tests/test_obfuscate.cpp.s
+.PHONY : tests/test_obfuscate.s
+
+# target to generate assembly for a file
+tests/test_obfuscate.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/tests/test_obfuscate.cpp.s
+.PHONY : tests/test_obfuscate.cpp.s
+
 tests/test_vm.o: tests/test_vm.cpp.o
 .PHONY : tests/test_vm.o
 
@@ -1086,6 +1272,24 @@ help:
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
+	@echo "... src/obfuscate/anti_debug.o"
+	@echo "... src/obfuscate/anti_debug.i"
+	@echo "... src/obfuscate/anti_debug.s"
+	@echo "... src/obfuscate/flow_flatten.o"
+	@echo "... src/obfuscate/flow_flatten.i"
+	@echo "... src/obfuscate/flow_flatten.s"
+	@echo "... src/obfuscate/junk.o"
+	@echo "... src/obfuscate/junk.i"
+	@echo "... src/obfuscate/junk.s"
+	@echo "... src/obfuscate/obfuscate.o"
+	@echo "... src/obfuscate/obfuscate.i"
+	@echo "... src/obfuscate/obfuscate.s"
+	@echo "... src/obfuscate/rename.o"
+	@echo "... src/obfuscate/rename.i"
+	@echo "... src/obfuscate/rename.s"
+	@echo "... src/obfuscate/xor_gen.o"
+	@echo "... src/obfuscate/xor_gen.i"
+	@echo "... src/obfuscate/xor_gen.s"
 	@echo "... src/utils/compress.o"
 	@echo "... src/utils/compress.i"
 	@echo "... src/utils/compress.s"
@@ -1101,6 +1305,9 @@ help:
 	@echo "... tests/test_all.o"
 	@echo "... tests/test_all.i"
 	@echo "... tests/test_all.s"
+	@echo "... tests/test_obfuscate.o"
+	@echo "... tests/test_obfuscate.i"
+	@echo "... tests/test_obfuscate.s"
 	@echo "... tests/test_vm.o"
 	@echo "... tests/test_vm.i"
 	@echo "... tests/test_vm.s"
