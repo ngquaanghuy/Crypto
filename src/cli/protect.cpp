@@ -637,11 +637,11 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
             sb_printf(buf, "    else:\n"
                       "        pass\n");
         }
-        sb_printf(buf, "    _c, _k, _m, _map, _ok = _vm_deserialize(_pd)\n");
+        sb_printf(buf, "    _c, _k, _m, _map, _ok, _ht, _pf = _vm_deserialize(_pd)\n");
         if (exec_src && exec_src[0]) {
             sb_printf(buf, "    exec(compile({}.b64decode(\"{}\"), '<exec>', 'exec'), globals())\n", n_b, exec_src);
         }
-        sb_printf(buf, "    _vm_run(_c, _k, _m, globals(), locals(), _map, _ok)\n");
+        sb_printf(buf, "    _vm_run(_c, _k, _m, globals(), locals(), _map, _ok, _ht, _pf)\n");
     } else {
         if (compress_algo != COMPRESS_ID_NONE) {
             sb_printf(buf, "    if {}[1] == {}:\n"

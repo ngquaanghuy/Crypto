@@ -1068,6 +1068,195 @@ src/utils/file_util.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/utils/file_util.cpp.s
 .PHONY : src/utils/file_util.cpp.s
 
+src/vm/cfi.o: src/vm/cfi.cpp.o
+.PHONY : src/vm/cfi.o
+
+# target to build an object file
+src/vm/cfi.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/cfi.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/cfi.cpp.o
+.PHONY : src/vm/cfi.cpp.o
+
+src/vm/cfi.i: src/vm/cfi.cpp.i
+.PHONY : src/vm/cfi.i
+
+# target to preprocess a source file
+src/vm/cfi.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/cfi.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/cfi.cpp.i
+.PHONY : src/vm/cfi.cpp.i
+
+src/vm/cfi.s: src/vm/cfi.cpp.s
+.PHONY : src/vm/cfi.s
+
+# target to generate assembly for a file
+src/vm/cfi.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/cfi.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/cfi.cpp.s
+.PHONY : src/vm/cfi.cpp.s
+
+src/vm/code_schedule.o: src/vm/code_schedule.cpp.o
+.PHONY : src/vm/code_schedule.o
+
+# target to build an object file
+src/vm/code_schedule.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/code_schedule.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/code_schedule.cpp.o
+.PHONY : src/vm/code_schedule.cpp.o
+
+src/vm/code_schedule.i: src/vm/code_schedule.cpp.i
+.PHONY : src/vm/code_schedule.i
+
+# target to preprocess a source file
+src/vm/code_schedule.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/code_schedule.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/code_schedule.cpp.i
+.PHONY : src/vm/code_schedule.cpp.i
+
+src/vm/code_schedule.s: src/vm/code_schedule.cpp.s
+.PHONY : src/vm/code_schedule.s
+
+# target to generate assembly for a file
+src/vm/code_schedule.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/code_schedule.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/code_schedule.cpp.s
+.PHONY : src/vm/code_schedule.cpp.s
+
+src/vm/isa_expand.o: src/vm/isa_expand.cpp.o
+.PHONY : src/vm/isa_expand.o
+
+# target to build an object file
+src/vm/isa_expand.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/isa_expand.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/isa_expand.cpp.o
+.PHONY : src/vm/isa_expand.cpp.o
+
+src/vm/isa_expand.i: src/vm/isa_expand.cpp.i
+.PHONY : src/vm/isa_expand.i
+
+# target to preprocess a source file
+src/vm/isa_expand.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/isa_expand.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/isa_expand.cpp.i
+.PHONY : src/vm/isa_expand.cpp.i
+
+src/vm/isa_expand.s: src/vm/isa_expand.cpp.s
+.PHONY : src/vm/isa_expand.s
+
+# target to generate assembly for a file
+src/vm/isa_expand.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/isa_expand.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/isa_expand.cpp.s
+.PHONY : src/vm/isa_expand.cpp.s
+
+src/vm/obfcond.o: src/vm/obfcond.cpp.o
+.PHONY : src/vm/obfcond.o
+
+# target to build an object file
+src/vm/obfcond.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/obfcond.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/obfcond.cpp.o
+.PHONY : src/vm/obfcond.cpp.o
+
+src/vm/obfcond.i: src/vm/obfcond.cpp.i
+.PHONY : src/vm/obfcond.i
+
+# target to preprocess a source file
+src/vm/obfcond.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/obfcond.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/obfcond.cpp.i
+.PHONY : src/vm/obfcond.cpp.i
+
+src/vm/obfcond.s: src/vm/obfcond.cpp.s
+.PHONY : src/vm/obfcond.s
+
+# target to generate assembly for a file
+src/vm/obfcond.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/obfcond.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/obfcond.cpp.s
+.PHONY : src/vm/obfcond.cpp.s
+
+src/vm/smc.o: src/vm/smc.cpp.o
+.PHONY : src/vm/smc.o
+
+# target to build an object file
+src/vm/smc.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/smc.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/smc.cpp.o
+.PHONY : src/vm/smc.cpp.o
+
+src/vm/smc.i: src/vm/smc.cpp.i
+.PHONY : src/vm/smc.i
+
+# target to preprocess a source file
+src/vm/smc.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/smc.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/smc.cpp.i
+.PHONY : src/vm/smc.cpp.i
+
+src/vm/smc.s: src/vm/smc.cpp.s
+.PHONY : src/vm/smc.s
+
+# target to generate assembly for a file
+src/vm/smc.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/smc.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/smc.cpp.s
+.PHONY : src/vm/smc.cpp.s
+
+src/vm/spill.o: src/vm/spill.cpp.o
+.PHONY : src/vm/spill.o
+
+# target to build an object file
+src/vm/spill.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/spill.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/spill.cpp.o
+.PHONY : src/vm/spill.cpp.o
+
+src/vm/spill.i: src/vm/spill.cpp.i
+.PHONY : src/vm/spill.i
+
+# target to preprocess a source file
+src/vm/spill.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/spill.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/spill.cpp.i
+.PHONY : src/vm/spill.cpp.i
+
+src/vm/spill.s: src/vm/spill.cpp.s
+.PHONY : src/vm/spill.s
+
+# target to generate assembly for a file
+src/vm/spill.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/spill.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/spill.cpp.s
+.PHONY : src/vm/spill.cpp.s
+
+src/vm/vlencode.o: src/vm/vlencode.cpp.o
+.PHONY : src/vm/vlencode.o
+
+# target to build an object file
+src/vm/vlencode.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/vlencode.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/vlencode.cpp.o
+.PHONY : src/vm/vlencode.cpp.o
+
+src/vm/vlencode.i: src/vm/vlencode.cpp.i
+.PHONY : src/vm/vlencode.i
+
+# target to preprocess a source file
+src/vm/vlencode.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/vlencode.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/vlencode.cpp.i
+.PHONY : src/vm/vlencode.cpp.i
+
+src/vm/vlencode.s: src/vm/vlencode.cpp.s
+.PHONY : src/vm/vlencode.s
+
+# target to generate assembly for a file
+src/vm/vlencode.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/crypto.dir/build.make CMakeFiles/crypto.dir/src/vm/vlencode.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test_crypto.dir/build.make CMakeFiles/test_crypto.dir/src/vm/vlencode.cpp.s
+.PHONY : src/vm/vlencode.cpp.s
+
 src/vm/vm_compile.o: src/vm/vm_compile.cpp.o
 .PHONY : src/vm/vm_compile.o
 
@@ -1296,6 +1485,27 @@ help:
 	@echo "... src/utils/file_util.o"
 	@echo "... src/utils/file_util.i"
 	@echo "... src/utils/file_util.s"
+	@echo "... src/vm/cfi.o"
+	@echo "... src/vm/cfi.i"
+	@echo "... src/vm/cfi.s"
+	@echo "... src/vm/code_schedule.o"
+	@echo "... src/vm/code_schedule.i"
+	@echo "... src/vm/code_schedule.s"
+	@echo "... src/vm/isa_expand.o"
+	@echo "... src/vm/isa_expand.i"
+	@echo "... src/vm/isa_expand.s"
+	@echo "... src/vm/obfcond.o"
+	@echo "... src/vm/obfcond.i"
+	@echo "... src/vm/obfcond.s"
+	@echo "... src/vm/smc.o"
+	@echo "... src/vm/smc.i"
+	@echo "... src/vm/smc.s"
+	@echo "... src/vm/spill.o"
+	@echo "... src/vm/spill.i"
+	@echo "... src/vm/spill.s"
+	@echo "... src/vm/vlencode.o"
+	@echo "... src/vm/vlencode.i"
+	@echo "... src/vm/vlencode.s"
 	@echo "... src/vm/vm_compile.o"
 	@echo "... src/vm/vm_compile.i"
 	@echo "... src/vm/vm_compile.s"

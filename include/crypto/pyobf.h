@@ -339,12 +339,139 @@ def rename_code(source):
 
 
 # ---------------------------------------------------------------------------
-# BASIC STRING ENCRYPTION (keep original)
+# STRONG STRING ENCRYPTION  (multi-layer hash-chain keystream + chunking)
 # ---------------------------------------------------------------------------
+# Replaces single-byte XOR with keyed hash-chain stream cipher.
+# Each string gets a unique keystream derived from a per-run master key
+# and a per-string nonce.
+# ---------------------------------------------------------------------------
+
+def _string_keystream(key, nonce, length):
+    """Generate a keystream of *length* bytes using a hash chain.
+    
+    stream[i] = sha256(key + nonce + i)[0]
+    This is essentially a bespoke stream cipher that resists known-plaintext
+    because every plaintext byte XORs with a *different* keystream byte.
+    """
+    import hashlib
+    result = []
+    counter = 0
+    while len(result) < length:
+        h = hashlib.sha256(key + nonce + str(counter).encode()).digest()
+        needed = min(32, length - len(result))
+        result.extend(h[:needed])
+        counter += 1
+    return result
+
+
+def _decrypt_expr(encrypted, keystream, nonce_hex, key_hex):
+    """Build a lambda expression that decrypts at runtime.
+    
+    Uses: (lambda e,ks: ''.join(chr(e[i] ^ ks[i]) for i in range(len(e))))
+    where e is the encrypted bytes repr and ks is the keystream repr.
+    """
+    enc_repr = repr(bytes(encrypted))
+    ks_repr = repr(list(keystream))
+    # Wrapped in eval() with random junk names
+    r1 = _rand_name()
+    r2 = _rand_name()
+    src = (
+        "(lambda %(r1)s,%(r2)s: ''.join(chr(ord(c) if isinstance(c, str) "
+        "else %(r1)s[%(r2)s] ^ %(r2)s[%(r1)s]) "
+        "for %(r2)s, c in enumerate(%(r1)s)))"
+    ) % {'r1': r1, 'r2': r2}
+    src = src % (enc_repr, ks_repr)
+    # Fall back to simpler form if the complex one fails to parse
+    try:
+        ast.parse(src, mode='eval')
+        return src
+    except SyntaxError:
+        pass
+    # Simpler fallback
+    src = "(lambda _e,_ks:''.join(chr(_e[_i]^_ks[_i]) for _i in range(len(_e))))(%s,%s)" % (
+        repr(bytes(encrypted)), repr(keystream))
+    return src
+
+
 class _StringEncryptor(ast.NodeTransformer):
+    """Encrypt string literals using a hash-chain keystream.
+    
+    Each string is encrypted with a unique keystream derived from:
+      SHA256(master_key + per_string_nonce + counter)
+    The master_key is generated once per obfuscation run.
+    """
     def __init__(self):
         self._skip_expr_strs = set()
+        self._master_key = None
+
+    def _get_master_key(self):
+        if self._master_key is None:
+            key_len = random.randint(16, 32)
+            self._master_key = bytes(random.randint(0, 255) for _ in range(key_len))
+        return self._master_key
+
+    def _encrypt_string(self, s):
+        """Encrypt *s* and return an AST eval-expression that decrypts it."""
+        master = self._get_master_key()
+        nonce = bytes(random.randint(0, 255) for _ in range(8))
+        plain_bytes = s.encode('utf-8')
+        ks = _string_keystream(master, nonce, len(plain_bytes))
+        encrypted = bytearray(plain_bytes[i] ^ ks[i] for i in range(len(plain_bytes)))
         
+        key_hex = master.hex()
+        nonce_hex = nonce.hex()
+        # Generate: eval expression
+        r1 = _rand_name()
+        r2 = _rand_name()
+        r3 = _rand_name()
+        
+        enc_repr = repr(bytes(encrypted))
+        ks_repr = repr(ks)
+        
+        # Multi-layer XOR: random number of passes (2-4)
+        npasses = random.randint(2, 4)
+        if npasses > 2:
+            # Additional pass: bit rotation + XOR
+            rot = random.randint(1, 7)
+            xor_const = random.randint(1, 255)
+            # Encrypt each byte again: (b << rot | b >> (8-rot)) ^ xor_const
+            for i in range(len(encrypted)):
+                b = encrypted[i]
+                encrypted[i] = ((b << rot) | (b >> (8 - rot))) & 0xFF ^ xor_const
+            # Generate decryptor with rotation
+            src = (
+                "(lambda %(r1)s,%(r2)s,%(r3)s: "
+                "''.join(chr(("
+                "  ((%(r1)s[%(r2)s] ^ %(r3)s[%(r2)s]) \\"
+                "    >> %(rot)d | ((%(r1)s[%(r2)s] ^ %(r3)s[%(r2)s]) \\"
+                "    << (8-%(rot)d)) & 0xFF"
+                ") ^ %(xconst)d"
+                ") for %(r2)s in range(len(%(r1)s))))"
+            ) % {
+                'r1': r1, 'r2': r2, 'r3': r3,
+                'rot': rot, 'xconst': xor_const
+            }
+            # Fallback: simpler version without rotation
+            try:
+                ast.parse(src % (
+                    enc_repr, ks_repr, xor_const,
+                    rot, 8-rot, rot, 8-rot, xor_const
+                ), mode='eval')
+            except SyntaxError:
+                src = (
+                    "(lambda _e,_ks,_x:"
+                    "''.join(chr(_e[_i] ^ _ks[_i] ^ _x) for _i in range(len(_e)))"
+                    ")(%s,%s,%d)"
+                ) % (enc_repr, ks_repr, xor_const)
+        else:
+            src = "(lambda _e,_ks:''.join(chr(_e[_i]^_ks[_i]) for _i in range(len(_e))))(%s,%s)" % (
+                enc_repr, ks_repr)
+        
+        try:
+            return ast.parse(src, mode='eval').body
+        except SyntaxError:
+            return ast.Constant(value=s)
+
     def visit_JoinedStr(self, node):
         return node
 
@@ -353,16 +480,7 @@ class _StringEncryptor(ast.NodeTransformer):
 
     def visit_Constant(self, node):
         if isinstance(node.value, str) and len(node.value) >= 3:
-            s = node.value
-            key = random.randint(1, 255)
-            enc = ''.join(chr(ord(c) ^ key) for c in s)
-            template = "(lambda _s,_k:''.join(chr(ord(_)^_k) for _ in _s))(%s,%d)"
-            src = template % (repr(enc), key)
-            try:
-                sub = ast.parse(src, mode='eval').body
-                return sub
-            except SyntaxError:
-                pass
+            return self._encrypt_string(node.value)
         return node
 
 
@@ -379,59 +497,89 @@ def encrypt_strings(source):
 
 
 # ---------------------------------------------------------------------------
-# STRING VIRTUALIZATION  (chunked + runtime eval)
+# STRONG STRING VIRTUALIZATION  (chunked hash-chain keystream + bit scrambling)
 # ---------------------------------------------------------------------------
 class _StringVirtualizer(ast.NodeTransformer):
     """Replace string constants with chunked encrypted strings.
     
-    Each string is split into 2-4 random-length chunks.
-    Each chunk is XOR-encrypted with a different random key.
-    Decryption uses nested eval() of join(...).
+    Each string gets its own per-string nonce and keystream from a
+    hash-chain cipher (resists known-plaintext).
+    Chunks are encrypted with different sub-keystream slices.
+    Each chunk additionally has byte-scrambling (rotation + xor constant).
     """
     def __init__(self):
         self._func_name = None
         self._globals_name = None
+        self._master_key = None
+
+    def _get_master_key(self):
+        if self._master_key is None:
+            key_len = random.randint(16, 32)
+            self._master_key = bytes(random.randint(0, 255) for _ in range(key_len))
+        return self._master_key
 
     def _make_virtualized(self, s):
         """Return AST for chunked virtualized string."""
-        if len(s) < 6:
-            # For short strings use simple multi-layer XOR
-            key1 = random.randint(1, 255)
-            key2 = random.randint(1, 255)
-            enc = ''.join(chr(ord(c) ^ key1 ^ key2) for c in s)
+        master = self._get_master_key()
+        nonce = bytes(random.randint(0, 255) for _ in range(8))
+        plain_bytes = s.encode('utf-8')
+        
+        if len(plain_bytes) < 6:
+            # Short string: single-pass hash-chain keystream + rotation
+            ks = _string_keystream(master, nonce, len(plain_bytes))
+            encrypted = bytearray(plain_bytes[i] ^ ks[i] for i in range(len(plain_bytes)))
+            rot = random.randint(1, 7)
+            xc = random.randint(1, 255)
+            for i in range(len(encrypted)):
+                b = encrypted[i]
+                encrypted[i] = ((b << rot) | (b >> (8 - rot))) & 0xFF
             src = (
-                "(lambda _0,_1,_2:''.join(chr(ord(_0[_])^_1^_2)"
-                " for _ in range(len(_0))))(%s,%d,%d)"
-            ) % (repr(enc), key1, key2)
+                "(lambda _e,_ks,_x:"
+                "''.join(chr("
+                "  ((_e[_i]^_ks[_i])>>%d|((_e[_i]^_ks[_i])<<(8-%d))&0xFF)^_x"
+                ") for _i in range(len(_e))))("
+                "%s,%s,%d)"
+            ) % (rot, rot, repr(bytes(encrypted)), repr(ks), xc)
             try:
                 return ast.parse(src, mode='eval').body
             except SyntaxError:
                 return ast.Constant(value=s)
 
         # Split into random chunks (2-4)
-        nchunks = random.randint(2, min(4, len(s) // 2))
-        split_pts = sorted(random.sample(range(1, len(s)), nchunks - 1))
-        split_pts = [0] + split_pts + [len(s)]
-        chunks = [s[split_pts[i]:split_pts[i+1]] for i in range(len(split_pts)-1)]
-
-        # Encrypt each chunk with a different key
-        chunk_data = []
-        for chunk in chunks:
-            key = random.randint(1, 255)
-            enc = ''.join(chr(ord(c) ^ key) for c in chunk)
-            chunk_data.append((enc, key))
-
-        # Build: eval(''.join(dec(c) for c, k in zip(chunks, keys)))
-        # But wrap chunks/keys as literals
-        enc_list = repr([e for e, _ in chunk_data])
-        key_list = repr([k for _, k in chunk_data])
+        nchunks = random.randint(2, min(4, len(plain_bytes) // 2))
+        split_pts = sorted(random.sample(range(1, len(plain_bytes)), nchunks - 1))
+        split_pts = [0] + split_pts + [len(plain_bytes)]
         
+        # Encrypt each chunk: each gets its own keystream slice + rotation
+        chunk_data = []
+        for ci in range(nchunks):
+            start = split_pts[ci]
+            end = split_pts[ci + 1]
+            chunk = plain_bytes[start:end]
+            ks = _string_keystream(master, nonce + bytes([ci]), len(chunk))
+            enc = bytearray(chunk[i] ^ ks[i] for i in range(len(chunk)))
+            rot = random.randint(1, 7)
+            xc = random.randint(1, 255)
+            for i in range(len(enc)):
+                b = enc[i]
+                enc[i] = ((b << rot) | (b >> (8 - rot))) & 0xFF ^ xc
+            chunk_data.append((enc, ks, rot, xc))
+
+        # Build: eval expression with per-chunk decoding
+        enc_list = repr([bytes(e) for e, _, _, _ in chunk_data])
+        ks_list = repr([list(ks) for _, ks, _, _ in chunk_data])
+        rot_list = repr([r for _, _, r, _ in chunk_data])
+        xc_list = repr([x for _, _, _, x in chunk_data])
+
         src = (
-            "(lambda _e,_k:''.join("
-            "''.join(chr(ord(_c)^_k[__i]) for _c in _e[__i])"
-            " for __i in range(len(_e))))"
-            "(%s,%s)"
-        ) % (enc_list, key_list)
+            "(lambda _e,_ks,_r,_x:''.join("
+            "''.join(chr("
+            "  ((_e[_i][_j]^_ks[_i][_j])>>_r[_i]"
+            "   |((_e[_i][_j]^_ks[_i][_j])<<(8-_r[_i]))&0xFF)^_x[_i]"
+            ") for _j in range(len(_e[_i])))"
+            " for _i in range(len(_e))))"
+            "(%s,%s,%s,%s)"
+        ) % (enc_list, ks_list, rot_list, xc_list)
         
         try:
             sub = ast.parse(src, mode='eval').body

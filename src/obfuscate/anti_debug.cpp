@@ -249,7 +249,7 @@ int anti_debug_check_tracerpid(void) {
 }
 
 /* ── PTRACE_TRACEME test ── */
-static int anti_debug_check_ptrace(void) {
+int anti_debug_check_ptrace(void) {
     /* PTRACE_TRACEME fails if we are already being traced.
      * This is the most reliable single-call test.
      * We fork to avoid side effects on the parent process. */
@@ -269,7 +269,7 @@ static int anti_debug_check_ptrace(void) {
 }
 
 /* ── /proc/self/maps inspection ── */
-static int anti_debug_check_maps(void) {
+int anti_debug_check_maps(void) {
     static const char *suspicious[] = {
         "libpdb", "libinspect", "libtrace",
         "pydevd", "pdbpp", "ipdb",
@@ -293,7 +293,7 @@ static int anti_debug_check_maps(void) {
 }
 
 /* ── CPUID hypervisor check (x86/x86_64) ── */
-static int anti_debug_check_cpuid(void) {
+int anti_debug_check_cpuid(void) {
 #if defined(__x86_64__) || defined(__i386__)
     uint32_t eax, ebx, ecx, edx;
     eax = 1;
@@ -309,9 +309,22 @@ static int anti_debug_check_cpuid(void) {
     return 0;
 #endif
 }
+
 #else
 /* ── Fallback for unsupported platforms ── */
 int anti_debug_check_tracerpid(void) {
+    return 0;
+}
+
+int anti_debug_check_ptrace(void) {
+    return 0;
+}
+
+int anti_debug_check_maps(void) {
+    return 0;
+}
+
+int anti_debug_check_cpuid(void) {
     return 0;
 }
 #endif

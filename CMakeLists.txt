@@ -29,6 +29,13 @@ set(CRYPTO_SOURCES
     src/crypto/chacha20.cpp
     src/vm/vm_compile.cpp
     src/vm/vm_stub.cpp
+    src/vm/isa_expand.cpp
+    src/vm/obfcond.cpp
+    src/vm/spill.cpp
+    src/vm/smc.cpp
+    src/vm/vlencode.cpp
+    src/vm/cfi.cpp
+    src/vm/code_schedule.cpp
     src/obfuscate/anti_debug.cpp
     src/obfuscate/rename.cpp
     src/obfuscate/flow_flatten.cpp
@@ -66,6 +73,13 @@ if(CRYPTO_BUILD_TESTS)
         src/crypto/chacha20.cpp
         src/vm/vm_compile.cpp
         src/vm/vm_stub.cpp
+        src/vm/isa_expand.cpp
+        src/vm/obfcond.cpp
+        src/vm/spill.cpp
+        src/vm/smc.cpp
+        src/vm/vlencode.cpp
+        src/vm/cfi.cpp
+        src/vm/code_schedule.cpp
         src/obfuscate/anti_debug.cpp
         src/obfuscate/rename.cpp
         src/obfuscate/flow_flatten.cpp

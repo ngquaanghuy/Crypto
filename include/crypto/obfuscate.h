@@ -170,7 +170,7 @@ char *junk_generate_section(const JunkConfig *cfg, int count);
                                      OBFUSCATE_CHACHA20_IV_SIZE + \
                                      OBFUSCATE_HMAC_KEY_SIZE)
 #define OBFUSCATE_NONCE_SIZE        12
-#define OBFUSCATE_TAG_SIZE          16
+#define OBFUSCATE_TAG_SIZE          32
 
 /* Derive encryption and HMAC keys from a master key using HKDF/HMAC. */
 ExitCode xorgen_derive_keys(const unsigned char *master_key, size_t master_len,

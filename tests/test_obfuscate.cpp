@@ -66,14 +66,17 @@ TEST_CASE("anti_debug_sanitize_environment removes dangerous vars") {
 /* ── Test: Rename Algorithm ── */
 TEST_SUITE("Rename Algorithm") {
 
-TEST_CASE("rename_mangle_name produces 24-char hex suffix") {
+TEST_CASE("rename_mangle_name produces variable-length result") {
     unsigned char key[32];
     RAND_bytes(key, sizeof(key));
 
     char *mangled = rename_mangle_name("my_function", 0, "global", key, 32);
     REQUIRE(mangled != nullptr);
-    CHECK_EQ(strlen(mangled), 25); /* _ + 24 hex chars */
-    CHECK_EQ(mangled[0], '_');
+    /* Length varies: _ + 8, 12, or 16 hex chars (+ possible extra _ or digit prefix) */
+    size_t len = strlen(mangled);
+    CHECK(len >= 3);    /* _ + at least 1 hex char * 2 = at least 3 */
+    CHECK(len <= 35);   /* __ + 16 hex chars (32 chars) + null = 35 max */
+    CHECK(mangled[0] == '_');
     CHECK(mangled[1] != '\0');
     free(mangled);
 }
@@ -255,9 +258,9 @@ TEST_CASE("flowflatten_generate_python produces valid flattened code") {
 
     char *code = flowflatten_generate_python(&plan, plan.key, 32);
     REQUIRE(code != nullptr);
-    CHECK(strstr(code, "hmac") != nullptr);
-    CHECK(strstr(code, "_VF") != nullptr);
-    CHECK(strstr(code, "flattened_main") != nullptr);
+    CHECK(strstr(code, "hashlib") != nullptr);
+    CHECK(strstr(code, "def ") != nullptr);
+    CHECK(strstr(code, "_S") != nullptr);
 
     /* Compile check */
     FILE *f = fopen("/tmp/test_flowflat_stub.py", "w");

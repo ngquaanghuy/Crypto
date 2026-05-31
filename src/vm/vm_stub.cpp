@@ -69,6 +69,21 @@ ExitCode vm_generate_stub(const char *b64_data, size_t b64_sz,
     sb_printf(&p, end, "{}\n", VM_INTERP_SCRIPT);
     sb_printf(&p, end, "def {}():\n", n_fn);
 
+    // ─── Host-level anti-debug ───
+    sb_printf(&p, end, "    import signal as {}, os as {}\n", rand_name(), rand_name());
+    sb_printf(&p, end, "    {}.signal({}.SIGTRAP, {}.SIG_IGN)\n", rand_name(), rand_name(), rand_name());
+    sb_printf(&p, end, "    if 'LD_PRELOAD' in {}.environ: {}.exit(1)\n", rand_name(), n_s);
+    sb_printf(&p, end, "    for _v in ['PYTHONBREAKPOINT','PYTHONDEVMODE','PYCHARM','PYDEVD']:\n");
+    sb_printf(&p, end, "        if _v in {}.environ: {}.exit(1)\n", rand_name(), n_s);
+    // Check /proc/self/maps for debugger libraries
+    sb_printf(&p, end, "    try:\n");
+    sb_printf(&p, end, "        with open('/proc/self/maps') as _f:\n");
+    sb_printf(&p, end, "            _m = _f.read()\n");
+    sb_printf(&p, end, "        for _l in ['libpdb','pydevd','libc_debug']:\n");
+    sb_printf(&p, end, "            if _l in _m: {}.exit(1)\n", n_s);
+    sb_printf(&p, end, "    except Exception:\n");
+    sb_printf(&p, end, "        pass\n");
+
     // Anti-analysis
     if (anti_len > 0) {
         char *patched = (char *)malloc(anti_len + 256);
@@ -106,10 +121,10 @@ ExitCode vm_generate_stub(const char *b64_data, size_t b64_sz,
               n_s, n_s);
 
     // Deserialize and run VM
-    sb_printf(&p, end, "    {}, {}, {}, {}, {} = _vm_deserialize({})\n",
-              n_code, n_consts, n_names, n_map, n_ok, n_9);
-    sb_printf(&p, end, "    _vm_run({}, {}, {}, globals(), locals(), {}, {})\n",
-              n_code, n_consts, n_names, n_map, n_ok);
+    sb_printf(&p, end, "    {}, {}, {}, {}, {}, {}, {} = _vm_deserialize({})\n",
+              n_code, n_consts, n_names, n_map, n_ok, n_hot, n_9, n_9);
+    sb_printf(&p, end, "    _vm_run({}, {}, {}, globals(), locals(), {}, {}, {}, {})\n",
+              n_code, n_consts, n_names, n_map, n_ok, n_hot, n_9);
 
     sb_printf(&p, end, "if __name__ == '__main__':\n  {}()\n", n_fn);
 
