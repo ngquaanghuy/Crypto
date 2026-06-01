@@ -1,0 +1,21 @@
+# Build outputs
+crypto
+test_crypto
+test_openssl
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+compile_commands.json
+CTestTestfile.cmake
+DartConfiguration.tcl
+Makefile
+Testing/
+
+# Build directory
+build/
+
+# Python bytecode
+__pycache__/
+*.pyc
