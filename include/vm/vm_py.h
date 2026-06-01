@@ -81,11 +81,11 @@ def convert(source, opaque=0):
             _op = getattr(dis.opmap, _n, None)
             if _op is not None:
                 SPECIAL_MAP[_n] = 'UNARY_NEGATIVE'
-        elif _n.startswith('LOAD_') and _n not in ('LOAD_CONST', 'LOAD_NAME', 'LOAD_GLOBAL', 'LOAD_FAST', 'LOAD_SMALL_INT', 'LOAD_BUILD_CLASS', 'LOAD_FAST_AND_CLEAR', 'LOAD_FAST_BORROW', 'LOAD_FAST_BORROW_LOAD_FAST_BORROW'):
+        elif _n.startswith('LOAD_') and _n not in ('LOAD_CONST', 'LOAD_NAME', 'LOAD_GLOBAL', 'LOAD_FAST', 'LOAD_SMALL_INT', 'LOAD_BUILD_CLASS', 'LOAD_FAST_AND_CLEAR', 'LOAD_FAST_BORROW', 'LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'LOAD_ATTR', 'LOAD_DEREF', 'LOAD_CLOSURE', 'LOAD_SUPER_ATTR', 'LOAD_FROM_DICT_OR_DEREF', 'LOAD_FROM_DICT_OR_GLOBALS', 'LOAD_COMMON_CONSTANT', 'LOAD_SPECIAL', 'LOAD_FAST_CHECK'):
             _op = getattr(dis.opmap, _n, None)
             if _op is not None:
                 SPECIAL_MAP[_n] = 'LOAD_NAME'
-        elif _n.startswith('STORE_') and _n not in ('STORE_NAME', 'STORE_GLOBAL', 'STORE_FAST', 'STORE_SUBSCR'):
+        elif _n.startswith('STORE_') and _n not in ('STORE_NAME', 'STORE_GLOBAL', 'STORE_FAST', 'STORE_SUBSCR', 'STORE_ATTR', 'STORE_DEREF', 'STORE_SLICE', 'STORE_FAST_MAYBE_NULL', 'STORE_FAST_LOAD_FAST', 'STORE_FAST_STORE_FAST'):
             _op = getattr(dis.opmap, _n, None)
             if _op is not None:
                 SPECIAL_MAP[_n] = 'STORE_NAME'
@@ -202,11 +202,7 @@ def convert(source, opaque=0):
                 vm_idx += 1
                 _ii = _call_idx + 1
                 continue
-            _ii += 1; continue
-        if on == 'STORE_NAME' and _saved == 'MAKE_FUNCTION':
-            _ii += 1; continue
-        if on == 'MAKE_FUNCTION':
-            _ii += 1; continue
+            # Non-IIFE code object (function definition): include in mapping
         off2vm[instr.offset] = vm_idx
         vm_idx += 1
         _ii += 1
@@ -234,15 +230,35 @@ def convert(source, opaque=0):
                 vm_code.extend(struct.pack('<BBBBi', 1, rd, 0, 0, const_idx[repr(_result)]))
                 _ii = _call_idx + 1
                 continue
-            continue  # skip non-IIFE code object (function definition)
+            # Non-IIFE: compile code object as constant (function definition)
+            ci(av)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 1, rd, 0, 0, const_idx[repr(av)]))
+            continue
 
         if on == 'POP_TOP':
             if reg_stack:
                 free_reg(reg_stack.pop())
             continue
-        if on in ('RESUME', 'PUSH_NULL', 'POP_TOP', 'NOP', 'PRECALL', 'CACHE', 'NOT_TAKEN', 'MAKE_FUNCTION', 'TO_BOOL'):
+        if on in ('RESUME', 'PUSH_NULL', 'POP_TOP', 'NOP', 'PRECALL', 'CACHE', 'NOT_TAKEN', 'TO_BOOL'):
             continue
-        if on == 'STORE_NAME' and prev_op_saved == 'MAKE_FUNCTION':
+
+        # Handle MAKE_FUNCTION: pop (qualified name, code_object) → push function
+        if on == 'MAKE_FUNCTION':
+            if reg_stack:
+                name_reg = reg_stack.pop()
+                free_reg(name_reg)
+            else:
+                name_reg = 0
+            if reg_stack:
+                code_reg = reg_stack.pop()
+                free_reg(code_reg)
+            else:
+                code_reg = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 54, rd, code_reg, 0, 0))
             continue
 
         # Map specialized opcodes to generic
@@ -623,6 +639,693 @@ def convert(source, opaque=0):
             rd = alloc_reg()
             reg_stack.append(rd)
             vm_code.extend(struct.pack('<BBBBi', 15, rd, rs, 0, 0))
+
+        if on == 'UNARY_INVERT':
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 7, rd, rs, 0, 0))
+
+        if on == 'UNARY_NOT':
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 8, rd, rs, 0, 0))
+
+        if on == 'BINARY_SLICE':
+            # obj[start:stop] — pop obj, start, stop; push result
+            stop_reg = reg_stack.pop() if reg_stack else 0
+            start_reg = reg_stack.pop() if reg_stack else 0
+            obj_reg = reg_stack.pop() if reg_stack else 0
+            for r in (stop_reg, start_reg, obj_reg):
+                if r: free_reg(r)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 161, rd, obj_reg, start_reg, 0))
+
+        if on == 'DELETE_SUBSCR':
+            key_reg = reg_stack.pop() if reg_stack else 0
+            obj_reg = reg_stack.pop() if reg_stack else 0
+            for r in (key_reg, obj_reg):
+                if r: free_reg(r)
+            vm_code.extend(struct.pack('<BBBBi', 162, 0, obj_reg, key_reg, 0))
+
+        if on == 'STORE_SLICE':
+            step_reg = reg_stack.pop() if reg_stack else 0
+            stop_reg = reg_stack.pop() if reg_stack else 0
+            start_reg = reg_stack.pop() if reg_stack else 0
+            obj_reg = reg_stack.pop() if reg_stack else 0
+            val_reg = reg_stack.pop() if reg_stack else 0
+            for r in (step_reg, stop_reg, start_reg, obj_reg, val_reg):
+                if r: free_reg(r)
+            vm_code.extend(struct.pack('<BBBBi', 163, val_reg, obj_reg, start_reg, 0))
+
+        if on == 'BUILD_MAP':
+            items = []
+            for _ in range(arg):
+                if reg_stack: items.insert(0, reg_stack.pop())
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            for i, a in enumerate(items):
+                if a != rd + 1 + i:
+                    vm_code.extend(struct.pack('<BBBBi', 6, rd + 1 + i, a, 0, 0))
+            for a in items:
+                free_reg(a)
+            vm_code.extend(struct.pack('<BBBBi', 164, rd, rd + 1, arg // 2, 0))
+
+        if on == 'BUILD_SET':
+            items = []
+            for _ in range(arg):
+                if reg_stack: items.insert(0, reg_stack.pop())
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            for i, a in enumerate(items):
+                if a != rd + 1 + i:
+                    vm_code.extend(struct.pack('<BBBBi', 6, rd + 1 + i, a, 0, 0))
+            for a in items:
+                free_reg(a)
+            vm_code.extend(struct.pack('<BBBBi', 165, rd, rd + 1, arg, 0))
+
+        if on == 'BUILD_SLICE':
+            # Pop start, stop, [step]
+            step_reg = reg_stack.pop() if reg_stack and arg == 3 else 0
+            stop_reg = reg_stack.pop() if reg_stack else 0
+            start_reg = reg_stack.pop() if reg_stack else 0
+            for r in (step_reg, stop_reg, start_reg):
+                if r: free_reg(r)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 166, rd, start_reg, stop_reg, arg))
+
+        if on == 'COPY':
+            if reg_stack:
+                rs = reg_stack[-1]
+            else:
+                rs = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 167, rd, rs, 0, 0))
+
+        if on == 'DICT_MERGE':
+            other_reg = reg_stack.pop() if reg_stack else 0
+            dict_reg = reg_stack[-1] if reg_stack else 0
+            free_reg(other_reg)
+            vm_code.extend(struct.pack('<BBBBi', 168, dict_reg, other_reg, 0, 0))
+
+        if on == 'DICT_UPDATE':
+            other_reg = reg_stack.pop() if reg_stack else 0
+            dict_reg = reg_stack[-1] if reg_stack else 0
+            free_reg(other_reg)
+            vm_code.extend(struct.pack('<BBBBi', 169, dict_reg, other_reg, 0, 0))
+
+        if on == 'MAP_ADD':
+            val_reg = reg_stack.pop() if reg_stack else 0
+            key_reg = reg_stack.pop() if reg_stack else 0
+            dict_reg = reg_stack[-1] if reg_stack else 0
+            free_reg(val_reg)
+            free_reg(key_reg)
+            vm_code.extend(struct.pack('<BBBBi', 170, dict_reg, key_reg, val_reg, 0))
+
+        if on == 'SET_ADD':
+            item_reg = reg_stack.pop() if reg_stack else 0
+            set_reg = reg_stack[-1] if reg_stack else 0
+            free_reg(item_reg)
+            vm_code.extend(struct.pack('<BBBBi', 171, set_reg, item_reg, 0, 0))
+
+        if on == 'SET_UPDATE':
+            other_reg = reg_stack.pop() if reg_stack else 0
+            set_reg = reg_stack[-1] if reg_stack else 0
+            free_reg(other_reg)
+            vm_code.extend(struct.pack('<BBBBi', 172, set_reg, other_reg, 0, 0))
+
+        if on == 'GET_AITER':
+            obj_reg = reg_stack.pop() if reg_stack else 0
+            free_reg(obj_reg)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 181, rd, obj_reg, 0, 0))
+
+        if on == 'GET_ANEXT':
+            aiter_reg = reg_stack[-1] if reg_stack else 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 182, rd, aiter_reg, 0, 0))
+
+        if on == 'GET_YIELD_FROM_ITER':
+            iter_reg = reg_stack[-1] if reg_stack else 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 183, rd, iter_reg, 0, 0))
+
+        if on == 'LOAD_BUILD_CLASS':
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 184, rd, 0, 0, 0))
+
+        if on == 'RETURN_GENERATOR':
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 185, rd, rs, 0, 0))
+
+        if on == 'COPY_FREE_VARS':
+            vm_code.extend(struct.pack('<BBBBi', 186, 0, 0, 0, arg))
+
+        if on == 'DELETE_DEREF':
+            ni(av)
+            vm_code.extend(struct.pack('<BBBBi', 187, 0, 0, 0, name_set[av]))
+
+        if on == 'END_ASYNC_FOR':
+            vm_code.extend(struct.pack('<BBBBi', 188, 0, 0, 0, 0))
+
+        if on == 'GET_AWAITABLE':
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 189, rd, rs, 0, 0))
+
+        if on == 'LOAD_DEREF':
+            ni(av)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 190, rd, 0, 0, name_set[av]))
+
+        if on == 'MAKE_CELL':
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 191, rd, rs, 0, 0))
+
+        if on == 'SEND':
+            if len(reg_stack) >= 2:
+                gen_reg = reg_stack.pop()
+                val_reg = reg_stack.pop()
+            elif reg_stack:
+                gen_reg = reg_stack.pop()
+                val_reg = 0
+            else:
+                gen_reg = val_reg = 0
+            free_reg(val_reg)
+            free_reg(gen_reg)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
+            vm_idx_target = vm_target(target)
+            vm_code.extend(struct.pack('<BBBBi', 192, rd, gen_reg, val_reg, vm_idx_target))
+
+        if on == 'STORE_DEREF':
+            ni(av)
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            vm_code.extend(struct.pack('<BBBBi', 193, rs, 0, 0, name_set[av]))
+
+        if on == 'YIELD_VALUE':
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 194, rd, rs, 0, 0))
+
+        if on == 'LOAD_CLOSURE':
+            ni(av)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 195, rd, 0, 0, name_set[av]))
+
+        if on == 'CHECK_EG_MATCH':
+            exc_reg = reg_stack[-1] if reg_stack else 0
+            match_reg = reg_stack[-2] if len(reg_stack) >= 2 else 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 200, rd, exc_reg, match_reg, 0))
+
+        if on == 'CHECK_EXC_MATCH':
+            exc_reg = reg_stack[-1] if reg_stack else 0
+            handled = 0
+            vm_code.extend(struct.pack('<BBBBi', 201, 0, exc_reg, 0, 0))
+
+        if on == 'CLEANUP_THROW':
+            vm_code.extend(struct.pack('<BBBBi', 202, 0, 0, 0, 0))
+
+        if on == 'POP_EXCEPT':
+            vm_code.extend(struct.pack('<BBBBi', 203, 0, 0, 0, 0))
+
+        if on == 'PUSH_EXC_INFO':
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            vm_code.extend(struct.pack('<BBBBi', 204, rs, 0, 0, 0))
+
+        if on == 'WITH_EXCEPT_START':
+            exc_reg = reg_stack[-1] if reg_stack else 0
+            ctx_reg = reg_stack[-2] if len(reg_stack) >= 2 else 0
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 205, rd, ctx_reg, exc_reg, 0))
+
+        if on == 'RERAISE':
+            prev_exc_reg = reg_stack.pop() if reg_stack else 0
+            if prev_exc_reg: free_reg(prev_exc_reg)
+            vm_code.extend(struct.pack('<BBBBi', 206, prev_exc_reg, 0, 0, 0))
+
+        if on == 'POP_BLOCK':
+            vm_code.extend(struct.pack('<BBBBi', 207, 0, 0, 0, 0))
+
+        if on == 'SETUP_CLEANUP':
+            target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
+            vm_idx_target = vm_target(target)
+            vm_code.extend(struct.pack('<BBBBi', 208, 0, 0, 0, vm_idx_target))
+
+        if on == 'SETUP_FINALLY':
+            target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
+            vm_idx_target = vm_target(target)
+            vm_code.extend(struct.pack('<BBBBi', 209, 0, 0, 0, vm_idx_target))
+
+        if on == 'SETUP_WITH':
+            ctx_reg = reg_stack[-1] if reg_stack else 0
+            target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
+            vm_idx_target = vm_target(target)
+            vm_code.extend(struct.pack('<BBBBi', 210, 0, ctx_reg, 0, vm_idx_target))
+
+        if on == 'MATCH_KEYS':
+            keys_reg = reg_stack.pop() if reg_stack else 0
+            subj_reg = reg_stack.pop() if reg_stack else 0
+            free_reg(keys_reg)
+            free_reg(subj_reg)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            rd2 = alloc_reg()
+            reg_stack.append(rd2)
+            vm_code.extend(struct.pack('<BBBBi', 220, rd, subj_reg, keys_reg, 0))
+
+        if on == 'MATCH_MAPPING':
+            subj_reg = reg_stack[-1] if reg_stack else 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 221, rd, subj_reg, 0, 0))
+
+        if on == 'MATCH_SEQUENCE':
+            subj_reg = reg_stack[-1] if reg_stack else 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 222, rd, subj_reg, 0, arg))
+
+        if on == 'MATCH_CLASS':
+            subj_reg = reg_stack[-1] if reg_stack else 0
+            nargs = arg
+            args = []
+            for _ in range(nargs):
+                if reg_stack: args.insert(0, reg_stack.pop())
+            for a in args: free_reg(a)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 223, rd, subj_reg, nargs, name_set[av] if isinstance(av, str) else (av or 0)))
+
+        if on == 'POP_ITER':
+            iter_reg = reg_stack.pop() if reg_stack else 0
+            if iter_reg: free_reg(iter_reg)
+            vm_code.extend(struct.pack('<BBBBi', 230, 0, iter_reg, 0, 0))
+
+        if on == 'JUMP_BACKWARD_NO_INTERRUPT':
+            target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
+            vm_idx_target = vm_target(target)
+            vm_code.extend(struct.pack('<BBBBi', 231, 0, 0, 0, vm_idx_target))
+
+        if on == 'JUMP':
+            target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
+            vm_idx_target = vm_target(target)
+            vm_code.extend(struct.pack('<BBBBi', 232, 0, 0, 0, vm_idx_target))
+
+        if on == 'JUMP_IF_FALSE':
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
+            vm_idx_target = vm_target(target)
+            vm_code.extend(struct.pack('<BBBBi', 233, rs, 0, 0, vm_idx_target))
+
+        if on == 'JUMP_IF_TRUE':
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
+            vm_idx_target = vm_target(target)
+            vm_code.extend(struct.pack('<BBBBi', 234, rs, 0, 0, vm_idx_target))
+
+        if on == 'JUMP_NO_INTERRUPT':
+            target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
+            vm_idx_target = vm_target(target)
+            vm_code.extend(struct.pack('<BBBBi', 235, 0, 0, 0, vm_idx_target))
+
+        if on == 'DELETE_ATTR':
+            ni(av)
+            if reg_stack:
+                obj_reg = reg_stack.pop()
+                free_reg(obj_reg)
+            else:
+                obj_reg = 0
+            vm_code.extend(struct.pack('<BBBBi', 240, obj_reg, 0, 0, name_set[av]))
+
+        if on == 'LOAD_SUPER_ATTR':
+            ni(av)
+            if reg_stack:
+                cls_reg = reg_stack.pop()
+                free_reg(cls_reg)
+            if reg_stack:
+                self_reg = reg_stack.pop()
+                free_reg(self_reg)
+            if reg_stack:
+                global_super = reg_stack.pop()
+                free_reg(global_super)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 241, rd, 0, 0, name_set[av]))
+
+        if on == 'STORE_ATTR':
+            ni(av)
+            if reg_stack:
+                val_reg = reg_stack.pop()
+                free_reg(val_reg)
+            if reg_stack:
+                obj_reg = reg_stack.pop()
+                free_reg(obj_reg)
+            vm_code.extend(struct.pack('<BBBBi', 242, val_reg, obj_reg, 0, name_set[av]))
+
+        if on == 'CALL_FUNCTION_EX':
+            kwargs_reg = reg_stack.pop() if reg_stack else 0
+            args_reg = reg_stack.pop() if reg_stack else 0
+            fn_reg = reg_stack.pop() if reg_stack else 0
+            free_reg(kwargs_reg)
+            free_reg(args_reg)
+            free_reg(fn_reg)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            flags = arg & 0xFF  # bit 0: has kwargs
+            vm_code.extend(struct.pack('<BBBBi', 245, rd, fn_reg, args_reg, flags))
+
+        if on == 'CALL_INTRINSIC_1':
+            av_reg = reg_stack.pop() if reg_stack else 0
+            free_reg(av_reg)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 246, rd, av_reg, 0, arg))
+
+        if on == 'CALL_INTRINSIC_2':
+            av2_reg = reg_stack.pop() if reg_stack else 0
+            av1_reg = reg_stack.pop() if reg_stack else 0
+            free_reg(av2_reg)
+            free_reg(av1_reg)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 247, rd, av1_reg, av2_reg, arg))
+
+        if on == 'CALL_KW':
+            argc = arg
+            args = []
+            for _ in range(argc):
+                if reg_stack: args.insert(0, reg_stack.pop())
+            names_idx = reg_stack.pop() if reg_stack else 0
+            if reg_stack:
+                fn_reg = reg_stack.pop()
+            else:
+                fn_reg = 0
+            for a in args: free_reg(a)
+            free_reg(names_idx)
+            free_reg(fn_reg)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 248, rd, fn_reg, names_idx, argc))
+
+        if on == 'DELETE_FAST':
+            ni(av)
+            vm_code.extend(struct.pack('<BBBBi', 250, 0, 0, 0, name_set[av]))
+
+        if on == 'DELETE_GLOBAL':
+            ni(av)
+            vm_code.extend(struct.pack('<BBBBi', 251, 0, 0, 0, name_set[av]))
+
+        if on == 'DELETE_NAME':
+            ni(av)
+            vm_code.extend(struct.pack('<BBBBi', 252, 0, 0, 0, name_set[av]))
+
+        if on == 'LOAD_FROM_DICT_OR_DEREF':
+            ni(av)
+            if reg_stack:
+                dict_reg = reg_stack.pop()
+                free_reg(dict_reg)
+            else:
+                dict_reg = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 253, rd, dict_reg, 0, name_set[av]))
+
+        if on == 'LOAD_FROM_DICT_OR_GLOBALS':
+            ni(av)
+            if reg_stack:
+                dict_reg = reg_stack.pop()
+                free_reg(dict_reg)
+            else:
+                dict_reg = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 254, rd, dict_reg, 0, name_set[av]))
+
+        if on == 'SETUP_ANNOTATIONS':
+            vm_code.extend(struct.pack('<BBBBi', 9, 0, 0, 0, 0))
+
+        if on == 'CONVERT_VALUE':
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 110, rd, rs, 0, arg))
+
+        if on == 'LOAD_COMMON_CONSTANT':
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 111, rd, 0, 0, arg))
+
+        if on == 'LOAD_SPECIAL':
+            ni(av)
+            if reg_stack:
+                rs = reg_stack[-1]
+            else:
+                rs = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 112, rd, rs, 0, name_set[av]))
+
+        if on == 'ANNOTATIONS_PLACEHOLDER':
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 113, rd, 0, 0, 0))
+
+        if on == 'BUILD_TEMPLATE':
+            nparts = arg
+            parts = []
+            for _ in range(nparts):
+                if reg_stack: parts.insert(0, reg_stack.pop())
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            for i, a in enumerate(parts):
+                if a != rd + 1 + i:
+                    vm_code.extend(struct.pack('<BBBBi', 6, rd + 1 + i, a, 0, 0))
+            for a in parts: free_reg(a)
+            vm_code.extend(struct.pack('<BBBBi', 114, rd, rd + 1, nparts, 0))
+
+        if on == 'END_FOR':
+            iter_reg = reg_stack.pop() if reg_stack else 0
+            if iter_reg: free_reg(iter_reg)
+            vm_code.extend(struct.pack('<BBBBi', 115, 0, iter_reg, 0, 0))
+
+        if on == 'EXIT_INIT_CHECK':
+            vm_code.extend(struct.pack('<BBBBi', 116, 0, 0, 0, 0))
+
+        if on == 'FORMAT_WITH_SPEC':
+            fmt_reg = reg_stack.pop() if reg_stack else 0
+            val_reg = reg_stack.pop() if reg_stack else 0
+            free_reg(fmt_reg)
+            free_reg(val_reg)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 117, rd, val_reg, fmt_reg, 0))
+
+        if on == 'RESERVED':
+            vm_code.extend(struct.pack('<BBBBi', 118, 0, 0, 0, 0))
+
+        if on == 'GET_LEN':
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 119, rd, rs, 0, 0))
+
+        if on == 'INTERPRETER_EXIT':
+            vm_code.extend(struct.pack('<BBBBi', 124, 0, 0, 0, 0))
+
+        if on == 'BUILD_INTERPOLATION':
+            nparts = arg
+            parts = []
+            for _ in range(nparts):
+                if reg_stack: parts.insert(0, reg_stack.pop())
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            for i, a in enumerate(parts):
+                if a != rd + 1 + i:
+                    vm_code.extend(struct.pack('<BBBBi', 6, rd + 1 + i, a, 0, 0))
+            for a in parts: free_reg(a)
+            vm_code.extend(struct.pack('<BBBBi', 125, rd, rd + 1, nparts, 0))
+
+        if on == 'CONTAINS_OP':
+            seq_reg = reg_stack.pop() if reg_stack else 0
+            item_reg = reg_stack.pop() if reg_stack else 0
+            free_reg(seq_reg)
+            free_reg(item_reg)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            invert = arg  # 0=in, 1=not in
+            vm_code.extend(struct.pack('<BBBBi', 126, rd, item_reg, seq_reg, invert))
+
+        if on == 'IS_OP':
+            r2 = reg_stack.pop() if reg_stack else 0
+            r1 = reg_stack.pop() if reg_stack else 0
+            free_reg(r2)
+            free_reg(r1)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            invert = arg  # 0=is, 1=is not
+            vm_code.extend(struct.pack('<BBBBi', 127, rd, r1, r2, invert))
+
+        if on == 'LOAD_FAST_CHECK':
+            ni(av)
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 128, rd, 0, 0, name_set[av]))
+
+        if on == 'RAISE_VARARGS':
+            argc = arg
+            exc_reg = reg_stack.pop() if reg_stack and argc > 0 else 0
+            cause_reg = reg_stack.pop() if reg_stack and argc > 1 else 0
+            if exc_reg: free_reg(exc_reg)
+            if cause_reg: free_reg(cause_reg)
+            if argc == 0:
+                # Re-raise current exception
+                pass
+            vm_code.extend(struct.pack('<BBBBi', 129, exc_reg, cause_reg, 0, argc))
+
+        if on == 'STORE_FAST_LOAD_FAST':
+            if isinstance(av, tuple) and len(av) >= 2:
+                ni(av[0])
+                ni(av[1])
+                val_reg = reg_stack.pop() if reg_stack else 0
+                if val_reg: free_reg(val_reg)
+                rd = alloc_reg()
+                reg_stack.append(rd)
+                vm_code.extend(struct.pack('<BBBBi', 134, rd, val_reg, 0, name_set[av[0]]))
+            else:
+                ni(av)
+                val_reg = reg_stack.pop() if reg_stack else 0
+                if val_reg: free_reg(val_reg)
+                rd = alloc_reg()
+                reg_stack.append(rd)
+                vm_code.extend(struct.pack('<BBBBi', 134, rd, val_reg, 0, name_set[av]))
+
+        if on == 'STORE_FAST_STORE_FAST':
+            if isinstance(av, tuple) and len(av) >= 2:
+                ni(av[0])
+                ni(av[1])
+                val_reg = reg_stack.pop() if reg_stack else 0
+                if val_reg: free_reg(val_reg)
+                vm_code.extend(struct.pack('<BBBBi', 135, val_reg, 0, 0, name_set[av[0]]))
+            else:
+                ni(av)
+                val_reg = reg_stack.pop() if reg_stack else 0
+                if val_reg: free_reg(val_reg)
+                vm_code.extend(struct.pack('<BBBBi', 135, val_reg, 0, 0, name_set[av]))
+
+        if on == 'UNPACK_EX':
+            nbefore = arg & 0xFF
+            nafter = (arg >> 8) & 0xFF
+            seq_reg = reg_stack.pop() if reg_stack else 0
+            free_reg(seq_reg)
+            for _ in range(nbefore + nafter + 1):
+                rd = alloc_reg()
+                reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 136, nbefore, seq_reg, nafter, 0))
+
+        if on == 'UNPACK_SEQUENCE':
+            seq_reg = reg_stack.pop() if reg_stack else 0
+            free_reg(seq_reg)
+            for _ in range(arg):
+                rd = alloc_reg()
+                reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 137, arg, seq_reg, 0, 0))
+
+        if on == 'ENTER_EXECUTOR':
+            exc_reg = reg_stack[-1] if reg_stack else 0
+            rd = alloc_reg()
+            reg_stack.append(rd)
+            vm_code.extend(struct.pack('<BBBBi', 138, rd, exc_reg, 0, 0))
+
+        if on == 'END_SEND':
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            vm_code.extend(struct.pack('<BBBBi', 180, 0, 0, 0, 0))
+
+        if on == 'YIELD_VALUE':
+            pass  # Already handled above
+
+        # STORE_FAST_MAYBE_NULL (Py 3.14+) — like STORE_FAST but allows None
+        if on == 'STORE_FAST_MAYBE_NULL':
+            ni(av)
+            if reg_stack:
+                rs = reg_stack.pop()
+                free_reg(rs)
+            else:
+                rs = 0
+            vm_code.extend(struct.pack('<BBBBi', 139, rs, 0, 0, name_set[av]))
 
     # Opaque predicates: insert random always-true/always-false dead code
     if opaque and next_reg > 0:

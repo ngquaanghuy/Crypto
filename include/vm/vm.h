@@ -63,6 +63,9 @@ typedef enum {
     VM_OPAQUE_TRUE  = 52,
     VM_OPAQUE_FALSE = 53,
 
+    // MAKE_FUNCTION (54)
+    VM_MAKE_FUNCTION = 54,
+
     // Attribute / import (60-69)
     VM_LOAD_ATTR    = 60,
     VM_IMPORT_NAME  = 61,
@@ -121,6 +124,136 @@ typedef enum {
 
     // ─── CONSTANT DECRYPTION (160) ────────────────────────────
     VM_CONST_DECRYPT = 160,
+
+    // ═══════════════════════════════════════════════════════════
+    // DATA STRUCTURES (161-179)
+    // ═══════════════════════════════════════════════════════════
+    VM_BINARY_SLICE    = 161, // obj[start:stop]
+    VM_DELETE_SUBSCR   = 162, // del obj[key]
+    VM_STORE_SLICE     = 163, // obj[start:stop] = val
+    VM_BUILD_MAP       = 164, // dict literal {...}
+    VM_BUILD_SET       = 165, // set literal {...}
+    VM_BUILD_SLICE     = 166, // slice(start, stop[, step])
+    VM_COPY            = 167, // Shallow copy (Py 3.14+)
+    VM_DICT_MERGE      = 168, // dict |= other
+    VM_DICT_UPDATE     = 169, // dict.update(other)
+    VM_MAP_ADD         = 170, // dict[key] = value (dict comp)
+    VM_SET_ADD         = 171, // set.add(item)
+    VM_SET_UPDATE      = 172, // set.update(other)
+
+    // ═══════════════════════════════════════════════════════════
+    // ITERATOR / GENERATOR / ASYNC (180-199)
+    // ═══════════════════════════════════════════════════════════
+    VM_END_SEND              = 180,
+    VM_GET_AITER             = 181,
+    VM_GET_ANEXT             = 182,
+    VM_GET_YIELD_FROM_ITER   = 183,
+    VM_LOAD_BUILD_CLASS      = 184,
+    VM_RETURN_GENERATOR      = 185,
+    VM_COPY_FREE_VARS        = 186,
+    VM_DELETE_DEREF          = 187,
+    VM_END_ASYNC_FOR         = 188,
+    VM_GET_AWAITABLE         = 189,
+    VM_LOAD_DEREF            = 190,
+    VM_MAKE_CELL             = 191,
+    VM_SEND                  = 192,
+    VM_STORE_DEREF           = 193,
+    VM_YIELD_VALUE           = 194,
+    VM_LOAD_CLOSURE          = 195,
+
+    // ═══════════════════════════════════════════════════════════
+    // EXCEPTION HANDLING (200-219)
+    // ═══════════════════════════════════════════════════════════
+    VM_CHECK_EG_MATCH     = 200,
+    VM_CHECK_EXC_MATCH    = 201,
+    VM_CLEANUP_THROW      = 202,
+    VM_POP_EXCEPT         = 203,
+    VM_PUSH_EXC_INFO      = 204,
+    VM_WITH_EXCEPT_START  = 205,
+    VM_RERAISE            = 206,
+    VM_POP_BLOCK          = 207,
+    VM_SETUP_CLEANUP      = 208,
+    VM_SETUP_FINALLY      = 209,
+    VM_SETUP_WITH         = 210,
+
+    // ═══════════════════════════════════════════════════════════
+    // PATTERN MATCHING (220-229)
+    // ═══════════════════════════════════════════════════════════
+    VM_MATCH_KEYS       = 220,
+    VM_MATCH_MAPPING    = 221,
+    VM_MATCH_SEQUENCE   = 222,
+    VM_MATCH_CLASS      = 223,
+
+    // ═══════════════════════════════════════════════════════════
+    // CONTROL FLOW — PYTHON 3.14+ (230-239)
+    // ═══════════════════════════════════════════════════════════
+    VM_POP_ITER                    = 230,
+    VM_JUMP_BACKWARD_NO_INTERRUPT  = 231,
+    VM_JUMP                        = 232,
+    VM_JUMP_IF_FALSE               = 233,
+    VM_JUMP_IF_TRUE                = 234,
+    VM_JUMP_NO_INTERRUPT           = 235,
+
+    // ═══════════════════════════════════════════════════════════
+    // ATTRIBUTE OPERATIONS (240-244)
+    // ═══════════════════════════════════════════════════════════
+    VM_DELETE_ATTR      = 240,
+    VM_LOAD_SUPER_ATTR  = 241,
+    VM_STORE_ATTR       = 242,
+
+    // ═══════════════════════════════════════════════════════════
+    // CALL VARIANTS (245-249)
+    // ═══════════════════════════════════════════════════════════
+    VM_CALL_FUNCTION_EX  = 245,
+    VM_CALL_INTRINSIC_1  = 246,
+    VM_CALL_INTRINSIC_2  = 247,
+    VM_CALL_KW           = 248,
+
+    // ═══════════════════════════════════════════════════════════
+    // NAME OPERATIONS — DELETE (250-255)
+    // ═══════════════════════════════════════════════════════════
+    VM_DELETE_FAST             = 250,
+    VM_DELETE_GLOBAL           = 251,
+    VM_DELETE_NAME             = 252,
+    VM_LOAD_FROM_DICT_OR_DEREF  = 253,
+    VM_LOAD_FROM_DICT_OR_GLOBALS = 254,
+
+    // ═══════════════════════════════════════════════════════════
+    // UNARY / BITWISE (256-259)
+    // ═══════════════════════════════════════════════════════════
+    VM_UNARY_INVERT = 7,
+    VM_UNARY_NOT    = 8,
+
+    // ═══════════════════════════════════════════════════════════
+    // TYPE SYSTEM (260-269)
+    // ═══════════════════════════════════════════════════════════
+    VM_SETUP_ANNOTATIONS     = 9,
+    VM_CONVERT_VALUE         = 110,
+    VM_LOAD_COMMON_CONSTANT  = 111,
+    VM_LOAD_SPECIAL          = 112,
+    VM_ANNOTATIONS_PLACEHOLDER = 113,
+
+    // ═══════════════════════════════════════════════════════════
+    // OTHER / MISC (270-289)
+    // ═══════════════════════════════════════════════════════════
+    VM_BUILD_TEMPLATE        = 114,
+    VM_END_FOR               = 115,
+    VM_EXIT_INIT_CHECK       = 116,
+    VM_FORMAT_WITH_SPEC      = 117,
+    VM_RESERVED              = 118,
+    VM_GET_LEN               = 119,
+    VM_INTERPRETER_EXIT      = 124,
+    VM_BUILD_INTERPOLATION   = 125,
+    VM_CONTAINS_OP           = 126,
+    VM_IS_OP                 = 127,
+    VM_LOAD_FAST_CHECK       = 128,
+    VM_RAISE_VARARGS         = 129,
+    VM_STORE_FAST_LOAD_FAST  = 134,
+    VM_STORE_FAST_STORE_FAST = 135,
+    VM_UNPACK_EX             = 136,
+    VM_UNPACK_SEQUENCE       = 137,
+    VM_ENTER_EXECUTOR        = 138,
+    VM_STORE_FAST_MAYBE_NULL = 139,
 } VmOpcode;
 
 typedef struct __attribute__((packed)) {

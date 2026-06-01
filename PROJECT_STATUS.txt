@@ -171,8 +171,10 @@
 
   - Kien truc: 64 registers, bo nho constant, bang ten
   - Instruction: 8-byte fixed-size {op, rd, rs1, rs2, imm}
-  - 33+ opcodes ho tro: load/store, so hoc, so sanh, call, jump,
-    for loop, list/tuple, import, attribute access
+   - 130+ opcodes ho tro: load/store, so hoc, so sanh, call, jump,
+     for loop, list/tuple, dict/set, import, attribute access,
+     slice, generator/async, exception handling, pattern matching,
+     unary/bitwise, type system, call variants, name operations
   - Code-split pipeline: tach function/class defs (chay native)
     va module-level code (chay trong VM)
   - Ho tro ca Python 3.14 opcode specializations
@@ -203,9 +205,13 @@
   [x] Buoc 8: Obfuscation layer (9 techniques)
   [x] Buoc 9: Compression (zlib + 9 Python algos)
   [x] Buoc 10: Anti-analysis (debug/hook/scramble/opaque)
-  [x] Buoc 11: Custom Register VM (code-split pipeline, compile, interp)
-  [x] Buoc 12: VM stub generation + self-decrypting script
-  [ ] Buoc 13: Improve lex/Vy cho VM mode
+   [x] Buoc 11: Custom Register VM (code-split pipeline, compile, interp)
+   [x] Buoc 12: VM stub generation + self-decrypting script
+   [x] Buoc 13: Complete all 130+ Python bytecode opcodes (89 new: data structures,
+                iterator/generator/async, exception handling, pattern matching,
+                Python 3.14+ control flow, attribute ops, call variants,
+                name operations, unary/bitwise, type system, misc ops)
+   [ ] Buoc 14: Improve lex/Vy cho VM mode
   [ ] Buoc 14: GUI / plugin system
 
 
@@ -229,7 +235,7 @@
 7. KIEM THU
 -------------------------------------------------------------------------------
   - 21 test cases encode/decode/encrypt/decrypt (495 assertions)
-  - 4 test cases VM compilation (VM opcodes, serialization)
+   - 28 test cases VM compilation (VM opcodes, serialization, encoding, CFI, scheduling)
   - Chay: cmake --build build --target test_crypto && ./build/test_crypto
   - Hoac: ctest --test-dir build -V
 

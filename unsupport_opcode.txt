@@ -1,0 +1,213 @@
+================================================================================
+                    UNSUPPORTED PYTHON BYTECODE OPCODES
+================================================================================
+Total Python Opcodes: 154
+Handled by VM:        130
+Unsupported:          24
+Coverage:             84.4%
+
+================================================================================
+1. DATA STRUCTURES (12)
+================================================================================
+  1: BINARY_SLICE       - Container slicing (obj[start:stop])
+  8: DELETE_SUBSCR      - del obj[key]
+ 37: STORE_SLICE        - obj[start:stop] = val
+ 47: BUILD_MAP          - Create dict ( {...} )
+ 48: BUILD_SET          - Create set ( {...} )
+ 49: BUILD_SLICE        - Create slice object
+ 59: COPY               - Python 3.14+ shallow copy
+ 66: DICT_MERGE         - dict |= other
+ 67: DICT_UPDATE        - dict.update(other)
+ 98: MAP_ADD            - dict[key] = value
+107: SET_ADD            - set.add(item)
+109: SET_UPDATE         - set.update(other)
+
+================================================================================
+2. ITERATOR / GENERATOR / ASYNC (16)
+================================================================================
+ 10: END_SEND           - End of generator send()
+ 14: GET_AITER          - Get async iterator
+ 15: GET_ANEXT          - Get next async item
+ 19: GET_YIELD_FROM_ITER - yield from iterable
+ 21: LOAD_BUILD_CLASS   - __build_class__ builtin
+ 34: RETURN_GENERATOR   - Return generator object
+ 60: COPY_FREE_VARS     - Copy closure variables
+ 62: DELETE_DEREF       - del closure variable
+ 68: END_ASYNC_FOR       - End async for loop
+ 71: GET_AWAITABLE       - Get awaitable object
+ 83: LOAD_DEREF          - Load from closure
+ 97: MAKE_CELL           - Create closure cell
+106: SEND                - Generator send()
+111: STORE_DEREF         - Store to closure
+120: YIELD_VALUE         - yield expression
+261: LOAD_CLOSURE        - Load closure for cells
+
+================================================================================
+3. EXCEPTION HANDLING (11)
+================================================================================
+  5: CHECK_EG_MATCH     - Exception group matching
+  6: CHECK_EXC_MATCH     - Exception matching
+  7: CLEANUP_THROW       - Cleanup during throw
+ 29: POP_EXCEPT          - Pop exception handler
+ 32: PUSH_EXC_INFO       - Push exception info
+ 43: WITH_EXCEPT_START   - with exception handling
+105: RERAISE             - Reraise exception
+262: POP_BLOCK           - Pop block stack
+263: SETUP_CLEANUP       - Setup cleanup handler
+264: SETUP_FINALLY       - Setup finally block
+265: SETUP_WITH          - Setup context manager
+
+================================================================================
+4. PATTERN MATCHING (4)
+================================================================================
+ 24: MATCH_KEYS          - Match dict keys (match case)
+ 25: MATCH_MAPPING       - Match mapping pattern
+ 26: MATCH_SEQUENCE      - Match sequence pattern
+ 99: MATCH_CLASS         - Match class pattern
+
+================================================================================
+5. CONTROL FLOW - PYTHON 3.14+ (6)
+================================================================================
+ 30: POP_ITER            - Pop iterator
+ 76: JUMP_BACKWARD_NO_INTERRUPT - Uninterruptible backward jump
+257: JUMP                 - Unified jump instruction
+258: JUMP_IF_FALSE        - Jump if false
+259: JUMP_IF_TRUE         - Jump if true
+260: JUMP_NO_INTERRUPT     - Jump without interrupt check
+
+================================================================================
+6. ATTRIBUTE OPERATIONS (3)
+================================================================================
+ 61: DELETE_ATTR          - del obj.attr
+ 96: LOAD_SUPER_ATTR       - super().attr
+110: STORE_ATTR             - obj.attr = value
+
+================================================================================
+7. CALL VARIANTS (4)
+================================================================================
+  4: CALL_FUNCTION_EX      - f(*args, **kwargs)
+ 53: CALL_INTRINSIC_1       - Intrinsic call type 1
+ 54: CALL_INTRINSIC_2       - Intrinsic call type 2
+ 55: CALL_KW                - Call with keyword args
+
+================================================================================
+8. NAME OPERATIONS (DELETE) (5)
+================================================================================
+ 63: DELETE_FAST           - del local variable
+ 64: DELETE_GLOBAL         - del global variable
+ 65: DELETE_NAME           - del name
+ 90: LOAD_FROM_DICT_OR_DEREF - Load from dict or closure
+ 91: LOAD_FROM_DICT_OR_GLOBALS - Load from dict or globals
+
+================================================================================
+9. UNARY / BITWISE (2)
+================================================================================
+ 40: UNARY_INVERT          - ~x (bitwise NOT)
+ 42: UNARY_NOT             - not x
+
+================================================================================
+10. TYPE SYSTEM (5)
+================================================================================
+ 36: SETUP_ANNOTATIONS     - Setup type annotations
+ 58: CONVERT_VALUE          - Value conversion
+ 81: LOAD_COMMON_CONSTANT   - Load common constant
+ 95: LOAD_SPECIAL           - Load special attribute
+256: ANNOTATIONS_PLACEHOLDER - Annotation placeholder
+
+================================================================================
+11. OTHER/MISC (17)
+================================================================================
+  2: BUILD_TEMPLATE         - Template string (Python 3.14+)
+  9: END_FOR                - End of for loop
+ 11: EXIT_INIT_CHECK        - Exit initialization check
+ 13: FORMAT_WITH_SPEC        - Format with specifier
+ 17: RESERVED               - Reserved opcode
+ 18: GET_LEN                - Get length
+ 20: INTERPRETER_EXIT       - Interpreter exit
+ 45: BUILD_INTERPOLATION     - String interpolation
+ 57: CONTAINS_OP             - in / not in operator
+ 74: IS_OP                  - is / is not operator
+ 88: LOAD_FAST_CHECK         - Load fast with check
+104: RAISE_VARARGS           - raise statement
+113: STORE_FAST_LOAD_FAST    - Store/load fast combo
+114: STORE_FAST_STORE_FAST   - Store/fast store combo
+118: UNPACK_EX               - Unpack with starred
+119: UNPACK_SEQUENCE         - Unpack sequence
+255: ENTER_EXECUTOR          - Enter executor (Python 3.14+)
+
+================================================================================
+12. PYTHON 3.14+ SPECIFIC OPCODES (27)
+================================================================================
+These opcodes are NEW in Python 3.14 and not present in earlier versions:
+  1: BINARY_SLICE
+  2: BUILD_TEMPLATE
+  5: CHECK_EG_MATCH
+  6: CHECK_EXC_MATCH
+  7: CLEANUP_THROW
+ 11: EXIT_INIT_CHECK
+ 17: RESERVED
+ 18: GET_LEN
+ 20: INTERPRETER_EXIT
+ 30: POP_ITER
+ 34: RETURN_GENERATOR
+ 59: COPY
+ 60: COPY_FREE_VARS
+ 76: JUMP_BACKWARD_NO_INTERRUPT
+ 81: LOAD_COMMON_CONSTANT
+ 88: LOAD_FAST_CHECK
+ 89: LOAD_FAST_LOAD_FAST
+ 90: LOAD_FROM_DICT_OR_DEREF
+ 91: LOAD_FROM_DICT_OR_GLOBALS
+ 95: LOAD_SPECIAL
+ 96: LOAD_SUPER_ATTR
+113: STORE_FAST_LOAD_FAST
+114: STORE_FAST_STORE_FAST
+255: ENTER_EXECUTOR
+257: JUMP
+258: JUMP_IF_FALSE
+259: JUMP_IF_TRUE
+260: JUMP_NO_INTERRUPT
+266: STORE_FAST_MAYBE_NULL
+
+================================================================================
+SUMMARY: COMMON PYTHON FEATURES THAT WILL FAIL
+================================================================================
+dict operations         - BUILD_MAP, DICT_MERGE, DICT_UPDATE
+set operations          - BUILD_SET, SET_ADD, SET_UPDATE
+generators/yield        - YIELD_VALUE, SEND, END_SEND
+async/await             - GET_AWAITABLE, GET_AITER, GET_ANEXT, END_ASYNC_FOR
+closures                - LOAD_CLOSURE, MAKE_CELL, LOAD_DEREF, STORE_DEREF
+try/except/finally      - SETUP_FINALLY, SETUP_WITH, POP_EXCEPT
+with statement          - SETUP_WITH, WITH_EXCEPT_START
+match/case              - MATCH_KEYS, MATCH_MAPPING, MATCH_SEQUENCE
+del statements          - DELETE_NAME, DELETE_GLOBAL, DELETE_FAST
+slice operations        - BUILD_SLICE, STORE_SLICE, BINARY_SLICE
+unpacking               - UNPACK_SEQUENCE, UNPACK_EX
+string interpolation     - BUILD_INTERPOLATION, BUILD_TEMPLATE
+bitwise NOT             - UNARY_INVERT
+boolean NOT             - UNARY_NOT
+attribute deletion      - DELETE_ATTR
+
+================================================================================
+VM OPCODE COVERAGE MAP
+================================================================================
+Supported Opcodes (44):
+  - LOAD_CONST, LOAD_SMALL_INT, LOAD_NAME, LOAD_GLOBAL, LOAD_FAST
+  - LOAD_FAST_AND_CLEAR, LOAD_FAST_BORROW, LOAD_FAST_BORROW_LOAD_FAST_BORROW
+  - STORE_NAME, STORE_GLOBAL, STORE_FAST, STORE_SUBSCR
+  - LOAD_ATTR, IMPORT_NAME, IMPORT_FROM
+  - BINARY_OP (+, -, *, /, **, |, &, ^, <<, >>, //, %)
+  - COMPARE_OP (==, !=, <, <=, >, >=)
+  - CALL
+  - GET_ITER, FOR_ITER, RETURN_VALUE
+  - BUILD_TUPLE, BUILD_LIST, BUILD_STRING
+  - LIST_EXTEND, LIST_APPEND
+  - JUMP_FORWARD, JUMP_BACKWARD
+  - POP_JUMP_IF_TRUE, POP_JUMP_IF_FALSE, POP_JUMP_IF_NONE, POP_JUMP_IF_NOT_NONE
+  - UNARY_NEGATIVE
+  - FORMAT_SIMPLE
+  - SWAP
+  - POP_TOP
+  - MAKE_FUNCTION (partial)
+
+================================================================================
