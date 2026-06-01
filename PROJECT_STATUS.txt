@@ -8,9 +8,10 @@
   Phien ban      : 1.1.0
   Ngon ngu       : C++20 / C11
   He thong build : CMake 3.16+
-  Thu vien phu   : OpenSSL (libcrypto), ZLIB
-  Kich thuoc     : ~41K binary, ~3100 lines of C++ code
-     + Embedded Python scripts: ~2000 lines (obfuscator, VM compiler, VM interpreter, split)
+   Thu vien phu   : OpenSSL (libcrypto), ZLIB, BZip2, LZMA, Brotli (system libs),
+                    LZ4 + Snappy (statically linked native libs)
+   Kich thuoc     : ~100K binary, ~3100 lines of C++ code + ~3500 lines C (LZ4) + ~3200 lines C++ (Snappy) + ~2000 lines C (lzma headers)
+      + Embedded Python scripts: ~2000 lines (obfuscator, VM compiler, VM interpreter, split)
   Muc dich       : Bao ve, ma hoa, lam roi ma nguon Python
 
 
@@ -20,9 +21,24 @@
   ├── CMakeLists.txt              # Build system (C++20, OpenSSL, ZLIB)
   ├── PROJECT_STATUS.txt          # Bao cao nay
   ├── USAGE_GUIDE.txt             # Huong dan su dung
-  ├── lib/
-  │   └── doctest.h               # Thu vien test header-only
-  ├── include/
+   ├── lib/
+   │   ├── doctest.h               # Thu vien test header-only
+   │   └── lz4/                    # LZ4 native compression library (statically linked)
+   │       ├── lz4.h/.c            # LZ4 block compression/decompression
+   │       ├── lz4hc.h/.c          # LZ4 high compression mode
+   │       ├── lz4frame.h/.c       # LZ4 frame format (self-contained frames)
+   │       └── xxhash.h/.c         # xxHash checksum (required by LZ4 frame)
+   │   └── snappy/                  # Snappy native compression library (statically linked)
+   │       ├── snappy.h/.cc        # Snappy core compression algorithm
+   │       ├── snappy-c.h/.cc      # Snappy C wrapper API
+   │       ├── snappy-internal.h   # Internal hash tables
+   │       ├── snappy-sinksource.h/.cc  # Input/output abstraction
+   │       ├── snappy-stubs-internal.h/.cc  # Platform portability stubs
+   │       └── config.h            # Build configuration
+   │   └── lzma/                   # LZMA header bundle (from xz-utils, headers only)
+   │       ├── lzma.h              # Main API header
+   │       └── lzma/               # Sub-headers (base.h, container.h, ...)
+   ├── include/
   │   ├── crypto/
   │   │   ├── common.h            # Kieu du lieu chung (ExitCode, Algorithm, Buffer)
   │   │   ├── compress.h          # Compression API + algo ID constants
@@ -53,9 +69,9 @@
   │   │   ├── cipher.h/.cpp       # Dispatch encrypt/decrypt
   │   │   ├── aes.h/.cpp          # AES-256 (ECB/CBC/CTR/GCM)
   │   │   └── chacha20.h/.cpp     # ChaCha20 stream cipher
-  │   ├── utils/
-  │   │   ├── file_util.cpp       # File read/write
-  │   │   └── compress.cpp        # Compression wrapper (zlib)
+   │   ├── utils/
+   │   │   ├── file_util.cpp       # File read/write
+   │   │   └── compress.cpp        # Compression wrapper (native C/C++: zlib, gzip, bz2, lzma, brotli, lz4, snappy)
   │   └── vm/
   │       ├── vm_compile.cpp      # VM compile/serialize/deserialize
   │       └── vm_stub.cpp         # VM stub generation
@@ -133,21 +149,23 @@
   opaque     | Chen opaque predicates vao VM bytecode
   all        | Tat ca ky thuat
 
-  3.6. COMPRESSION (--compress <algo>)
+   3.6. COMPRESSION (--compress <algo>)
 
-  Algo    | Thu vien
-  --------+---------------------------
-  none    | Khong nen
-  zlib    | zlib (C++), mac dinh cho protect
-  lzma    | Python's lzma (runtime)
-  bz2     | Python's bz2 (runtime)
-  brotli  | brotli (Python runtime)
-  zstd    | zstandard (Python runtime)
-  gzip    | gzip (Python runtime)
-  lz4     | lz4.frame (Python runtime)
-  snappy  | snappy (Python runtime)
-  zopfli  | gzip module (Python runtime)
-  blosc   | blosc (Python runtime)
+   Algo    | Thu vien
+   --------+-----------------------------------------
+   none    | Khong nen
+   zlib    | ZLIB native (C, deflate), he thong
+   gzip    | ZLIB native (C, gzip format), he thong
+   bz2     | BZip2 native (C), he thong
+   lzma    | LZMA native (C, liblzma), he thong
+   lz4     | LZ4 native C (LZ4F frame format), mac dinh
+   snappy  | Snappy native C++ (Google snappy v1.2.2)
+   brotli  | Brotli native (C), he thong
+   zstd    | Chua ho tro (ID ton tai tra ve loi)
+   blosc   | Chua ho tro (ID ton tai tra ve loi)
+
+   Ghi chu: --library-compress da duoc loai bo. Toan bo cac thuat toan
+   nen deu chay native C/C++, khong can Python subprocess.
 
   3.7. REGISTER VM (--vm)
 
@@ -168,7 +186,7 @@
   - Polymorphic: random names (30+), shuffle algorithm dispatch (11 blocks)
   - XOR key obfuscation voi random byte
   - Junk code injection
-  - Ho tro compress (10 algos) + decompress tai runtime
+   - Ho tro compress (8 algos) + decompress tai runtime
   - Ho tro VM mode (version header 2)
   - Anti-analysis fragments gom 4 loai
 
@@ -218,16 +236,27 @@
 
 8. PHU THUOC
 -------------------------------------------------------------------------------
-  - OpenSSL (libcrypto): AES, ChaCha20, PBKDF2, HMAC
-  - ZLIB: Compression
-  - Python 3.10+: Obfuscator, VM compiler, VM interpreter (runtime)
-  - Python packages (runtime cho giai nen): lzma, bz2, brotli, zstandard,
-    lz4, snappy, blosc (optional, tuy algo compress)
+   - OpenSSL (libcrypto): AES, ChaCha20, PBKDF2, HMAC
+   - ZLIB (he thong): zlib, gzip compression
+   - BZip2 (he thong): bz2 compression
+   - liblzma (he thong): lzma compression
+   - Brotli (he thong): brotli compression
+   - LZ4 (statically linked via lib/lz4): LZ4 compression
+   - Snappy (statically linked via lib/snappy): Snappy compression
+   - Python 3.10+: Obfuscator, VM compiler, VM interpreter (runtime)
+   - Python packages (runtime cho giai nen trong stub): lz4.frame, snappy,
+     brotli, zstandard, blosc (duoc generate vao stub khi su dung compress,
+     optional; neu thieu, stub se thong bao loi)
 
 
 9. LUU Y
 -------------------------------------------------------------------------------
-  - Binary ~41K, rat gon, phu hop cho embedded / phan phoi
-  - Build: cmake -S . -B build && cmake --build build
-  - Python 3.10+ required cho cac tinh nang obfuscation va VM
-  - Tat ca code tu viet (tru OpenSSL, ZLIB, doctest)
+   - Binary ~100K, van gon, phu hop cho embedded / phan phoi
+   - Build: cmake -S . -B build && cmake --build build
+   - Python 3.10+ required cho cac tinh nang obfuscation va VM
+   - Compression su dung native C/C++ cho tat ca thuat toan:
+     LZ4 + Snappy (static link), ZLIB + BZip2 + LZMA + Brotli (system lib)
+   - Khong con phu thuoc Python subprocess hay temp files cho compression
+   - Khong con tuy chon --library-compress (tu dong dung native lib)
+   - LZ4 frame format tuong thich voi Python lz4.frame module tai runtime
+   - Tat ca code tu viet (tru OpenSSL, LZ4, Snappy, doctest)

@@ -59,7 +59,7 @@ static void print_usage(void) {
     printf("                          protect only)\n");
     printf("      --compress <algo>   Compression algorithm: zlib, lzma, bz2,\n");
     printf("                          brotli, zstd, gzip, lz4, snappy,\n");
-    printf("                          zopfli, blosc (default: zlib for protect,\n");
+    printf("                          blosc (default: lz4 for protect,\n");
     printf("                          none for encode/encrypt)\n");
     printf("      --compress-level <n> Compression level (1-9, default 6)\n");
     printf("      --no-compress       Disable compression\n");
@@ -311,7 +311,6 @@ int cli_run(int argc, char **argv) {
             else if (strcmp(name, "gzip") == 0)  compress_algo = COMPRESS_ID_GZIP;
             else if (strcmp(name, "lz4") == 0)   compress_algo = COMPRESS_ID_LZ4;
             else if (strcmp(name, "snappy") == 0) compress_algo = COMPRESS_ID_SNAPPY;
-            else if (strcmp(name, "zopfli") == 0) compress_algo = COMPRESS_ID_ZOPFLI;
             else if (strcmp(name, "blosc") == 0)  compress_algo = COMPRESS_ID_BLOSC;
             else if (strcmp(name, "none") == 0)   compress_algo = COMPRESS_ID_NONE;
             else { fprintf(stderr, "error: unknown compression algorithm '%s'\n", name); return EXIT_ERR_ARGS; }
@@ -372,10 +371,10 @@ int cli_run(int argc, char **argv) {
         return EXIT_ERR_ARGS;
     }
 
-    // Default compression: zlib for protect, none for encode/encrypt
+    // Default compression: lz4 for protect, none for encode/encrypt
     if (!compress_set) {
         if (mode == MODE_PROTECT)
-            compress_algo = COMPRESS_ID_ZLIB;
+            compress_algo = COMPRESS_ID_LZ4;
     }
 
     const char *key = NULL;

@@ -12,8 +12,7 @@
 #define COMPRESS_ID_GZIP    6
 #define COMPRESS_ID_LZ4     7
 #define COMPRESS_ID_SNAPPY  8
-#define COMPRESS_ID_ZOPFLI  9
-#define COMPRESS_ID_BLOSC   10
+#define COMPRESS_ID_BLOSC   9
 
 ExitCode compress_data(const unsigned char *data, size_t size,
                         int algo_id, int level, Buffer *out);
