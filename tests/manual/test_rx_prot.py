@@ -149,9 +149,6 @@ def _zhuf():
     elif _tmtqg[1] == 4:
         import brotli as _bbki
         _tmtqg = _bbki.decompress(_tmtqg[4:])
-    elif _tmtqg[1] == 5:
-        import zstandard as _bbki
-        _tmtqg = _bbki.decompress(_tmtqg[4:])
     elif _tmtqg[1] == 6:
         import gzip as _bbki
         _tmtqg = _bbki.decompress(_tmtqg[4:])

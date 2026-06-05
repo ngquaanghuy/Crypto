@@ -1034,9 +1034,6 @@ def _wraqx():
     elif _uolwxgpf[1] == 4:
         import brotli as _kddwy
         _pd = _kddwy.decompress(_pd)
-    elif _uolwxgpf[1] == 5:
-        import zstandard as _kddwy
-        _pd = _kddwy.decompress(_pd)
     elif _uolwxgpf[1] == 6:
         import gzip as _kddwy
         _pd = _kddwy.decompress(_pd)

@@ -1,0 +1,12 @@
+services:
+  crypto:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: crypto:1.6.1
+    container_name: crypto-cli
+    working_dir: /data
+    volumes:
+      - ./:/data
+    stdin_open: true
+    tty: true

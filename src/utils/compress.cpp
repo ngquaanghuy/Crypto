@@ -445,7 +445,6 @@ const char *compress_name(int algo_id) {
         case COMPRESS_ID_LZMA:   return "lzma";
         case COMPRESS_ID_BZ2:    return "bz2";
         case COMPRESS_ID_BROTLI: return "brotli";
-        case COMPRESS_ID_ZSTD:   return "zstd";
         case COMPRESS_ID_GZIP:   return "gzip";
         case COMPRESS_ID_LZ4:    return "lz4";
         case COMPRESS_ID_SNAPPY: return "snappy";

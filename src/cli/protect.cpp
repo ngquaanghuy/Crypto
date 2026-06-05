@@ -611,10 +611,6 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                       "        _pd = {}.decompress(_pd)\n",
                       n_9, COMPRESS_ID_BROTLI, n_z, n_z);
             sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import zstandard as {}\n"
-                      "        _pd = {}.decompress(_pd)\n",
-                      n_9, COMPRESS_ID_ZSTD, n_z, n_z);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
                       "        import gzip as {}\n"
                       "        _pd = {}.decompress(_pd)\n",
                       n_9, COMPRESS_ID_GZIP, n_z, n_z);
@@ -656,10 +652,6 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                       "        import brotli as {}\n"
                       "        {} = {}.decompress({}[4:])\n",
                       n_9, COMPRESS_ID_BROTLI, n_z, n_9, n_z, n_9);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import zstandard as {}\n"
-                      "        {} = {}.decompress({}[4:])\n",
-                      n_9, COMPRESS_ID_ZSTD, n_z, n_9, n_z, n_9);
             sb_printf(buf, "    elif {}[1] == {}:\n"
                       "        import gzip as {}\n"
                       "        {} = {}.decompress({}[4:])\n",

@@ -1,0 +1,25 @@
+# Git
+.git/
+.gitignore
+
+# Build artifacts (local)
+build/
+out/
+
+# IDE / OS
+.idea/
+.vscode/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+
+# Exclude docs but keep CMakeLists.txt and other essential .txt files
+*.md
+*.txt
+!CMakeLists.txt
+
+# Temp / misc
+tmp/
+*.swp
+*.swo

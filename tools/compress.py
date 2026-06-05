@@ -29,9 +29,6 @@ try:
         elif algo_id == 4:
             import brotli
             sys.stdout.buffer.write(brotli.compress(data, quality=level))
-        elif algo_id == 5:
-            import zstandard
-            sys.stdout.buffer.write(zstandard.compress(data, level))
         elif algo_id == 6:
             import gzip
             sys.stdout.buffer.write(gzip.compress(data, level))
@@ -64,9 +61,6 @@ try:
         elif algo_id == 4:
             import brotli
             sys.stdout.buffer.write(brotli.decompress(data))
-        elif algo_id == 5:
-            import zstandard
-            sys.stdout.buffer.write(zstandard.decompress(data))
         elif algo_id == 6:
             import gzip
             sys.stdout.buffer.write(gzip.decompress(data))

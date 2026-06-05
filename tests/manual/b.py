@@ -209,9 +209,6 @@ def _oirlc():
     elif _gauvq[1] == 4:
         import brotli as _mcqx
         _gauvq = _mcqx.decompress(_gauvq[4:])
-    elif _gauvq[1] == 5:
-        import zstandard as _mcqx
-        _gauvq = _mcqx.decompress(_gauvq[4:])
     elif _gauvq[1] == 6:
         import gzip as _mcqx
         _gauvq = _mcqx.decompress(_gauvq[4:])

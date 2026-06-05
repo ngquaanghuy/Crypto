@@ -163,9 +163,6 @@ def _of():
     elif _hjb[1] == 4:
         import brotli as _bihlzkh
         _hjb = _bihlzkh.decompress(_hjb[4:])
-    elif _hjb[1] == 5:
-        import zstandard as _bihlzkh
-        _hjb = _bihlzkh.decompress(_hjb[4:])
     elif _hjb[1] == 6:
         import gzip as _bihlzkh
         _hjb = _bihlzkh.decompress(_hjb[4:])

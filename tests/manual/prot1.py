@@ -163,9 +163,6 @@ def _ktpuj():
     elif _zc[1] == 4:
         import brotli as _gkuoi
         _zc = _gkuoi.decompress(_zc[4:])
-    elif _zc[1] == 5:
-        import zstandard as _gkuoi
-        _zc = _gkuoi.decompress(_zc[4:])
     elif _zc[1] == 6:
         import gzip as _gkuoi
         _zc = _gkuoi.decompress(_zc[4:])

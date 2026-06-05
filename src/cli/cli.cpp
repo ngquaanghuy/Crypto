@@ -58,7 +58,7 @@ static void print_usage(void) {
     printf("                          hook, scramble, opaque (comma-separated,\n");
     printf("                          protect only)\n");
     printf("      --compress <algo>   Compression algorithm: zlib, lzma, bz2,\n");
-    printf("                          brotli, zstd, gzip, lz4, snappy,\n");
+    printf("                          brotli, gzip, lz4, snappy,\n");
     printf("                          blosc (default: lz4 for protect,\n");
     printf("                          none for encode/encrypt)\n");
     printf("      --compress-level <n> Compression level (1-9, default 6)\n");
@@ -307,7 +307,6 @@ int cli_run(int argc, char **argv) {
             else if (strcmp(name, "lzma") == 0)  compress_algo = COMPRESS_ID_LZMA;
             else if (strcmp(name, "bz2") == 0)   compress_algo = COMPRESS_ID_BZ2;
             else if (strcmp(name, "brotli") == 0) compress_algo = COMPRESS_ID_BROTLI;
-            else if (strcmp(name, "zstd") == 0)  compress_algo = COMPRESS_ID_ZSTD;
             else if (strcmp(name, "gzip") == 0)  compress_algo = COMPRESS_ID_GZIP;
             else if (strcmp(name, "lz4") == 0)   compress_algo = COMPRESS_ID_LZ4;
             else if (strcmp(name, "snappy") == 0) compress_algo = COMPRESS_ID_SNAPPY;

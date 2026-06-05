@@ -8,7 +8,6 @@
 #define COMPRESS_ID_LZMA    2
 #define COMPRESS_ID_BZ2     3
 #define COMPRESS_ID_BROTLI  4
-#define COMPRESS_ID_ZSTD    5
 #define COMPRESS_ID_GZIP    6
 #define COMPRESS_ID_LZ4     7
 #define COMPRESS_ID_SNAPPY  8

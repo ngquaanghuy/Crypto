@@ -168,9 +168,6 @@ def _xqhc():
     elif _llipxri[1] == 4:
         import brotli as _cqvrp
         _llipxri = _cqvrp.decompress(_llipxri[4:])
-    elif _llipxri[1] == 5:
-        import zstandard as _cqvrp
-        _llipxri = _cqvrp.decompress(_llipxri[4:])
     elif _llipxri[1] == 6:
         import gzip as _cqvrp
         _llipxri = _cqvrp.decompress(_llipxri[4:])
