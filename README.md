@@ -16,3 +16,10 @@ C++ 20
 OpenSSL
 ZLIB
 Python 3.10 trở lên
+
+# Cảnh báo
+- Chỉ sử dụng với dữ liệu nhảy cảm
+- --obf hay xung đột với --vm
+- Không sử dụng file quá lớn > 10kb vì hiện tại dự án chưa có split thành file nhỏ
+
+# Dự án đã hoàn thành 
