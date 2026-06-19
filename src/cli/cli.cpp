@@ -40,7 +40,8 @@ static void print_usage(void) {
     printf("  -a, --algorithm <algo>  Algorithm: base64, base32, base85,\n");
     printf("                          ascii85, hex, xor, rolling-xor, xor-bit-rotation,\n");
     printf("                          multi-pass-xor, prng-xor,\n");
-    printf("                          aes-ecb, aes-cbc, aes-ctr, aes-gcm, chacha20\n");
+    printf("                          aes-ecb, aes-cbc, aes-ctr, aes-gcm, chacha20,\n");
+    printf("                          chacha20-poly1305, xchacha20-poly1305\n");
     printf("                          (default: aes-gcm for encrypt/protect)\n");
     printf("  -k, --key <key>         Encryption/encoding key\n");
     printf("      --keyfile <file>    Read key from file\n");
@@ -97,6 +98,8 @@ static Algorithm parse_algorithm(const char *name) {
     if (strcmp(name, "aes-gcm")  == 0) return ALGO_AES_GCM;
     if (strcmp(name, "aes")      == 0) return ALGO_AES_GCM;
     if (strcmp(name, "chacha20")  == 0) return ALGO_CHACHA20;
+    if (strcmp(name, "chacha20-poly1305")  == 0) return ALGO_CHACHA20_POLY1305;
+    if (strcmp(name, "xchacha20-poly1305")  == 0) return ALGO_XCHACHA20_POLY1305;
     return ALGO_NONE;
 }
 

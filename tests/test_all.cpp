@@ -10,6 +10,8 @@
 #include "encode/xorcode.h"
 #include "crypto/aes.h"
 #include "crypto/chacha20.h"
+#include "crypto/chacha20_poly1305.h"
+#include "crypto/xchacha20_poly1305.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -407,6 +409,112 @@ TEST_CASE("large buffer roundtrip (64KB)") {
     }
 
     free(raw);
+}
+
+// ─── ChaCha20-Poly1305 ────────────────────────────────────────────────────────────
+
+TEST_CASE("chacha20-poly1305 encrypt/decrypt") {
+    const char *input = "chacha20-poly1305 secret data! test 123";
+    size_t ilen = strlen(input);
+    const char *pass = "mypassword";
+
+    Buffer enc = {0}, dec = {0};
+    CHECK(chacha20_poly1305_encrypt((const unsigned char *)input, ilen,
+                                     (const unsigned char *)pass, strlen(pass), &enc) == EXIT_OK);
+    CHECK(enc.size > ilen + 16);
+
+    CHECK(chacha20_poly1305_decrypt(enc.data, enc.size,
+                                     (const unsigned char *)pass, strlen(pass), &dec) == EXIT_OK);
+    CHECK(dec.size == ilen);
+    CHECK(memcmp(input, dec.data, ilen) == 0);
+
+    free(enc.data); free(dec.data);
+}
+
+TEST_CASE("chacha20-poly1305 wrong key fails") {
+    const char *input = "test data";
+    size_t ilen = strlen(input);
+
+    Buffer enc = {0}, dec = {0};
+    REQUIRE(chacha20_poly1305_encrypt((const unsigned char *)input, ilen,
+                                       (const unsigned char *)"right", 5, &enc) == EXIT_OK);
+    CHECK(chacha20_poly1305_decrypt(enc.data, enc.size,
+                                     (const unsigned char *)"wrong", 5, &dec) == EXIT_ERR_CRYPTO);
+
+    free(enc.data);
+}
+
+TEST_CASE("chacha20-poly1305 corrupted data fails") {
+    const char *input = "corruption test for chacha20-poly1305";
+    size_t ilen = strlen(input);
+
+    Buffer enc = {0}, dec = {0};
+    REQUIRE(chacha20_poly1305_encrypt((const unsigned char *)input, ilen,
+                                       (const unsigned char *)"pw", 2, &enc) == EXIT_OK);
+    if (enc.size > 20) enc.data[20] ^= 0xFF;
+    CHECK(chacha20_poly1305_decrypt(enc.data, enc.size,
+                                     (const unsigned char *)"pw", 2, &dec) == EXIT_ERR_CRYPTO);
+
+    free(enc.data);
+}
+
+TEST_CASE("chacha20-poly1305 empty key fails") {
+    Buffer out = {0};
+    CHECK(chacha20_poly1305_encrypt((const unsigned char *)"t", 1,
+                                     (const unsigned char *)"", 0, &out) == EXIT_ERR_ARGS);
+}
+
+// ─── XChaCha20-Poly1305 ───────────────────────────────────────────────────────────
+
+TEST_CASE("xchacha20-poly1305 encrypt/decrypt") {
+    const char *input = "xchacha20-poly1305 secret data! test 456";
+    size_t ilen = strlen(input);
+    const char *pass = "mypassword";
+
+    Buffer enc = {0}, dec = {0};
+    CHECK(xchacha20_poly1305_encrypt((const unsigned char *)input, ilen,
+                                      (const unsigned char *)pass, strlen(pass), &enc) == EXIT_OK);
+    CHECK(enc.size > ilen + 16);
+
+    CHECK(xchacha20_poly1305_decrypt(enc.data, enc.size,
+                                      (const unsigned char *)pass, strlen(pass), &dec) == EXIT_OK);
+    CHECK(dec.size == ilen);
+    CHECK(memcmp(input, dec.data, ilen) == 0);
+
+    free(enc.data); free(dec.data);
+}
+
+TEST_CASE("xchacha20-poly1305 wrong key fails") {
+    const char *input = "test data";
+    size_t ilen = strlen(input);
+
+    Buffer enc = {0}, dec = {0};
+    REQUIRE(xchacha20_poly1305_encrypt((const unsigned char *)input, ilen,
+                                        (const unsigned char *)"right", 5, &enc) == EXIT_OK);
+    CHECK(xchacha20_poly1305_decrypt(enc.data, enc.size,
+                                      (const unsigned char *)"wrong", 5, &dec) == EXIT_ERR_CRYPTO);
+
+    free(enc.data);
+}
+
+TEST_CASE("xchacha20-poly1305 corrupted data fails") {
+    const char *input = "corruption test for xchacha20-poly1305";
+    size_t ilen = strlen(input);
+
+    Buffer enc = {0}, dec = {0};
+    REQUIRE(xchacha20_poly1305_encrypt((const unsigned char *)input, ilen,
+                                        (const unsigned char *)"pw", 2, &enc) == EXIT_OK);
+    if (enc.size > 20) enc.data[20] ^= 0xFF;
+    CHECK(xchacha20_poly1305_decrypt(enc.data, enc.size,
+                                      (const unsigned char *)"pw", 2, &dec) == EXIT_ERR_CRYPTO);
+
+    free(enc.data);
+}
+
+TEST_CASE("xchacha20-poly1305 empty key fails") {
+    Buffer out = {0};
+    CHECK(xchacha20_poly1305_encrypt((const unsigned char *)"t", 1,
+                                      (const unsigned char *)"", 0, &out) == EXIT_ERR_ARGS);
 }
 
 // ─── Rolling XOR ─────────────────────────────────────────────────────────────────

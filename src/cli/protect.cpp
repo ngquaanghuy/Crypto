@@ -4,6 +4,8 @@
 #include "crypto/pyobf.h"
 #include "crypto/aes.h"
 #include "crypto/chacha20.h"
+#include "crypto/chacha20_poly1305.h"
+#include "crypto/xchacha20_poly1305.h"
 #include "encode/base64.h"
 #include "encode/base32.h"
 #include "encode/base85.h"
@@ -312,17 +314,17 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
         sb_append(buf, scramble_frags[3]);
     }
 
-    // Algorithm dispatch (14 algorithms in random order)
-    int order[14] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13};
-    for (int i = 13; i > 0; i--) {
+    // Algorithm dispatch (16 algorithms in random order)
+    int order[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+    for (int i = 15; i > 0; i--) {
         int j = rand() % (i + 1);
         std::swap(order[i], order[j]);
     }
 
-    int emitted[14] = {0};
+    int emitted[16] = {0};
     int is_first = 1;
 
-    for (int oi = 0; oi < 14; oi++) {
+    for (int oi = 0; oi < 16; oi++) {
         int aid = order[oi];
         const char *kw = is_first ? "if" : "elif";
         is_first = 0;
@@ -531,6 +533,70 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
             sb_printf(buf, "                {} ^= {}[({} * len({}) + {}) % len({})]\n", n_t, n_4, n_vx, n_0, n_5, n_4);
             sb_printf(buf, "                {}[{}] = {}\n", n_0, n_5, n_t);
             sb_printf(buf, "        {} = bytes({})\n", n_9, n_0);
+        } else if (aid == 14) {
+            sb_printf(buf, "    {} {} == 14:\n", kw, n_A);
+            if (!has_early_crypto_import)
+                sb_printf(buf, "        try:\n"
+                     "            from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305 as {}\n"
+                     "        except ImportError:\n"
+                     "            {}.stderr.write(\"error: cryptography not installed\\n\"); {}.exit(1)\n",
+                     n_ae, n_s, n_s);
+            else
+                sb_printf(buf, "        from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305 as {}\n", n_ae);
+            sb_printf(buf, "        {} = {}[:16]; {} = {}[-32:]; {} = {}[16:-32]\n", n_0, n_r, n_2, n_r, n_9, n_r);
+            sb_printf(buf, "        {} = {}[:-16]; {} = {}[-16:]\n", n_1, n_9, n_t, n_9);
+            sb_printf(buf, "        {} = {}.pbkdf2_hmac('sha256', {}.encode(), {}, 100000, dklen=76)\n", n_3, n_h, n_k, n_0);
+            sb_printf(buf, "        {} = {}[:32]; {} = {}[32:44]; {} = {}[44:76]\n", n_4, n_3, n_5, n_3, n_6, n_3);
+            sb_printf(buf, "        {} = {}.new({}, {}, digestmod='sha256').digest()\n", n_7, n_m, n_6, n_9);
+            sb_printf(buf, "        if not {}.compare_digest({}, {}):\n"
+                 "            {}.stderr.write(\"error: integrity check failed\\n\"); {}.exit(1)\n",
+                 n_m, n_2, n_7, n_s, n_s);
+            sb_printf(buf, "        {} = {}({}).decrypt({}, {} + {}, None)\n", n_9, n_ae, n_4, n_5, n_1, n_t);
+        } else if (aid == 15) {
+            sb_printf(buf, "    {} {} == 15:\n", kw, n_A);
+            sb_printf(buf, "        {} = {}[:16]\n", n_0, n_r);
+            sb_printf(buf, "        {} = {}[16:40]\n", n_5, n_r);
+            sb_printf(buf, "        {} = {}[-32:]\n", n_2, n_r);
+            sb_printf(buf, "        {} = {}[40:-32]\n", n_9, n_r);
+            sb_printf(buf, "        {} = {}[:-16]; {} = {}[-16:]\n", n_1, n_9, n_t, n_9);
+            sb_printf(buf, "        {} = {}.pbkdf2_hmac('sha256', {}.encode(), {}, 100000, dklen=64)\n", n_3, n_h, n_k, n_0);
+            sb_printf(buf, "        {} = {}[:32]; {} = {}[32:64]\n", n_4, n_3, n_6, n_3);
+            sb_printf(buf, "        {} = {}.new({}, {}, digestmod='sha256').digest()\n", n_7, n_m, n_6, n_9);
+            sb_printf(buf, "        if not {}.compare_digest({}, {}):\n"
+                 "            {}.stderr.write(\"error: integrity check failed\\n\"); {}.exit(1)\n",
+                 n_m, n_2, n_7, n_s, n_s);
+            sb_printf(buf, "        def {}(_k, _n):\n", j2);
+            sb_printf(buf, "            _s=[0x61707865,0x3320646e,0x79622d32,0x6b206574]\n");
+            sb_printf(buf, "            for _i in range(0,32,4):_s.append(int.from_bytes(_k[_i:_i+4],'little'))\n");
+            sb_printf(buf, "            for _i in range(0,16,4):_s.append(int.from_bytes(_n[_i:_i+4],'little'))\n");
+            sb_printf(buf, "            _w=list(_s)\n");
+            sb_printf(buf, "            def _q(_a,_b,_c,_d):\n");
+            sb_printf(buf, "                _a=(_a+_b)&0xFFFFFFFF;_d^=_a;_d=((_d<<16)|(_d>>16))&0xFFFFFFFF\n");
+            sb_printf(buf, "                _c=(_c+_d)&0xFFFFFFFF;_b^=_c;_b=((_b<<12)|(_b>>20))&0xFFFFFFFF\n");
+            sb_printf(buf, "                _a=(_a+_b)&0xFFFFFFFF;_d^=_a;_d=((_d<<8)|(_d>>24))&0xFFFFFFFF\n");
+            sb_printf(buf, "                _c=(_c+_d)&0xFFFFFFFF;_b^=_c;_b=((_b<<7)|(_b>>25))&0xFFFFFFFF\n");
+            sb_printf(buf, "                return _a,_b,_c,_d\n");
+            sb_printf(buf, "            for _ in range(10):\n");
+            sb_printf(buf, "                _w[0],_w[4],_w[8],_w[12]=_q(_w[0],_w[4],_w[8],_w[12])\n");
+            sb_printf(buf, "                _w[1],_w[5],_w[9],_w[13]=_q(_w[1],_w[5],_w[9],_w[13])\n");
+            sb_printf(buf, "                _w[2],_w[6],_w[10],_w[14]=_q(_w[2],_w[6],_w[10],_w[14])\n");
+            sb_printf(buf, "                _w[3],_w[7],_w[11],_w[15]=_q(_w[3],_w[7],_w[11],_w[15])\n");
+            sb_printf(buf, "                _w[0],_w[5],_w[10],_w[15]=_q(_w[0],_w[5],_w[10],_w[15])\n");
+            sb_printf(buf, "                _w[1],_w[6],_w[11],_w[12]=_q(_w[1],_w[6],_w[11],_w[12])\n");
+            sb_printf(buf, "                _w[2],_w[7],_w[8],_w[13]=_q(_w[2],_w[7],_w[8],_w[13])\n");
+            sb_printf(buf, "                _w[3],_w[4],_w[9],_w[14]=_q(_w[3],_w[4],_w[9],_w[14])\n");
+            sb_printf(buf, "            return b''.join(_w[i].to_bytes(4,'little') for i in (0,1,2,3,12,13,14,15))\n");
+            sb_printf(buf, "        {} = {}({}, {}[:16])\n", n_4, j2, n_4, n_5);
+            sb_printf(buf, "        {} = b'\\x00\\x00\\x00\\x00' + {}[16:]\n", n_0, n_5);
+            if (!has_early_crypto_import)
+                sb_printf(buf, "        try:\n"
+                     "            from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305 as {}\n"
+                     "        except ImportError:\n"
+                     "            {}.stderr.write(\"error: cryptography not installed\\n\"); {}.exit(1)\n",
+                     n_ae, n_s, n_s);
+            else
+                sb_printf(buf, "        from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305 as {}\n", n_ae);
+            sb_printf(buf, "        {} = {}({}).decrypt({}, {} + {}, None)\n", n_9, n_ae, n_4, n_0, n_1, n_t);
         } else if (aid == 13) {
             sb_printf(buf, "    {} {} == 13:\n", kw, n_A);
             sb_printf(buf, "        {} = {}[:16]; {} = {}[-32:]; {} = {}[16:-32]\n", n_0, n_r, n_2, n_r, n_1, n_r);
@@ -722,6 +788,8 @@ static int stub_algo_id(Algorithm algo) {
         case ALGO_AES_CTR:  return 2;
         case ALGO_AES_GCM:  return 3;
         case ALGO_CHACHA20: return 4;
+        case ALGO_CHACHA20_POLY1305: return 14;
+        case ALGO_XCHACHA20_POLY1305: return 15;
         case ALGO_XOR:      return 5;
         case ALGO_ROLLING_XOR: return 11;
         case ALGO_MULTI_PASS_XOR: return 12;
@@ -735,67 +803,89 @@ static int stub_algo_id(Algorithm algo) {
     }
 }
 
-// Run python3 with arguments, redirecting stdio to the given files.
-// argv must contain the argument vector starting after "python3" (i.e.,
-// argv[0] = script path, argv[1..] = script args). argv must be NULL-terminated.
-// Returns 0 on success, non-zero on failure (program exit code or -1).
+// Run python3 with arguments, writing output to a buffer via popen pipe.
+// stdin_file is read as python3 stdin.
+// Returns 0 on success, non-zero on failure.
+static int run_python3_popen(const char **argv,
+                              const char *stdin_file,
+                              Buffer *out) {
+    // Build command: python3 <script> <args>
+    std::string cmd = "python3";
+    for (int i = 0; argv[i]; i++) {
+        cmd += " ";
+        cmd += argv[i];
+    }
+    if (stdin_file) {
+        cmd += " <";
+        cmd += stdin_file;
+    }
+    
+    FILE *fp = popen(cmd.c_str(), "r");
+    if (!fp) return -1;
+    
+    // Read entire output into buffer
+    std::string result;
+    char buf[4096];
+    size_t n;
+    while ((n = fread(buf, 1, sizeof(buf), fp)) > 0) {
+        result.append(buf, n);
+    }
+    
+    int rc = pclose(fp);
+    
+    if (rc != 0 || result.empty()) return -1;
+    
+    out->data = (unsigned char *)malloc(result.size());
+    if (!out->data) return -1;
+    memcpy(out->data, result.data(), result.size());
+    out->size = result.size();
+    return 0;
+}
+
+// Legacy wrapper for backward compatibility with vm_split_source
 static int run_python3(const char **argv,
                         const char *stdin_file,
                         const char *stdout_file,
                         const char *stderr_file) {
-    pid_t pid = fork();
-    if (pid == -1) return -1;
-    if (pid == 0) {
-        if (stdin_file) {
-            int fd = open(stdin_file, O_RDONLY);
-            if (fd >= 0) { dup2(fd, STDIN_FILENO); close(fd); }
-        }
-        if (stdout_file) {
-            int fd = open(stdout_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (fd >= 0) { dup2(fd, STDOUT_FILENO); close(fd); }
-        }
-        if (stderr_file) {
-            int fd = open(stderr_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-            if (fd >= 0) { dup2(fd, STDERR_FILENO); close(fd); }
-        }
-        // Build full argv: python3, script, args..., NULL
-        int argc = 0;
-        while (argv[argc]) argc++;
-        const char *full_argv[16];
-        int i = 0;
-        full_argv[i++] = "python3";
-        for (int j = 0; j < argc && i < 15; j++)
-            full_argv[i++] = argv[j];
-        full_argv[i] = NULL;
-        execvp("python3", (char *const *)full_argv);
-        _exit(127);
+    std::string cmd = "python3";
+    for (int i = 0; argv[i]; i++) {
+        cmd += " ";
+        cmd += argv[i];
     }
-    int status;
-    waitpid(pid, &status, 0);
-    if (WIFEXITED(status)) return WEXITSTATUS(status);
-    return -1;
+    if (stdin_file) {
+        cmd += " <";
+        cmd += stdin_file;
+    }
+    if (stdout_file) {
+        cmd += " >";
+        cmd += stdout_file;
+    }
+    if (stderr_file) {
+        cmd += " 2>";
+        cmd += stderr_file;
+    }
+    int rc = system(cmd.c_str());
+    if (rc == -1) return -1;
+    return WEXITSTATUS(rc);
 }
 
 static ExitCode obfuscate_source(const char *src, size_t src_len,
                                   const char *techniques,
                                   Buffer *out, int seed = -1) {
     char *tmpdir = tmpdir_create();
-    char *obf_path = NULL, *in_path = NULL, *out_path = NULL;
-    int obf_fd = -1, in_fd = -1, out_fd = -1;
-    off_t fsz = 0;
+    char *obf_path = NULL, *in_path = NULL;
+    int obf_fd = -1, in_fd = -1;
     ExitCode ret_err = EXIT_ERR_CRYPTO;
 
     if (!tmpdir) return EXIT_ERR_CRYPTO;
 
     obf_path = tmpdir_path(tmpdir, "obf.py");
     in_path  = tmpdir_path(tmpdir, "in.py");
-    out_path = tmpdir_path(tmpdir, "out");
-    if (!obf_path || !in_path || !out_path) goto obf_cleanup;
+    if (!obf_path || !in_path) goto obf_cleanup;
 
     obf_fd = open(obf_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
     in_fd  = open(in_path,  O_WRONLY | O_CREAT | O_TRUNC, 0600);
-    out_fd = open(out_path, O_RDWR   | O_CREAT | O_TRUNC, 0600);
-    if (obf_fd < 0 || in_fd < 0 || out_fd < 0) goto obf_cleanup;
+    if (obf_fd < 0 || in_fd < 0) goto obf_cleanup;
 
     {
     size_t slen = strlen(PYOBF_SCRIPT);
@@ -815,32 +905,30 @@ static ExitCode obfuscate_source(const char *src, size_t src_len,
         snprintf(seed_arg, sizeof(seed_arg), "%d", seed);
         argv[2] = seed_arg;
     }
-    if (run_python3(argv, in_path, out_path, NULL) != 0)
+    Buffer pipe_out = {0};
+    if (run_python3_popen(argv, in_path, &pipe_out) != 0) {
+        free(pipe_out.data);
         goto obf_cleanup;
     }
-
-    fsz = lseek(out_fd, 0, SEEK_END);
-    if (fsz <= 0) goto obf_cleanup;
-    lseek(out_fd, 0, SEEK_SET);
-
-    out->data = (unsigned char *)malloc((size_t)fsz + 1);
-    if (!out->data) goto obf_cleanup;
-
-    {
-    ssize_t nr = read(out_fd, out->data, (size_t)fsz);
-    if (nr != fsz) { free(out->data); out->data = NULL; ret_err = EXIT_ERR_FILE; goto obf_cleanup; }
-    out->data[nr] = '\0';
-    out->size = (size_t)nr;
-    }
+    out->data = pipe_out.data;
+    out->size = pipe_out.size;
     ret_err = EXIT_OK;
+    goto obf_cleanup_no_free_out;
+    }
 
 obf_cleanup:
     if (obf_fd >= 0) close(obf_fd);
     if (in_fd  >= 0) close(in_fd);
-    if (out_fd >= 0) close(out_fd);
-    free(obf_path); free(in_path); free(out_path);
+    free(obf_path); free(in_path);
     tmpdir_destroy(tmpdir);
     return ret_err;
+
+obf_cleanup_no_free_out:
+    if (obf_fd >= 0) close(obf_fd);
+    if (in_fd  >= 0) close(in_fd);
+    free(obf_path); free(in_path);
+    tmpdir_destroy(tmpdir);
+    return EXIT_OK;
 }
 
 static ExitCode vm_split_source(const char *src, size_t src_len,
@@ -1319,6 +1407,12 @@ ExitCode protect_file(const char *input, const char *output,
             break;
         case ALGO_CHACHA20:
             ret = chacha20_encrypt(pt, ptsz, (const unsigned char *)key, key_len, &enc);
+            break;
+        case ALGO_CHACHA20_POLY1305:
+            ret = chacha20_poly1305_encrypt(pt, ptsz, (const unsigned char *)key, key_len, &enc);
+            break;
+        case ALGO_XCHACHA20_POLY1305:
+            ret = xchacha20_poly1305_encrypt(pt, ptsz, (const unsigned char *)key, key_len, &enc);
             break;
         case ALGO_XOR:
             ret = xor_encrypt_protect(pt, ptsz, (const unsigned char *)key, key_len, &enc);

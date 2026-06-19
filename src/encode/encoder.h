@@ -10,4 +10,11 @@ ExitCode encode_file(const char *input, const char *output,
 ExitCode decode_file(const char *input, const char *output,
                      Algorithm algo, const char *key);
 
+ExitCode encrypt_file(const char *input, const char *output,
+                      Algorithm algo, const char *key,
+                      int compress_algo, int compress_level);
+
+ExitCode decrypt_file(const char *input, const char *output,
+                      Algorithm algo, const char *key);
+
 #endif

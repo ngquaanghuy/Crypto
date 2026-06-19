@@ -4,146 +4,145 @@
 #include <string.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
+#include <openssl/err.h>
 #include <openssl/hmac.h>
 #include <openssl/crypto.h>
 
-#define CHACHA20_KEY_SIZE   32
-#define CHACHA20_IV_SIZE    16
-#define HMAC_KEY_SIZE       32
-#define HMAC_SIZE           32
-#define SALT_SIZE           16
-#define PBKDF2_ITER        100000
-#define DERIVED_SIZE        (CHACHA20_KEY_SIZE + CHACHA20_IV_SIZE + HMAC_KEY_SIZE)
+#define SALT_SIZE     16
+#define CHACHA_NONCE_SIZE 12
+#define KEY_DERIV_ITER 100000
+#define HMAC_SIZE      32
 
-static ExitCode derive_keys(const unsigned char *pass, size_t pass_len,
-                            const unsigned char *salt, size_t salt_len,
-                            unsigned char *out_key, unsigned char *out_iv,
-                            unsigned char *out_hmac_key) {
-    unsigned char derived[DERIVED_SIZE];
-    int ret = PKCS5_PBKDF2_HMAC((const char *)pass, (int)pass_len,
-                                 salt, (int)salt_len,
-                                 PBKDF2_ITER, EVP_sha256(),
-                                 DERIVED_SIZE, derived);
-    if (ret != 1) {
-        fprintf(stderr, "error: PBKDF2 key derivation failed\n");
-        return EXIT_ERR_CRYPTO;
-    }
-    memcpy(out_key,     derived,                           CHACHA20_KEY_SIZE);
-    memcpy(out_iv,      derived + CHACHA20_KEY_SIZE,       CHACHA20_IV_SIZE);
-    memcpy(out_hmac_key, derived + CHACHA20_KEY_SIZE + CHACHA20_IV_SIZE, HMAC_KEY_SIZE);
-    return EXIT_OK;
+/* ─── Derive key via PBKDF2 ─────────────────────────────── */
+static void derive_key(const unsigned char *password, size_t pwd_len,
+                       const unsigned char *salt,
+                       unsigned char *out_key, unsigned int key_len) {
+    PKCS5_PBKDF2_HMAC((const char *)password, (int)pwd_len,
+                      salt, SALT_SIZE, KEY_DERIV_ITER,
+                      EVP_sha256(), key_len, out_key);
 }
 
-ExitCode chacha20_encrypt(const unsigned char *in, size_t in_size,
-                          const unsigned char *key, size_t key_size,
+/* ─── HMAC-SHA256 helper ────────────────────────────────── */
+static void compute_hmac(const unsigned char *key, size_t key_len,
+                         const unsigned char *data, size_t data_len,
+                         unsigned char *out_hmac) {
+    unsigned int hmac_len = HMAC_SIZE;
+    HMAC(EVP_sha256(), key, (int)key_len,
+         data, data_len, out_hmac, &hmac_len);
+}
+
+ExitCode chacha20_encrypt(const unsigned char *plaintext, size_t plaintext_len,
+                          const unsigned char *key, size_t key_len,
                           Buffer *out) {
-    if (!in || !out || in_size == 0) return EXIT_ERR_INTERNAL;
-    if (!key || key_size == 0) {
-        fprintf(stderr, "error: ChaCha20 requires a non-empty key\n");
+    if (!plaintext || plaintext_len == 0 || !key || key_len == 0 || !out) {
         return EXIT_ERR_ARGS;
     }
 
     unsigned char salt[SALT_SIZE];
-    if (RAND_bytes(salt, SALT_SIZE) != 1) {
-        fprintf(stderr, "error: failed to generate random salt\n");
+    if (RAND_bytes(salt, SALT_SIZE) != 1)
         return EXIT_ERR_CRYPTO;
-    }
 
-    unsigned char chacha_key[CHACHA20_KEY_SIZE];
-    unsigned char chacha_iv[CHACHA20_IV_SIZE];
-    unsigned char hmac_key[HMAC_KEY_SIZE];
-    ExitCode ret = derive_keys(key, key_size, salt, SALT_SIZE,
-                               chacha_key, chacha_iv, hmac_key);
-    if (ret != EXIT_OK) return ret;
+    unsigned char chacha_key[32];
+    derive_key(key, key_len, salt, chacha_key, 32);
 
-    size_t out_size = SALT_SIZE + in_size + HMAC_SIZE + 8;
-    out->data = (unsigned char *)malloc(out_size);
-    if (!out->data) return EXIT_ERR_CRYPTO;
+    unsigned char nonce[CHACHA_NONCE_SIZE];
+    if (RAND_bytes(nonce, CHACHA_NONCE_SIZE) != 1)
+        return EXIT_ERR_CRYPTO;
 
-    memcpy(out->data, salt, SALT_SIZE);
+    /* Allocate: salt(16) + nonce(12) + ciphertext + HMAC(32) */
+    size_t out_max = SALT_SIZE + CHACHA_NONCE_SIZE + plaintext_len + HMAC_SIZE;
+    unsigned char *out_data = (unsigned char *)malloc(out_max);
+    if (!out_data) return EXIT_ERR_CRYPTO;
+
+    size_t pos = 0;
+    memcpy(out_data + pos, salt, SALT_SIZE); pos += SALT_SIZE;
+    memcpy(out_data + pos, nonce, CHACHA_NONCE_SIZE); pos += CHACHA_NONCE_SIZE;
 
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    if (!ctx) { free(out->data); return EXIT_ERR_CRYPTO; }
+    if (!ctx) { free(out_data); return EXIT_ERR_CRYPTO; }
 
-    if (EVP_EncryptInit_ex(ctx, EVP_chacha20(), NULL, chacha_key, chacha_iv) != 1) {
-        EVP_CIPHER_CTX_free(ctx); free(out->data);
-        fprintf(stderr, "error: ChaCha20 init failed\n");
+    if (EVP_EncryptInit_ex(ctx, EVP_chacha20(), NULL, chacha_key, nonce) != 1) {
+        EVP_CIPHER_CTX_free(ctx); free(out_data);
         return EXIT_ERR_CRYPTO;
     }
 
-    int cipher_len = 0;
-    if (EVP_EncryptUpdate(ctx, out->data + SALT_SIZE, &cipher_len, in, (int)in_size) != 1) {
-        EVP_CIPHER_CTX_free(ctx); free(out->data);
-        fprintf(stderr, "error: ChaCha20 encrypt failed\n");
+    int outlen = 0;
+    if (EVP_EncryptUpdate(ctx, out_data + pos, &outlen,
+                          plaintext, (int)plaintext_len) != 1) {
+        EVP_CIPHER_CTX_free(ctx); free(out_data);
         return EXIT_ERR_CRYPTO;
     }
+    pos += (size_t)outlen;
 
+    int finallen = 0;
+    EVP_EncryptFinal_ex(ctx, out_data + pos, &finallen);
+    pos += (size_t)finallen;
     EVP_CIPHER_CTX_free(ctx);
 
-    unsigned int hmac_len = 0;
-    HMAC(EVP_sha256(), hmac_key, HMAC_KEY_SIZE,
-         out->data + SALT_SIZE, (size_t)cipher_len,
-         out->data + SALT_SIZE + cipher_len, &hmac_len);
+    /* Compute HMAC over salt + nonce + ciphertext */
+    compute_hmac(chacha_key, 32, out_data, pos, out_data + pos);
+    pos += HMAC_SIZE;
 
-    out->size = SALT_SIZE + (size_t)cipher_len + HMAC_SIZE;
+    unsigned char *shrunk = (unsigned char *)realloc(out_data, pos);
+    if (shrunk) out_data = shrunk;
+    out->data = out_data;
+    out->size = pos;
     return EXIT_OK;
 }
 
-ExitCode chacha20_decrypt(const unsigned char *in, size_t in_size,
-                          const unsigned char *key, size_t key_size,
+ExitCode chacha20_decrypt(const unsigned char *ciphertext, size_t ciphertext_len,
+                          const unsigned char *key, size_t key_len,
                           Buffer *out) {
-    if (!in || !out || in_size == 0) return EXIT_ERR_INTERNAL;
-    if (!key || key_size == 0) {
-        fprintf(stderr, "error: ChaCha20 requires a non-empty key\n");
+    if (!ciphertext || ciphertext_len == 0 || !key || key_len == 0 || !out) {
         return EXIT_ERR_ARGS;
     }
-    if (in_size <= SALT_SIZE + HMAC_SIZE) {
-        fprintf(stderr, "error: corrupted data (too short)\n");
-        return EXIT_ERR_CRYPTO;
-    }
 
-    const unsigned char *salt    = in;
-    const unsigned char *cipher  = in + SALT_SIZE;
-    size_t cipher_size = in_size - SALT_SIZE - HMAC_SIZE;
-    const unsigned char *stored_hmac = in + in_size - HMAC_SIZE;
+    size_t min_len = SALT_SIZE + CHACHA_NONCE_SIZE + HMAC_SIZE + 1;
+    if (ciphertext_len < min_len) return EXIT_ERR_CRYPTO;
 
-    unsigned char chacha_key[CHACHA20_KEY_SIZE];
-    unsigned char chacha_iv[CHACHA20_IV_SIZE];
-    unsigned char hmac_key[HMAC_KEY_SIZE];
-    ExitCode ret = derive_keys(key, key_size, salt, SALT_SIZE,
-                               chacha_key, chacha_iv, hmac_key);
-    if (ret != EXIT_OK) return ret;
+    const unsigned char *salt     = ciphertext;
+    const unsigned char *nonce    = ciphertext + SALT_SIZE;
+    size_t ct_len = ciphertext_len - SALT_SIZE - CHACHA_NONCE_SIZE - HMAC_SIZE;
+    const unsigned char *ct       = ciphertext + SALT_SIZE + CHACHA_NONCE_SIZE;
+    const unsigned char *expected_hmac = ct + ct_len;
 
+    unsigned char chacha_key[32];
+    derive_key(key, key_len, salt, chacha_key, 32);
+
+    /* Verify HMAC */
     unsigned char computed_hmac[HMAC_SIZE];
-    unsigned int hmac_len = 0;
-    HMAC(EVP_sha256(), hmac_key, HMAC_KEY_SIZE,
-         cipher, cipher_size, computed_hmac, &hmac_len);
+    size_t data_len = SALT_SIZE + CHACHA_NONCE_SIZE + ct_len;
+    compute_hmac(chacha_key, 32, ciphertext, data_len, computed_hmac);
 
-    if (hmac_len != HMAC_SIZE || CRYPTO_memcmp(computed_hmac, stored_hmac, HMAC_SIZE) != 0) {
-        fprintf(stderr, "error: integrity check failed (wrong key or corrupted data)\n");
-        return EXIT_ERR_CRYPTO;
+    if (CRYPTO_memcmp(computed_hmac, expected_hmac, HMAC_SIZE) != 0) {
+        return EXIT_ERR_CRYPTO; /* Integrity check failed */
     }
-
-    out->data = (unsigned char *)malloc(cipher_size + 8);
-    if (!out->data) return EXIT_ERR_CRYPTO;
 
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    if (!ctx) { free(out->data); return EXIT_ERR_CRYPTO; }
+    if (!ctx) return EXIT_ERR_CRYPTO;
 
-    if (EVP_DecryptInit_ex(ctx, EVP_chacha20(), NULL, chacha_key, chacha_iv) != 1) {
-        EVP_CIPHER_CTX_free(ctx); free(out->data);
-        fprintf(stderr, "error: ChaCha20 init failed\n");
+    if (EVP_DecryptInit_ex(ctx, EVP_chacha20(), NULL, chacha_key, nonce) != 1) {
+        EVP_CIPHER_CTX_free(ctx);
         return EXIT_ERR_CRYPTO;
     }
 
-    int out_len = 0;
-    if (EVP_DecryptUpdate(ctx, out->data, &out_len, cipher, (int)cipher_size) != 1) {
-        EVP_CIPHER_CTX_free(ctx); free(out->data);
-        fprintf(stderr, "error: ChaCha20 decrypt failed\n");
+    unsigned char *out_data = (unsigned char *)malloc(ct_len + 1);
+    if (!out_data) { EVP_CIPHER_CTX_free(ctx); return EXIT_ERR_CRYPTO; }
+
+    int outlen = 0;
+    if (EVP_DecryptUpdate(ctx, out_data, &outlen, ct, (int)ct_len) != 1) {
+        free(out_data); EVP_CIPHER_CTX_free(ctx);
         return EXIT_ERR_CRYPTO;
     }
-    out->size = (size_t)out_len;
 
+    int finallen = 0;
+    EVP_DecryptFinal_ex(ctx, out_data + outlen, &finallen);
     EVP_CIPHER_CTX_free(ctx);
+
+    size_t total = (size_t)(outlen + finallen);
+    unsigned char *shrunk = (unsigned char *)realloc(out_data, total);
+    if (shrunk) out_data = shrunk;
+    out->data = out_data;
+    out->size = total;
     return EXIT_OK;
 }

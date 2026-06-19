@@ -54,6 +54,8 @@ set(CRYPTO_SOURCES
     src/crypto/cipher.cpp
     src/crypto/aes.cpp
     src/crypto/chacha20.cpp
+    src/crypto/chacha20_poly1305.cpp
+    src/crypto/xchacha20_poly1305.cpp
     src/vm/vm_compile.cpp
     src/vm/vm_stub.cpp
     src/vm/isa_expand.cpp
@@ -112,6 +114,8 @@ if(CRYPTO_BUILD_TESTS)
         src/encode/xorcode.cpp
         src/crypto/aes.cpp
         src/crypto/chacha20.cpp
+        src/crypto/chacha20_poly1305.cpp
+        src/crypto/xchacha20_poly1305.cpp
         src/vm/vm_compile.cpp
         src/vm/vm_stub.cpp
         src/vm/isa_expand.cpp

@@ -60,7 +60,11 @@ def generate():
     with open(_CORE_PATH) as f:
         core_code = f.read()
 
-    script = core_code + _cli_code()
+    # Strip the 'if __name__ == \'__main__\'' block from core_code (it's only for standalone testing).
+    # The CLI logic in _cli_code() handles the actual pipeline.
+    # rsplit on the main block marker and keep only the definitions before it.
+    stripped = core_code.rsplit("\nif __name__ == '__main__':", 1)[0] + '\n'
+    script = stripped + _cli_code()
 
     header = '''\
 #ifndef CRYPTO_PYOBF_H
