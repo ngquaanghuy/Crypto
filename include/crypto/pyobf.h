@@ -94,6 +94,7 @@ def rename_code(source):
         return source
 
     names_seen = set()
+    imported_names = set()
 
     class NameCollector(ast.NodeVisitor):
         def visit_Name(self, node):
@@ -111,6 +112,14 @@ def rename_code(source):
         def visit_arg(self, node):
             names_seen.add(node.arg)
             self.generic_visit(node)
+        def visit_Import(self, node):
+            for alias in node.names:
+                local = alias.asname or alias.name
+                imported_names.add(local)
+        def visit_ImportFrom(self, node):
+            for alias in node.names:
+                local = alias.asname or alias.name
+                imported_names.add(local)
 
     NameCollector().visit(tree)
 
@@ -138,7 +147,8 @@ def rename_code(source):
 
     name_map = {}
     for n in names_seen:
-        if n not in skip_words and not (n.startswith('__') and n.endswith('__')):
+        if n not in skip_words and n not in imported_names \
+                and not (n.startswith('__') and n.endswith('__')):
             name_map[n] = _rand_name()
 
     if not name_map:

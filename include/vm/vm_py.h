@@ -4,7 +4,7 @@
 static const char VM_COMPILE_SCRIPT[] = R"vm_compile(
 import sys, dis, struct, types, random
 
-BINOP_MAP = {'+':10, '-':11, '*':12, '/':13, '**':14, '|':16, '&':17, '^':18, '<<':19, '>>':20, '//':21, '%':22}
+BINOP_MAP = {'+':10, '-':11, '*':12, '/':13, '**':14, '|':16, '&':17, '^':18, '<<':19, '>>':34, '//':35, '%':36}
 CMPOP_MAP = {'==':20, '!=':21, '<':22, '<=':23, '>':24, '>=':25}
 
 def convert(source, opaque=0):

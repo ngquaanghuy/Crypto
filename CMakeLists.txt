@@ -68,6 +68,7 @@ set(CRYPTO_SOURCES
     src/obfuscate/anti_debug.cpp
     src/obfuscate/rename.cpp
     src/obfuscate/flow_flatten.cpp
+    src/obfuscate/flow_flatten_adv.cpp
     src/obfuscate/junk.cpp
     src/obfuscate/xor_gen.cpp
     src/obfuscate/obfuscate.cpp
@@ -128,6 +129,7 @@ if(CRYPTO_BUILD_TESTS)
         src/obfuscate/anti_debug.cpp
         src/obfuscate/rename.cpp
         src/obfuscate/flow_flatten.cpp
+        src/obfuscate/flow_flatten_adv.cpp
         src/obfuscate/junk.cpp
         src/obfuscate/xor_gen.cpp
         src/obfuscate/obfuscate.cpp

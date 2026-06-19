@@ -408,13 +408,66 @@ static int check_sandbox(void) {
 #endif
 }
 
+/* ── Hook detection: advanced builtin integrity check ── */
+static int check_hooks_env(void) {
+    static const char *hooked_envs[] = {
+        "LD_PRELOAD",
+        "LD_LIBRARY_PATH",
+        "LD_AUDIT",
+        "LD_DEBUG",
+        "LD_OPENCL_LIBRARY_PATH",
+        "DYLD_INSERT_LIBRARIES",
+        "DYLD_LIBRARY_PATH",
+        "DYLD_FORCE_FLAT_NAMESPACE",
+        nullptr
+    };
+    for (int i = 0; hooked_envs[i]; i++) {
+        const char *v = getenv(hooked_envs[i]);
+        if (v && v[0]) return 1;
+    }
+    return 0;
+}
+
+/* ── Check /proc/self/maps for hooking/interposition libraries ── */
+static int check_maps_for_hooks(void) {
+#if defined(PLATFORM_LINUX)
+    static const char *hook_indicators[] = {
+        "libdetect", "hook", "intercept",
+        "LD_PRELOAD", "/tmp/", "/dev/shm/",
+        nullptr
+    };
+    FILE *fp = fopen("/proc/self/maps", "r");
+    if (!fp) return 0;
+    char line[1024];
+    while (fgets(line, sizeof(line), fp)) {
+        for (int i = 0; hook_indicators[i]; i++) {
+            if (strstr(line, hook_indicators[i])) {
+                /* Skip known-safe entries */
+                if (strstr(line, "[heap]") || strstr(line, "[stack]")) continue;
+                fclose(fp);
+                return 1;
+            }
+        }
+        /* Check for writable+executable (WX) memory regions - potential JIT hooking */
+        if (strstr(line, "rwx")) {
+            fclose(fp);
+            return 1;
+        }
+    }
+    fclose(fp);
+    return 0;
+#else
+    (void)0;
+    return 0;
+#endif
+}
+
 /* ── Hook detection: verify builtins are not intercepted ── */
 static int check_hooks(void) {
-#if defined(PLATFORM_WINDOWS)
-    /* Check for DLL injection via environment */
-    const char *ld_preload = getenv("LD_PRELOAD");
-    if (ld_preload && ld_preload[0]) return 1;
+    if (check_hooks_env()) return 1;
+    if (check_maps_for_hooks()) return 1;
     
+#if defined(PLATFORM_WINDOWS)
     /* Check for AppInit_DLLs in registry */
     HKEY hKey;
     if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, 
@@ -430,36 +483,27 @@ static int check_hooks(void) {
         RegCloseKey(hKey);
     }
     
-    return 0;
-    
-#elif defined(PLATFORM_MACOS)
-    /* Check for DYLD environment variables */
-    const char *dyld_preload = getenv("DYLD_INSERT_LIBRARIES");
-    if (dyld_preload && dyld_preload[0]) return 1;
-    
-    const char *dyld_library_path = getenv("DYLD_LIBRARY_PATH");
-    if (dyld_library_path && dyld_library_path[0]) return 1;
-    
-    const char *ld_preload = getenv("LD_PRELOAD");
-    if (ld_preload && ld_preload[0]) return 1;
-    
-    const char *ld_library_path = getenv("LD_LIBRARY_PATH");
-    if (ld_library_path && ld_library_path[0]) return 1;
-    
-    return 0;
-    
-#elif defined(PLATFORM_LINUX)
-    /* In Python we check __import__, compile, exec.
-     * In C++ we check if common functions are hooked by looking
-     * for LD_PRELOAD in environment. */
-    const char *ld_preload = getenv("LD_PRELOAD");
-    if (ld_preload && ld_preload[0]) return 1;
-    const char *ld_library_path = getenv("LD_LIBRARY_PATH");
-    if (ld_library_path && ld_library_path[0]) return 1;
-    return 0;
-#else
-    return 0;
+    /* Check for KnownDLLs hooking */
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE,
+            "SYSTEM\\CurrentControlSet\\Control\\Session Manager\\KnownDLLs",
+            0, KEY_READ, &hKey) == ERROR_SUCCESS) {
+        char value[256];
+        DWORD size = sizeof(value);
+        DWORD type;
+        /* Check if known DLLs list is abnormally modified */
+        for (DWORD idx = 0; RegEnumValueA(hKey, idx, value, &size,
+                nullptr, &type, nullptr, nullptr) == ERROR_SUCCESS; idx++) {
+            if (strstr(value, "hook") || strstr(value, "inject")) {
+                RegCloseKey(hKey);
+                return 1;
+            }
+            size = sizeof(value);
+        }
+        RegCloseKey(hKey);
+    }
 #endif
+    
+    return 0;
 }
 
 /* ── Combined check ── */
@@ -586,14 +630,97 @@ char *anti_debug_generate_stub(int include_vm_check, int include_hook_check) {
     s += "    if _M in _SYS.modules:\n";
     s += "        _SYS.stderr.write('error: debugger detected\\n'); _SYS.exit(1)\n";
 
+    /* ── Frida instrumentation detection ── */
+    s += "if 'frida' in _SYS.modules:\n";
+    s += "    _SYS.stderr.write('error: instrumentation detected\\n'); _SYS.exit(1)\n";
+    s += "if _OS.environ.get('FRIDA_SCRIPT'):\n";
+    s += "    _SYS.stderr.write('error: instrumentation detected\\n'); _SYS.exit(1)\n";
+    s += "if _IS_LINUX or _IS_MACOS:\n";
+    s += "    try:\n";
+    s += "        import socket as _SK\n";
+    s += "        _S = _SK.socket(_SK.AF_INET, _SK.SOCK_STREAM)\n";
+    s += "        _S.settimeout(1.0)\n";
+    s += "        if _S.connect_ex(('127.0.0.1', 27042)) == 0:\n";
+    s += "            _S.close()\n";
+    s += "            _SYS.stderr.write('error: instrumentation detected\\n'); _SYS.exit(1)\n";
+    s += "        _S.close()\n";
+    s += "    except: pass\n";
+    s += "if _IS_LINUX:\n";
+    s += "    try:\n";
+    s += "        with open('/proc/self/maps') as _F:\n";
+    s += "            if 'frida' in _F.read():\n";
+    s += "                _SYS.stderr.write('error: instrumentation detected\\n'); _SYS.exit(1)\n";
+    s += "    except: pass\n";
+    s += "    try:\n";
+    s += "        with open('/proc/self/cmdline') as _F:\n";
+    s += "            _C = _F.read()\n";
+    s += "        with open('/proc/self/status') as _F:\n";
+    s += "            for _L in _F:\n";
+    s += "                if 'frida' in _L.lower():\n";
+    s += "                    _SYS.stderr.write('error: instrumentation detected\\n'); _SYS.exit(1)\n";
+    s += "    except: pass\n";
+    s += "if _IS_MACOS:\n";
+    s += "    try:\n";
+    s += "        import subprocess as _SP\n";
+    s += "        if 'frida' in _SP.check_output(['ps', 'aux'], stderr=_SP.DEVNULL).decode().lower():\n";
+    s += "            _SYS.stderr.write('error: instrumentation detected\\n'); _SYS.exit(1)\n";
+    s += "    except: pass\n";
+    s += "    for _P in _OS.listdir('/tmp'):\n";
+    s += "        if 'frida' in _P.lower():\n";
+    s += "            _SYS.stderr.write('error: instrumentation detected\\n'); _SYS.exit(1)\n";
+    s += "            break\n";
+
     if (include_hook_check) {
-        s += "for _N in ('__import__','compile','exec'):\n";
-        s += "    _F = getattr(_SYS.modules.get('builtins'), _N, None)\n";
-        s += "    if _F is not None:\n";
-        s += "        _G = getattr(_F, '__name__', '')\n";
-        s += "        if _G != _N:\n";
-        s += "            _SYS.stderr.write('error: hook detected\\n'); _SYS.exit(1)\n";
+        /* ── Advanced builtin function integrity check ──
+         * Verifies __name__ attribute of critical builtins (__import__,
+         * compile, exec, eval, open) and their type to detect
+         * monkey-patching/hooking via function replacement. */
+        s += "_B = _SYS.modules.get('builtins')\n";
+        s += "_HOOKED = 0\n";
+        s += "for _N in ('__import__','compile','exec','eval','open'):\n";
+        s += "    _F = getattr(_B, _N, None)\n";
+        s += "    if _F is None:\n";
+        s += "        _HOOKED = 1; break\n";
+        s += "    _G = getattr(_F, '__name__', '')\n";
+        s += "    if _G != _N:\n";
+        s += "        _HOOKED = 1; break\n";
+        s += "if _HOOKED:\n";
+        s += "    _SYS.stderr.write('error: hook detected\\n'); _SYS.exit(1)\n";
         
+        /* ── Check __builtins__ type integrity ── */
+        s += "_BT = type(getattr(_B, '__build_class__', None))\n";
+        s += "if _BT.__name__ != 'builtin_function_or_method':\n";
+        s += "    _SYS.stderr.write('error: builtin tampering detected\\n'); _SYS.exit(1)\n";
+        
+        /* ── Sys module integrity check ── */
+        s += "_ST = type(getattr(_SYS, 'settrace', None))\n";
+        s += "if _ST.__name__ != 'builtin_function_or_method':\n";
+        s += "    _SYS.stderr.write('error: sys tampering detected\\n'); _SYS.exit(1)\n";
+        
+        /* ── Comprehensive environment variable check ── */
+        s += "for _EV in ('LD_PRELOAD','LD_LIBRARY_PATH','LD_AUDIT','LD_DEBUG',\n";
+        s += "            'LD_OPENCL_LIBRARY_PATH','DYLD_INSERT_LIBRARIES',\n";
+        s += "            'DYLD_LIBRARY_PATH','DYLD_FORCE_FLAT_NAMESPACE'):\n";
+        s += "    if _OS.environ.get(_EV):\n";
+        s += "        _SYS.stderr.write('error: injection detected\\n'); _SYS.exit(1)\n";
+        
+        /* ── /proc/self/maps check for hooking/interposition libraries (Linux) ── */
+        s += "if _IS_LINUX:\n";
+        s += "    try:\n";
+        s += "        with open('/proc/self/maps') as _M:\n";
+        s += "            for _L in _M:\n";
+        s += "                if 'rwx' in _L and '[' not in _L:\n";
+        s += "                    _SYS.stderr.write('error: WX memory detected\\n'); _SYS.exit(1)\n";
+        s += "                if any(x in _L for x in ('/tmp/','/dev/shm/','hook','intercept')):\n";
+        s += "                    _SYS.stderr.write('error: hook injection detected\\n'); _SYS.exit(1)\n";
+        s += "    except: pass\n";
+        
+        /* ── Check sys.settrace / sys.setprofile for tracer interference ── */
+        s += "_TR = _SYS.gettrace()\n";
+        s += "if _TR is not None:\n";
+        s += "    _SYS.stderr.write('error: tracer detected\\n'); _SYS.exit(1)\n";
+        
+        /* ── Windows: registry-based checks ── */
         s += "if _IS_WINDOWS:\n";
         s += "    try:\n";
         s += "        import winreg as _WR\n";
@@ -607,9 +734,12 @@ char *anti_debug_generate_stub(int include_vm_check, int include_hook_check) {
         s += "        except: pass\n";
         s += "    except: pass\n";
         
+        /* ── macOS: DYLD injection checks ── */
         s += "if _IS_MACOS:\n";
-        s += "    if _OS.environ.get('DYLD_INSERT_LIBRARIES') or _OS.environ.get('DYLD_LIBRARY_PATH'):\n";
-        s += "        _SYS.stderr.write('error: DYLD injection detected\\n'); _SYS.exit(1)\n";
+        s += "    for _DY in ('DYLD_INSERT_LIBRARIES','DYLD_LIBRARY_PATH',\n";
+        s += "                'DYLD_FORCE_FLAT_NAMESPACE'):\n";
+        s += "        if _OS.environ.get(_DY):\n";
+        s += "            _SYS.stderr.write('error: DYLD injection detected\\n'); _SYS.exit(1)\n";
     }
 
     /* Meta path check */

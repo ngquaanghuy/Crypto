@@ -18,9 +18,10 @@ void obfuscate_config_default(ObfuscateConfig *cfg) {
     cfg->use_antidebug = 1;
     cfg->use_decoys = 1;
     cfg->shuffle_order = 1;
-    cfg->num_junk_statements = 10;
-    cfg->num_decoys = 8;
-    cfg->flowflatten_blocks = 4;
+    cfg->num_junk_statements = 30;
+    cfg->num_decoys = 20;
+    cfg->flowflatten_blocks = 10;
+    cfg->density = 1.0f;
     cfg->input_source = nullptr;
     cfg->master_key = nullptr;
     cfg->master_key_len = 0;
@@ -31,7 +32,10 @@ void obfuscate_config_default(ObfuscateConfig *cfg) {
 char *obfuscate_apply_technique(const char *technique,
                                 const char *source,
                                 const unsigned char *key,
-                                size_t key_len) {
+                                size_t key_len,
+                                int count,
+                                int decoy_count,
+                                int block_count) {
     if (!technique || !source) return strdup(source ? source : "");
 
     unsigned char local_key[32];
@@ -102,7 +106,7 @@ char *obfuscate_apply_technique(const char *technique,
         }
 
         if (1) { /* use_decoys */
-            rename_generate_decoys(&tbl, 8, key, key_len);
+            rename_generate_decoys(&tbl, decoy_count, key, key_len);
         }
         if (1) { /* shuffle */
             rename_shuffle_table(&tbl);
@@ -116,12 +120,16 @@ char *obfuscate_apply_technique(const char *technique,
 
     if (strcmp(technique, "flowflatten") == 0) {
         FlowFlattenPlan plan;
-        flowflatten_plan_init(&plan, 4);
+        flowflatten_plan_init(&plan, block_count);
 
-        flowflatten_set_block(&plan, 0, "pass  # block 0", 1);
-        flowflatten_set_block(&plan, 1, "pass  # block 1", 2);
-        flowflatten_set_block(&plan, 2, "pass  # block 2", 3);
-        flowflatten_set_block(&plan, 3, "pass  # block 3 (terminal)", -1);
+        for (int bi = 0; bi < plan.num_blocks - 1; bi++) {
+            char label[32];
+            snprintf(label, sizeof(label), "pass  # block %d", bi);
+            flowflatten_set_block(&plan, bi, label, bi + 1);
+        }
+        char final_label[32];
+        snprintf(final_label, sizeof(final_label), "pass  # block %d (terminal)", plan.num_blocks - 1);
+        flowflatten_set_block(&plan, plan.num_blocks - 1, final_label, -1);
 
         char *result = flowflatten_generate_python(&plan, plan.key, 32);
         flowflatten_plan_free(&plan);
@@ -133,10 +141,24 @@ char *obfuscate_apply_technique(const char *technique,
         return strdup(full.c_str());
     }
 
+    if (strcmp(technique, "aflow") == 0) {
+        float density = (float)count / 10.0f; // map junk count (10-30) to density (1-3)
+        if (density < 0.5f) density = 0.5f;
+        if (density > 5.0f) density = 5.0f;
+        char *result = adv_flowflatten_wrap_source(source, block_count, density);
+        if (!result) return strdup(source);
+
+        std::string full = std::string(result) + "\n\n# Original source:\n" + source;
+        free(result);
+        return strdup(full.c_str());
+    }
+
     if (strcmp(technique, "junk") == 0) {
         JunkConfig cfg;
         junk_config_default(&cfg);
-        char *section = junk_generate_section(&cfg, 10);
+        cfg.include_side_effects = (count > 20) ? 1 : 0;
+        cfg.include_both_branches = (count > 50) ? 1 : 0;
+        char *section = junk_generate_section(&cfg, count);
         if (!section) return strdup(source);
         std::string result = std::string(section) + "\n" + source;
         free(section);
@@ -220,19 +242,30 @@ char *obfuscate_pipeline(const ObfuscateConfig *cfg) {
         }
     }
 
-    /* Run each enabled stage */
-    for (int si = 0; si < num_stages; si++) {
-        int idx = order[si];
-        if (!stages[idx].enabled) continue;
+    int density_extra = cfg->density > 1.0f ? (int)(cfg->density + 0.5f) : 1;
 
-        char *result = obfuscate_apply_technique(
-            stages[idx].name,
-            current_source.c_str(),
-            pipeline_key, sizeof(pipeline_key));
+    for (int pass = 0; pass < density_extra; pass++) {
+        for (int si = 0; si < num_stages; si++) {
+            int idx = order[si];
+            if (!stages[idx].enabled) continue;
 
-        if (result) {
-            current_source = result;
-            free(result);
+            int count = (int)(cfg->num_junk_statements * cfg->density);
+            int decoys = (int)(cfg->num_decoys * cfg->density);
+            int blocks = (int)(cfg->flowflatten_blocks * cfg->density);
+            if (count < 1) count = 1;
+            if (decoys < 1) decoys = 1;
+            if (blocks < 2) blocks = 2;
+
+            char *result = obfuscate_apply_technique(
+                stages[idx].name,
+                current_source.c_str(),
+                pipeline_key, sizeof(pipeline_key),
+                count, decoys, blocks);
+
+            if (result) {
+                current_source = result;
+                free(result);
+            }
         }
     }
 

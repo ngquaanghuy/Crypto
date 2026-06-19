@@ -35,6 +35,12 @@ typedef enum {
     VM_POW          = 14,
     VM_NEG          = 15,
 
+    // Bitwise / extended arithmetic (16-19)
+    VM_BIT_OR       = 16,
+    VM_BIT_AND      = 17,
+    VM_BIT_XOR      = 18,
+    VM_LSHIFT       = 19,
+
     // Comparison (20-29)
     VM_CMP_EQ       = 20,
     VM_CMP_NE       = 21,
@@ -48,6 +54,11 @@ typedef enum {
     VM_JMP_IF_TRUE  = 31,
     VM_JMP_IF_FALSE = 32,
     VM_BINARY_SUBSCR = 33,
+
+    // Extended arithmetic cont'd (34-36)
+    VM_RSHIFT       = 34,
+    VM_FLOOR_DIV    = 35,
+    VM_MOD          = 36,
 
     // Call / return (40-49)
     VM_CALL         = 40,

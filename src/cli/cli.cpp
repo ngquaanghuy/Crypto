@@ -56,7 +56,7 @@ static void print_usage(void) {
     printf("      --obf-none <tech>   Enable all obfuscation EXCEPT <tech>\n");
     printf("                          (mutually exclusive with --obf)\n");
     printf("      --anti-analysis <t> Anti-analysis protection: debug,\n");
-    printf("                          hook, scramble, opaque (comma-separated,\n");
+    printf("                          hook, frida, scramble, opaque (comma-separated,\n");
     printf("                          protect only)\n");
     printf("      --compress <algo>   Compression algorithm: zlib, lzma, bz2,\n");
     printf("                          brotli, gzip, lz4, snappy,\n");
@@ -67,6 +67,11 @@ static void print_usage(void) {
     printf("      --vm                Enable Register VM protection\n");
     printf("                          (when --vm is active, --obf all uses\n");
     printf("                          full obfuscation via code-split pipeline)\n");
+    printf("      --obf-density <n>   Obfuscation density multiplier (0.0-5.0,\n");
+    printf("                          default 1.0). Higher values inject more\n");
+    printf("                          junk, decoys, flow blocks, and auto-enable\n");
+    printf("                          anti-analysis (scramble at 0.5+, debug/hook at\n");
+    printf("                          1.0+, opaque at 1.5+) (protect only)\n");
     printf("      --seed <int>        Seed for reproducible obfuscation output\n");
     printf("                          (protect only, any non-negative integer)\n");
     printf("  -o, --output <file>     Output file\n");
@@ -242,6 +247,7 @@ int cli_run(int argc, char **argv) {
     int compress_set = 0;
     int use_vm = 0;
     int obf_seed = -1;
+    float obf_density = 1.0f;
 
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) {
@@ -331,6 +337,13 @@ int cli_run(int argc, char **argv) {
             if (i + 1 >= argc) { fprintf(stderr, "error: --seed requires an integer\n"); return EXIT_ERR_ARGS; }
             obf_seed = atoi(argv[++i]);
             if (obf_seed < 0) { fprintf(stderr, "error: --seed must be a non-negative integer\n"); return EXIT_ERR_ARGS; }
+        } else if (strcmp(argv[i], "--obf-density") == 0) {
+            if (i + 1 >= argc) { fprintf(stderr, "error: --obf-density requires a number\n"); return EXIT_ERR_ARGS; }
+            obf_density = (float)atof(argv[++i]);
+            if (obf_density < 0.0f || obf_density > 5.0f) {
+                fprintf(stderr, "error: --obf-density must be between 0.0 and 5.0\n");
+                return EXIT_ERR_ARGS;
+            }
         } else if (argv[i][0] != '-') {
             CommandMode m = parse_command(argv[i]);
             if (mode == MODE_UNKNOWN && m != MODE_UNKNOWN) {
@@ -438,7 +451,7 @@ int cli_run(int argc, char **argv) {
             const char *techs = obf_none ? build_except_techniques(obf_none) : obf_tech;
             ret = protect_file(input, output, algo, key, techs,
                                anti_analysis, compress_algo,
-                               compress_level, use_vm, obf_seed);
+                               compress_level, use_vm, obf_seed, obf_density);
             break;
         }
         default:           ret = EXIT_ERR_ARGS;                           break;

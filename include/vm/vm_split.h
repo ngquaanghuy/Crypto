@@ -83,9 +83,16 @@ def apply_rename(source, name_map, attr_map=None):
     if attr_map is None:
         attr_map = name_map
     tree = ast.parse(source)
+    # Collect imported names — they should never be renamed
+    imported = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                imported.add(alias.asname or alias.name)
     class Renamer(ast.NodeTransformer):
         def visit_Name(self, node):
-            if isinstance(node.ctx, ast.Load) and node.id in name_map:
+            if isinstance(node.ctx, ast.Load) and node.id in name_map \
+                    and node.id not in imported:
                 node.id = name_map[node.id]
             return node
         def visit_Attribute(self, node):
@@ -128,10 +135,18 @@ def pipeline(orig_source, obf_script_path, techniques='rename'):
     orig_tree = ast.parse(orig_source)
     orig_funcs, orig_others = extract_defs(orig_tree)
 
+    # Separate imports from module-level code — imports must go to exec
+    # part so they are available when funcenc decrypts functions at runtime.
+    orig_imports = [n for n in orig_others if isinstance(n, (ast.Import, ast.ImportFrom))]
+    orig_module = [n for n in orig_others if not isinstance(n, (ast.Import, ast.ImportFrom))]
+
     func_source = ast.unparse(ast.Module(body=orig_funcs, type_ignores=[])) if orig_funcs else ''
-    module_source = ast.unparse(ast.Module(body=orig_others, type_ignores=[])) if orig_others else ''
+    import_source = ast.unparse(ast.Module(body=orig_imports, type_ignores=[])) if orig_imports else ''
+    module_source = ast.unparse(ast.Module(body=orig_module, type_ignores=[])) if orig_module else ''
 
     full_source = func_source
+    if import_source:
+        full_source += '\n' + import_source
     if module_source:
         full_source += '\n' + module_source
 
@@ -145,13 +160,18 @@ def pipeline(orig_source, obf_script_path, techniques='rename'):
     rename_tree = ast.parse(rename_source)
     rename_funcs, rename_others = extract_defs(rename_tree)
 
+    # Separate imports from other module-level code in the rename output
+    rename_imports = [n for n in rename_others if isinstance(n, (ast.Import, ast.ImportFrom))]
+    rename_module = [n for n in rename_others if not isinstance(n, (ast.Import, ast.ImportFrom))]
+
     # Build name map from original → rename-only (ensures consistent naming)
     name_map, attr_map = build_full_name_map(orig_funcs, rename_funcs)
-    name_map.update(build_global_name_map(orig_others, rename_others))
+    name_map.update(build_global_name_map(orig_module, rename_module))
 
     # Step 2: Apply remaining techniques (all except rename) to the
     #         ALREADY-RENAMED func defs, so function/param names stay
     #         consistent with the name_map from Step 1.
+    exec_body_imports = list(rename_imports)  # imports go directly to exec part
     if rename_funcs:
         renamed_func_source = ast.unparse(ast.Module(body=rename_funcs, type_ignores=[]))
         renamed_func_source = genexpr_to_listcomp(renamed_func_source)
@@ -171,13 +191,16 @@ def pipeline(orig_source, obf_script_path, techniques='rename'):
         obf_func_tree = ast.parse(obf_func_source)
         obf_imports = extract_imports(obf_func_tree)
         obf_funcs, obf_others = extract_defs(obf_func_tree)
-        exec_body = obf_imports + obf_others + obf_funcs
+        # Imports from func obfuscation come first, then original renamed imports,
+        # then funcs (funcenc may add new stubs that reference imports)
+        exec_body = obf_imports + exec_body_imports + obf_others + obf_funcs
     else:
-        exec_body = []
+        exec_body = exec_body_imports
     exec_source = ast.unparse(ast.Module(body=exec_body, type_ignores=[])) if exec_body else ''
 
-    # Step 3: VM source = rename-only module-level code (no flow/junk/mutate)
-    vm_source = ast.unparse(ast.Module(body=rename_others, type_ignores=[])) if rename_others else ''
+    # Step 3: VM source = rename-only module-level code (no flow/junk/mutate),
+    #         EXcluding imports which were moved to exec part.
+    vm_source = ast.unparse(ast.Module(body=rename_module, type_ignores=[])) if rename_module else ''
 
     # Step 4: Apply name_map to VM source so function/global references match.
     #         exec_source is already correctly named (from Step 1's rename).
@@ -186,6 +209,8 @@ def pipeline(orig_source, obf_script_path, techniques='rename'):
     if name_map:
         vm_source = apply_rename(vm_source, name_map, attr_map)
 
+    if rename_imports:
+        sys.stderr.write(f'[split] moved {len(rename_imports)} import(s) to exec part\n')
     sys.stderr.write(f'[split] name_map={name_map}\n')
 
     return exec_source, vm_source

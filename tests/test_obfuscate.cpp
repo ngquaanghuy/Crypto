@@ -30,6 +30,12 @@ TEST_CASE("anti_debug_generate_stub produces valid Python") {
     CHECK(strstr(stub, "sys") != nullptr);
     CHECK(strstr(stub, "debugger") != nullptr);
 
+    /* Check Frida detection is present */
+    CHECK(strstr(stub, "frida") != nullptr);
+    CHECK(strstr(stub, "27042") != nullptr);
+    CHECK(strstr(stub, "FRIDA_SCRIPT") != nullptr);
+    CHECK(strstr(stub, "instrumentation") != nullptr);
+
     /* Compile check - should be valid Python */
     FILE *f = fopen("/tmp/test_anti_debug_stub.py", "w");
     REQUIRE(f != nullptr);
@@ -58,6 +64,45 @@ TEST_CASE("anti_debug_sanitize_environment removes dangerous vars") {
     free(sanitized);
 
     unsetenv("PYTHONPATH");
+    unsetenv("LD_PRELOAD");
+}
+
+TEST_CASE("anti_debug_generate_stub includes advanced hook checks") {
+    char *stub = anti_debug_generate_stub(0, 1);  /* hook_check only */
+    REQUIRE(stub != nullptr);
+    CHECK(strlen(stub) > 200);
+
+    /* Advanced hook detection strings */
+    CHECK(strstr(stub, "__build_class__") != nullptr);
+    CHECK(strstr(stub, "LD_AUDIT") != nullptr);
+    CHECK(strstr(stub, "DYLD_FORCE_FLAT_NAMESPACE") != nullptr);
+    CHECK(strstr(stub, "LD_DEBUG") != nullptr);
+    CHECK(strstr(stub, "builtin_function_or_method") != nullptr);
+    CHECK(strstr(stub, "WX memory") != nullptr);
+    CHECK(strstr(stub, "hook injection") != nullptr);
+    CHECK(strstr(stub, "LD_OPENCL_LIBRARY_PATH") != nullptr);
+
+    /* Should also still have old basic checks */
+    CHECK(strstr(stub, "__import__") != nullptr);
+    CHECK(strstr(stub, "DYLD_INSERT_LIBRARIES") != nullptr);
+
+    /* Compile check */
+    FILE *f = fopen("/tmp/test_anti_hook_stub.py", "w");
+    REQUIRE(f != nullptr);
+    fputs(stub, f);
+    fclose(f);
+
+    int rc = system("python3 -c \"compile(open('/tmp/test_anti_hook_stub.py').read(), '<test>', 'exec')\" 2>/dev/null");
+    CHECK_EQ(rc, 0);
+
+    free(stub);
+    remove("/tmp/test_anti_hook_stub.py");
+}
+
+TEST_CASE("anti_debug_check_all returns HOOK_DETECTED when LD_PRELOAD is set") {
+    setenv("LD_PRELOAD", "/test_hook.so", 1);
+    AntiDebugResult result = anti_debug_check_all();
+    CHECK_EQ(result, ADBG_RESULT_HOOK_DETECTED);
     unsetenv("LD_PRELOAD");
 }
 
@@ -357,6 +402,169 @@ TEST_CASE("junk_generate_section produces multiple statements") {
 
     free(section);
     remove("/tmp/test_junk_section.py");
+}
+
+}
+
+/* ── Test: Advanced CFG Flattening with Dispatcher ── */
+TEST_SUITE("Advanced CFG Flattening") {
+
+TEST_CASE("adv_flowflatten_plan_init creates blocks with permutation") {
+    AdvFlowFlattenPlan plan;
+    adv_flowflatten_plan_init(&plan, 5);
+
+    CHECK(plan.num_blocks >= 5);
+    CHECK(plan.real_blocks == 0);
+    CHECK(plan.dispatcher_type >= 0);
+    CHECK(plan.dispatcher_type <= 2);
+    CHECK(plan.permutation != nullptr);
+    CHECK(plan.blocks != nullptr);
+
+    adv_flowflatten_plan_free(&plan);
+}
+
+TEST_CASE("adv_flowflatten_set_block stores block correctly") {
+    AdvFlowFlattenPlan plan;
+    adv_flowflatten_plan_init(&plan, 3);
+
+    int ret = adv_flowflatten_set_block(&plan, 0, "x = 42", 1);
+    CHECK_EQ(ret, 1);
+
+    ret = adv_flowflatten_set_block(&plan, 1, "y = x + 1", 2);
+    CHECK_EQ(ret, 1);
+
+    ret = adv_flowflatten_set_block(&plan, 2, "print(y)", -1);
+    CHECK_EQ(ret, 1);
+
+    CHECK_EQ(plan.real_blocks, 3);
+
+    adv_flowflatten_plan_free(&plan);
+}
+
+TEST_CASE("adv_flowflatten_add_dead_block adds at unused slot") {
+    AdvFlowFlattenPlan plan;
+    adv_flowflatten_plan_init(&plan, 3);
+
+    adv_flowflatten_set_block(&plan, 0, "x = 1", 1);
+    adv_flowflatten_set_block(&plan, 1, "y = 2", 2);
+    adv_flowflatten_set_block(&plan, 2, "z = 3", -1);
+
+    int idx = adv_flowflatten_add_dead_block(&plan, "x = dead_code");
+    CHECK(idx >= 0);
+    CHECK(plan.blocks[idx].dead_block);
+    CHECK(plan.num_dead_blocks >= 1);
+
+    adv_flowflatten_plan_free(&plan);
+}
+
+TEST_CASE("adv_flowflatten_generate_python with dict dispatcher produces valid code") {
+    AdvFlowFlattenPlan plan;
+    adv_flowflatten_plan_init(&plan, 3);
+
+    // Force dict dispatcher type
+    plan.dispatcher_type = 0;
+
+    adv_flowflatten_set_block(&plan, 0, "x = 42", 1);
+    adv_flowflatten_set_block(&plan, 1, "y = x * 2", 2);
+    adv_flowflatten_set_block(&plan, 2, "z = y + 1", -1);
+    adv_flowflatten_add_dead_block(&plan, "_t = 99  # dead");
+
+    char *code = adv_flowflatten_generate_python(&plan);
+    REQUIRE(code != nullptr);
+    CHECK(strstr(code, "def _b0") != nullptr);
+    CHECK(strstr(code, "def _b1") != nullptr);
+    CHECK(strstr(code, "def _b2") != nullptr);
+    CHECK(strstr(code, "def _b_exit") != nullptr);
+    CHECK(strstr(code, "def ") != nullptr);
+
+    /* Compile check */
+    FILE *f = fopen("/tmp/test_adv_flowflat.py", "w");
+    REQUIRE(f != nullptr);
+    fputs(code, f);
+    fclose(f);
+
+    int rc = system("python3 -c \"compile(open('/tmp/test_adv_flowflat.py').read(), '<test>', 'exec')\" 2>/dev/null");
+    CHECK_EQ(rc, 0);
+
+    free(code);
+    adv_flowflatten_plan_free(&plan);
+    remove("/tmp/test_adv_flowflat.py");
+}
+
+TEST_CASE("adv_flowflatten_generate_python with list dispatcher") {
+    AdvFlowFlattenPlan plan;
+    adv_flowflatten_plan_init(&plan, 4);
+    plan.dispatcher_type = 1;
+
+    adv_flowflatten_set_block(&plan, 0, "a = 10", 1);
+    adv_flowflatten_set_block(&plan, 1, "b = 20", 2);
+    adv_flowflatten_set_block(&plan, 2, "c = a + b", 3);
+    adv_flowflatten_set_block(&plan, 3, "print(c)", -1);
+
+    char *code = adv_flowflatten_generate_python(&plan);
+    REQUIRE(code != nullptr);
+    CHECK(strstr(code, "def _b0") != nullptr);
+    CHECK(strstr(code, "def _b3") != nullptr);
+
+    /* Compile check */
+    FILE *f = fopen("/tmp/test_adv_flowflat_list.py", "w");
+    REQUIRE(f != nullptr);
+    fputs(code, f);
+    fclose(f);
+
+    int rc = system("python3 -c \"compile(open('/tmp/test_adv_flowflat_list.py').read(), '<test>', 'exec')\" 2>/dev/null");
+    CHECK_EQ(rc, 0);
+
+    free(code);
+    adv_flowflatten_plan_free(&plan);
+    remove("/tmp/test_adv_flowflat_list.py");
+}
+
+TEST_CASE("adv_flowflatten_generate_python with arithmetic dispatcher") {
+    AdvFlowFlattenPlan plan;
+    adv_flowflatten_plan_init(&plan, 3);
+    plan.dispatcher_type = 2;
+
+    adv_flowflatten_set_block(&plan, 0, "result = 1", 1);
+    adv_flowflatten_set_block(&plan, 1, "result = result * 2", 2);
+    adv_flowflatten_set_block(&plan, 2, "result = result + 3", -1);
+
+    char *code = adv_flowflatten_generate_python(&plan);
+    REQUIRE(code != nullptr);
+
+    /* Compile check */
+    FILE *f = fopen("/tmp/test_adv_flowflat_arith.py", "w");
+    REQUIRE(f != nullptr);
+    fputs(code, f);
+    fclose(f);
+
+    int rc = system("python3 -c \"compile(open('/tmp/test_adv_flowflat_arith.py').read(), '<test>', 'exec')\" 2>/dev/null");
+    CHECK_EQ(rc, 0);
+
+    free(code);
+    adv_flowflatten_plan_free(&plan);
+    remove("/tmp/test_adv_flowflat_arith.py");
+}
+
+TEST_CASE("adv_flowflatten_wrap_source produces valid output") {
+    const char *source = "x = 42\ny = x * 2\nprint(y)\n";
+    char *result = adv_flowflatten_wrap_source(source, 3, 1.0f);
+    REQUIRE(result != nullptr);
+    CHECK(strlen(result) > 100);
+    CHECK(strstr(result, "def ") != nullptr);
+    CHECK(strstr(result, "if __name__") != nullptr);
+
+    /* Compile check */
+    FILE *f = fopen("/tmp/test_adv_flowflat_wrap.py", "w");
+    REQUIRE(f != nullptr);
+    fputs(result, f);
+    fclose(f);
+
+    int rc = system("python3 -c \"compile(open('/tmp/test_adv_flowflat_wrap.py').read(), '<test>', 'exec')\" 2>/dev/null");
+    CHECK_EQ(rc, 0);
+
+    free(result);
+    remove("/tmp/test_adv_flowflat_wrap.py");
 }
 
 }
