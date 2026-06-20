@@ -72,7 +72,10 @@ static void print_usage(void) {
     printf("                          junk, decoys, flow blocks, and auto-enable\n");
     printf("                          anti-analysis (scramble at 0.5+, debug/hook at\n");
     printf("                          1.0+, opaque at 1.5+) (protect only)\n");
-    printf("      --vram-enable          Enable Virtual RAM (4 KB XOR-garbled scratch memory)\n");
+    printf("      --vram-enable          Enable Virtual RAM (XOR-garbled scratch memory)\n");
+    printf("      --vram-size <bytes>    Initial vRAM size in bytes (256-1048576, default 4096).\n");
+    printf("                             vRAM auto-grows at runtime on out-of-bounds writes.\n");
+    printf("      --vram-auto            Auto-configure vRAM size based on instruction count.\n");
     printf("      --vram-garble          Enable periodic vRAM re-key (only with --vram-enable)\n");
     printf("      --vram-garble-interval <min>-<max>\n");
     printf("                             Interval range between garbles (default 80-200)\n");
@@ -251,6 +254,8 @@ int cli_run(int argc, char **argv) {
     int compress_set = 0;
     int use_vm = 0;
     int use_vram = 0;
+    int use_vram_auto = 0;
+    int vram_size = 4096;
     int use_vram_garble = 0;
     int vram_garble_min = 80;
     int vram_garble_max = 200;
@@ -343,6 +348,15 @@ int cli_run(int argc, char **argv) {
             use_vm = 1;
         } else if (strcmp(argv[i], "--vram-enable") == 0) {
             use_vram = 1;
+        } else if (strcmp(argv[i], "--vram-size") == 0) {
+            if (i + 1 >= argc) { fprintf(stderr, "error: --vram-size requires a byte count\n"); return EXIT_ERR_ARGS; }
+            int n = atoi(argv[++i]);
+            if (n < 256 || n > 1048576) { fprintf(stderr, "error: --vram-size must be 256-1048576\n"); return EXIT_ERR_ARGS; }
+            vram_size = n;
+            use_vram = 1;
+        } else if (strcmp(argv[i], "--vram-auto") == 0) {
+            use_vram = 1;
+            use_vram_auto = 1;
         } else if (strcmp(argv[i], "--vram-garble") == 0) {
             use_vram_garble = 1;
         } else if (strcmp(argv[i], "--vram-garble-interval") == 0) {
@@ -473,7 +487,8 @@ int cli_run(int argc, char **argv) {
                                anti_analysis, compress_algo,
                                compress_level, use_vm, obf_seed, obf_density,
                                use_vram, use_vram_garble,
-                               vram_garble_min, vram_garble_max);
+                               vram_garble_min, vram_garble_max,
+                               use_vram_auto, vram_size);
             break;
         }
         default:           ret = EXIT_ERR_ARGS;                           break;

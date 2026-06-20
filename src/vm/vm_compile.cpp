@@ -65,6 +65,7 @@ void vm_default_config(VmCompileConfig *cfg) {
     cfg->cfi_check_interval = 20;
     cfg->schedule_strength = 1;
     cfg->enable_vram = 0;
+    cfg->vram_size = VM_RAM_SIZE;
     cfg->enable_vram_garble = 0;
     cfg->vram_garble_min_interval = 80;
     cfg->vram_garble_max_interval = 200;
@@ -317,9 +318,13 @@ ExitCode vm_compile_source_ex(const char *source, size_t source_len,
         prog->vl_code_len = (int)vl_buf.size;
     }
 
-    // Step 10: Virtual RAM flag — embed in serialized flags for runtime detection
+    // Step 10: Virtual RAM flag + size — embed in serialized flags for runtime detection
     if (cfg->enable_vram) {
         prog->flags |= VM_SER_FLAG_VRAM_ENABLED;
+        int vram_units = cfg->vram_size / VM_SER_FLAG_VRAM_SIZE_UNIT;
+        if (vram_units < 0) vram_units = 0;
+        if (vram_units > VM_SER_FLAG_VRAM_SIZE_MASK) vram_units = VM_SER_FLAG_VRAM_SIZE_MASK;
+        prog->flags |= (vram_units & VM_SER_FLAG_VRAM_SIZE_MASK) << VM_SER_FLAG_VRAM_SIZE_SHIFT;
     }
 
     // Step 11: Constant Pool Encryption (must happen after encoding, before serialization)

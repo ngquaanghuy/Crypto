@@ -843,11 +843,11 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
             sb_printf(buf, "    else:\n"
                       "        pass\n");
         }
-        sb_printf(buf, "    _c, _k, _m, _map, _ok, _ht, _pf, _vf = _vm_deserialize(_pd)\n");
+        sb_printf(buf, "    _c, _k, _m, _map, _ok, _ht, _pf, _vf, _vs = _vm_deserialize(_pd)\n");
         if (exec_src && exec_src[0]) {
             sb_printf(buf, "    exec(compile({}.b64decode(\"{}\"), '<exec>', 'exec'), globals())\n", n_b, exec_src);
         }
-        sb_printf(buf, "    _vm_run(_c, _k, _m, globals(), locals(), _map, _ok, _ht, _pf, _vf)\n");
+        sb_printf(buf, "    _vm_run(_c, _k, _m, globals(), locals(), _map, _ok, _ht, _pf, _vf, _vs)\n");
     } else {
         if (compress_algo != COMPRESS_ID_NONE) {
             sb_printf(buf, "    if {}[1] == {}:\n"
@@ -1526,7 +1526,8 @@ ExitCode protect_file(const char *input, const char *output,
                       int use_vm, int obf_seed,
                       float obf_density,
                       int use_vram, int use_vram_garble,
-                      int vram_garble_min, int vram_garble_max) {
+                      int vram_garble_min, int vram_garble_max,
+                      int use_vram_auto, int vram_size) {
     int sa_id = stub_algo_id(algo);
     if (sa_id < 0) {
         fprintf(stderr, "error: unsupported algorithm for protect\n");
@@ -1708,11 +1709,28 @@ ExitCode protect_file(const char *input, const char *output,
         vm_cfg.enable_self_modifying_code = 0;
         vm_cfg.enable_conditional_obfuscation = 0;
         vm_cfg.enable_vram = use_vram;
+        vm_cfg.vram_size = use_vram_auto ? 0 : vram_size;
         vm_cfg.enable_vram_garble = use_vram_garble;
         vm_cfg.vram_garble_min_interval = vram_garble_min;
         vm_cfg.vram_garble_max_interval = vram_garble_max;
 
         ret = vm_compile_source_ex(vm_src, vm_src_len, &vm_prog, &vm_cfg);
+        if (ret == EXIT_OK && use_vram && use_vram_auto) {
+            // Auto-size: compute size based on instruction count
+            int auto_size = 4096;
+            if (vm_prog.count > 0) {
+                auto_size = vm_prog.count * 16;
+                // Round up to next power of 2
+                int p = 1;
+                while (p < auto_size) p <<= 1;
+                auto_size = p > 4096 ? p : 4096;
+            }
+            vm_cfg.vram_size = auto_size;
+            // Re-encode size in flags
+            vm_program_free(&vm_prog);
+            vm_program_init(&vm_prog);
+            ret = vm_compile_source_ex(vm_src, vm_src_len, &vm_prog, &vm_cfg);
+        }
         if (ret != EXIT_OK) {
             fprintf(stderr, "[vm] error: VM compilation failed\n");
             file_buffer_free(&buf); free(obf_buf.data);

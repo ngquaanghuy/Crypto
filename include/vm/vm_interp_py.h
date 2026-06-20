@@ -222,7 +222,7 @@ def _vm_decode_poly(_c, _p, _k, _m, _rm):
         _ilen = 2 + _nb * 8
         return _op, _rd, _rs1, _rs2, _imm, _ilen, _rs2_u
 
-def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, _poly_flag=False, _vram_flag=False):
+def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, _poly_flag=False, _vram_flag=False, _vram_size=4096):
     import sys, random, types
     import time as _vm_tm
     import os as _vm_os
@@ -297,29 +297,69 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
                     _r_odd[_gi >> 1] = _dv
         _garbler_keys[0] = _nk
 
-    # ─── Virtual RAM (4 KB, XOR-garbled byte array) ───
-    # Always define vRAM vars (handler closures reference them)
-    _VM_RAM = bytearray(0) if not _vram_flag else bytearray(4096)
+    # ─── Page-Based Virtual RAM ───
+    # Sparse paged memory: only allocates pages that are actually written to.
+    # _VM_RAM_PAGES = { page_index: bytearray(256) } — zero-fill on read, auto-allocate on write.
+    # Garble only touches allocated pages — O(used_pages) instead of O(total_size).
+    _VM_PAGE_SIZE = 256
+    _VM_RAM_PAGES = {}
     _VM_RAM_KEY = bytes(16) if not _vram_flag else bytes(random.getrandbits(8) for _ in range(16))
 
+    def _vm_page_idx(_addr):
+        return _addr >> 8  # same as _addr // 256
+    def _vm_page_off(_addr):
+        return _addr & 0xFF  # same as _addr % 256
+
     def _vm_ram_read(_addr):
-        if 0 <= _addr < len(_VM_RAM):
-            return _VM_RAM[_addr] ^ (_VM_RAM_KEY[_addr & 15] & 0xFF)
-        return 0
+        if _addr < 0:
+            return 0
+        _pi = _vm_page_idx(_addr)
+        _po = _vm_page_off(_addr)
+        _pg = _VM_RAM_PAGES.get(_pi)
+        if _pg is None:
+            return 0  # unallocated page → zero-fill
+        return _pg[_po] ^ (_VM_RAM_KEY[_addr & 15] & 0xFF)
+
     def _vm_ram_write(_addr, _val):
-        if 0 <= _addr < len(_VM_RAM):
-            _VM_RAM[_addr] = (_val & 0xFF) ^ (_VM_RAM_KEY[_addr & 15] & 0xFF)
+        if _addr < 0:
+            return
+        _pi = _vm_page_idx(_addr)
+        _po = _vm_page_off(_addr)
+        _pg = _VM_RAM_PAGES.get(_pi)
+        if _pg is None:
+            _pg = bytearray(_VM_PAGE_SIZE)
+            _VM_RAM_PAGES[_pi] = _pg
+        _pg[_po] = (_val & 0xFF) ^ (_VM_RAM_KEY[_addr & 15] & 0xFF)
+
     def _vm_ram_read_w(_addr):
-        if 0 <= _addr + 3 < len(_VM_RAM):
-            _v = 0
-            for _i in range(4):
-                _v |= (_VM_RAM[_addr + _i] ^ (_VM_RAM_KEY[(_addr + _i) & 15] & 0xFF)) << (_i * 8)
-            return _v
-        return 0
+        if _addr < 0:
+            return 0
+        _end = _addr + 4
+        _v = 0
+        for _i in range(4):
+            _a = _addr + _i
+            _pi = _vm_page_idx(_a)
+            _po = _vm_page_off(_a)
+            _pg = _VM_RAM_PAGES.get(_pi)
+            if _pg is None:
+                _b = 0
+            else:
+                _b = _pg[_po] ^ (_VM_RAM_KEY[_a & 15] & 0xFF)
+            _v |= _b << (_i * 8)
+        return _v
+
     def _vm_ram_write_w(_addr, _val):
-        if 0 <= _addr + 3 < len(_VM_RAM):
-            for _i in range(4):
-                _VM_RAM[_addr + _i] = ((_val >> (_i * 8)) & 0xFF) ^ (_VM_RAM_KEY[(_addr + _i) & 15] & 0xFF)
+        if _addr < 0:
+            return
+        for _i in range(4):
+            _a = _addr + _i
+            _pi = _vm_page_idx(_a)
+            _po = _vm_page_off(_a)
+            _pg = _VM_RAM_PAGES.get(_pi)
+            if _pg is None:
+                _pg = bytearray(_VM_PAGE_SIZE)
+                _VM_RAM_PAGES[_pi] = _pg
+            _pg[_po] = ((_val >> (_i * 8)) & 0xFF) ^ (_VM_RAM_KEY[_a & 15] & 0xFF)
 
     _ip = 0
     _cycle = 0
@@ -1326,10 +1366,13 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     def _h_ram_store_w():
         _vm_ram_write_w(_rs2_val, _rd_val & 0xFFFFFFFF)
     def _h_ram_garble():
-        nonlocal _VM_RAM_KEY, _VM_RAM
+        nonlocal _VM_RAM_KEY
         _nk = bytes(_vm_os.urandom(16))
-        for _vi in range(len(_VM_RAM)):
-            _VM_RAM[_vi] ^= (_VM_RAM_KEY[_vi & 15] & 0xFF) ^ (_nk[_vi & 15] & 0xFF)
+        for _pi, _pg in _VM_RAM_PAGES.items():
+            _base = _pi * _VM_PAGE_SIZE
+            for _vi in range(len(_pg)):
+                _a = _base + _vi
+                _pg[_vi] ^= (_VM_RAM_KEY[_a & 15] & 0xFF) ^ (_nk[_a & 15] & 0xFF)
         _VM_RAM_KEY = _nk
 
     # ─── Build dispatch table (indexed by opcode) ───
@@ -1615,6 +1658,9 @@ def _vm_deserialize(_data):
     _vl_flag = (_flags & 1) != 0
     _poly_flag = (_flags & 8) != 0
     _vram_flag = (_flags & 32) != 0
+    _vram_size = ((_flags >> 6) & 0x3FF) * 256
+    if _vram_size == 0:
+        _vram_size = 4096  # default fallback
     _const_enc = (_flags & 2) != 0
     _cfi_flag = (_flags & 4) != 0
     
@@ -1693,7 +1739,7 @@ def _vm_deserialize(_data):
     else:
         _ic = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
         _code = _decrypted[_pos:_pos+_ic*8]
-    return _code, _consts, _names, _map, _op_key, _vl_flag, _poly_flag, _vram_flag
+    return _code, _consts, _names, _map, _op_key, _vl_flag, _poly_flag, _vram_flag, _vram_size
 
 )vm_interp";
 #endif

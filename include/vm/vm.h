@@ -39,8 +39,14 @@ typedef struct __attribute__((packed)) {
 #define VM_CONST_KEY_SIZE  16
 
 // ─── Virtual RAM (vRAM) ─────────────────────────────────────
-#define VM_RAM_SIZE        4096  // 4 KB virtual RAM
+#define VM_RAM_SIZE        4096  // 4 KB virtual RAM (default, overridable via flags)
 #define VM_RAM_KEY_SIZE     16   // 16-byte XOR key for RAM garbling
+
+// vRAM size encoding in serialized flags (bits 6-15, 10 bits, units of 256 bytes)
+#define VM_SER_FLAG_VRAM_SIZE_SHIFT  6
+#define VM_SER_FLAG_VRAM_SIZE_MASK   0x3FF  // 10-bit mask
+#define VM_SER_FLAG_VRAM_SIZE_UNIT   256    // each unit = 256 bytes
+#define VM_SER_FLAG_VRAM_SIZE_DEFAULT_UNITS  (4096 / 256)  // = 16 units = 4 KB
 
 typedef enum {
     // Base instructions (0-29)
@@ -380,6 +386,7 @@ typedef struct {
 
     // Virtual RAM config
     int enable_vram;
+    int vram_size;  // initial vRAM size in bytes (default VM_RAM_SIZE=4096, lazy-grows at runtime)
     int enable_vram_garble;
     int vram_garble_min_interval;
     int vram_garble_max_interval;
