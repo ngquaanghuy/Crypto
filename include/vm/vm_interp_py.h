@@ -222,7 +222,7 @@ def _vm_decode_poly(_c, _p, _k, _m, _rm):
         _ilen = 2 + _nb * 8
         return _op, _rd, _rs1, _rs2, _imm, _ilen, _rs2_u
 
-def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, _poly_flag=False):
+def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, _poly_flag=False, _vram_flag=False):
     import sys, random, types
     import time as _vm_tm
     import os as _vm_os
@@ -298,25 +298,26 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         _garbler_keys[0] = _nk
 
     # ─── Virtual RAM (4 KB, XOR-garbled byte array) ───
-    _VM_RAM = bytearray(4096)
-    _VM_RAM_KEY = bytes(random.getrandbits(8) for _ in range(16))
+    # Always define vRAM vars (handler closures reference them)
+    _VM_RAM = bytearray(0) if not _vram_flag else bytearray(4096)
+    _VM_RAM_KEY = bytes(16) if not _vram_flag else bytes(random.getrandbits(8) for _ in range(16))
 
     def _vm_ram_read(_addr):
-        if 0 <= _addr < 4096:
+        if 0 <= _addr < len(_VM_RAM):
             return _VM_RAM[_addr] ^ (_VM_RAM_KEY[_addr & 15] & 0xFF)
         return 0
     def _vm_ram_write(_addr, _val):
-        if 0 <= _addr < 4096:
+        if 0 <= _addr < len(_VM_RAM):
             _VM_RAM[_addr] = (_val & 0xFF) ^ (_VM_RAM_KEY[_addr & 15] & 0xFF)
     def _vm_ram_read_w(_addr):
-        if 0 <= _addr + 3 < 4096:
+        if 0 <= _addr + 3 < len(_VM_RAM):
             _v = 0
             for _i in range(4):
                 _v |= (_VM_RAM[_addr + _i] ^ (_VM_RAM_KEY[(_addr + _i) & 15] & 0xFF)) << (_i * 8)
             return _v
         return 0
     def _vm_ram_write_w(_addr, _val):
-        if 0 <= _addr + 3 < 4096:
+        if 0 <= _addr + 3 < len(_VM_RAM):
             for _i in range(4):
                 _VM_RAM[_addr + _i] = ((_val >> (_i * 8)) & 0xFF) ^ (_VM_RAM_KEY[(_addr + _i) & 15] & 0xFF)
 
@@ -1311,7 +1312,7 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         if _nm:
             _locals[_nm] = _rd_val
 
-    # ─── Virtual RAM handlers (260-264) ───
+    # ─── Virtual RAM handlers ───
     def _h_ram_load_b():
         nonlocal _rd_val, _rd_modified
         _rd_val = _vm_ram_read(_rs1_val)
@@ -1325,9 +1326,9 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     def _h_ram_store_w():
         _vm_ram_write_w(_rs2_val, _rd_val & 0xFFFFFFFF)
     def _h_ram_garble():
-        nonlocal _VM_RAM_KEY
+        nonlocal _VM_RAM_KEY, _VM_RAM
         _nk = bytes(_vm_os.urandom(16))
-        for _vi in range(4096):
+        for _vi in range(len(_VM_RAM)):
             _VM_RAM[_vi] ^= (_VM_RAM_KEY[_vi & 15] & 0xFF) ^ (_nk[_vi & 15] & 0xFF)
         _VM_RAM_KEY = _nk
 
@@ -1432,12 +1433,13 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     _dt[140] = _h_obf_move
     _dt[141] = _h_obf_add
     _dt[142] = _h_obf_xor
-    # Virtual RAM opcodes (143-147)
-    _dt[143] = _h_ram_load_b
-    _dt[144] = _h_ram_store_b
-    _dt[145] = _h_ram_load_w
-    _dt[146] = _h_ram_store_w
-    _dt[147] = _h_ram_garble
+    # Virtual RAM opcodes (143-147) — only register if vRAM enabled
+    if _vram_flag:
+        _dt[143] = _h_ram_load_b
+        _dt[144] = _h_ram_store_b
+        _dt[145] = _h_ram_load_w
+        _dt[146] = _h_ram_store_w
+        _dt[147] = _h_ram_garble
     _dt[150] = _h_cfi_check
     _dt[151] = _h_cfi_fail
     _dt[152] = _h_nop
@@ -1612,6 +1614,7 @@ def _vm_deserialize(_data):
     
     _vl_flag = (_flags & 1) != 0
     _poly_flag = (_flags & 8) != 0
+    _vram_flag = (_flags & 32) != 0
     _const_enc = (_flags & 2) != 0
     _cfi_flag = (_flags & 4) != 0
     
@@ -1690,7 +1693,7 @@ def _vm_deserialize(_data):
     else:
         _ic = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
         _code = _decrypted[_pos:_pos+_ic*8]
-    return _code, _consts, _names, _map, _op_key, _vl_flag, _poly_flag
+    return _code, _consts, _names, _map, _op_key, _vl_flag, _poly_flag, _vram_flag
 
 )vm_interp";
 #endif

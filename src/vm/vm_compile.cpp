@@ -40,7 +40,7 @@ void vm_program_free(VmProgram *prog) {
 }
 
 // ─── Default compile config ─────────────────────────────────
-static void default_config(VmCompileConfig *cfg) {
+void vm_default_config(VmCompileConfig *cfg) {
     memset(cfg, 0, sizeof(*cfg));
     cfg->enable_opaque = 1;
     cfg->seed = -1;
@@ -64,7 +64,8 @@ static void default_config(VmCompileConfig *cfg) {
     cfg->enable_code_scheduling = 0;
     cfg->cfi_check_interval = 20;
     cfg->schedule_strength = 1;
-    cfg->enable_vram_garble = 1;
+    cfg->enable_vram = 0;
+    cfg->enable_vram_garble = 0;
     cfg->vram_garble_min_interval = 80;
     cfg->vram_garble_max_interval = 200;
 }
@@ -224,7 +225,7 @@ static ExitCode apply_opcode_shuffle(VmProgram *prog) {
 ExitCode vm_compile_source(const char *source, size_t source_len,
                             VmProgram *prog, int opaque, int seed) {
     VmCompileConfig cfg;
-    default_config(&cfg);
+    vm_default_config(&cfg);
     cfg.enable_opaque = opaque;
     cfg.seed = seed;
     cfg.enable_var_length_encoding = 0;
@@ -241,7 +242,7 @@ ExitCode vm_compile_source_ex(const char *source, size_t source_len,
 
     VmCompileConfig local_cfg;
     if (!cfg) {
-        default_config(&local_cfg);
+        vm_default_config(&local_cfg);
         cfg = &local_cfg;
     }
 
@@ -288,7 +289,7 @@ ExitCode vm_compile_source_ex(const char *source, size_t source_len,
     }
 
     // Step 7: Virtual RAM Garble Injection (re-keys vRAM periodically)
-    if (cfg->enable_vram_garble) {
+    if (cfg->enable_vram && cfg->enable_vram_garble) {
         ret = vm_pass_inject_vram_garble(prog, cfg);
         if (ret != EXIT_OK) return ret;
     }
@@ -316,7 +317,12 @@ ExitCode vm_compile_source_ex(const char *source, size_t source_len,
         prog->vl_code_len = (int)vl_buf.size;
     }
 
-    // Step 10: Constant Pool Encryption (must happen after encoding, before serialization)
+    // Step 10: Virtual RAM flag — embed in serialized flags for runtime detection
+    if (cfg->enable_vram) {
+        prog->flags |= VM_SER_FLAG_VRAM_ENABLED;
+    }
+
+    // Step 11: Constant Pool Encryption (must happen after encoding, before serialization)
     if (cfg->enable_constant_encryption) {
         prog->flags |= VM_SER_FLAG_CONST_ENCRYPTED;
     }

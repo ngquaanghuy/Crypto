@@ -843,11 +843,11 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
             sb_printf(buf, "    else:\n"
                       "        pass\n");
         }
-        sb_printf(buf, "    _c, _k, _m, _map, _ok, _ht, _pf = _vm_deserialize(_pd)\n");
+        sb_printf(buf, "    _c, _k, _m, _map, _ok, _ht, _pf, _vf = _vm_deserialize(_pd)\n");
         if (exec_src && exec_src[0]) {
             sb_printf(buf, "    exec(compile({}.b64decode(\"{}\"), '<exec>', 'exec'), globals())\n", n_b, exec_src);
         }
-        sb_printf(buf, "    _vm_run(_c, _k, _m, globals(), locals(), _map, _ok, _ht, _pf)\n");
+        sb_printf(buf, "    _vm_run(_c, _k, _m, globals(), locals(), _map, _ok, _ht, _pf, _vf)\n");
     } else {
         if (compress_algo != COMPRESS_ID_NONE) {
             sb_printf(buf, "    if {}[1] == {}:\n"
@@ -1524,7 +1524,9 @@ ExitCode protect_file(const char *input, const char *output,
                       const char *anti_analysis,
                       int compress_algo, int compress_level,
                       int use_vm, int obf_seed,
-                      float obf_density) {
+                      float obf_density,
+                      int use_vram, int use_vram_garble,
+                      int vram_garble_min, int vram_garble_max) {
     int sa_id = stub_algo_id(algo);
     if (sa_id < 0) {
         fprintf(stderr, "error: unsupported algorithm for protect\n");
@@ -1696,7 +1698,21 @@ ExitCode protect_file(const char *input, const char *output,
         const char *vm_src = (const char *)(vm_buf_src.data ? vm_buf_src.data : src_data);
         size_t vm_src_len = vm_buf_src.data ? vm_buf_src.size : src_size;
         
-        ret = vm_compile_source(vm_src, vm_src_len, &vm_prog, use_opaque, obf_seed);
+        // Build VM compile config with vRAM settings
+        VmCompileConfig vm_cfg;
+        vm_default_config(&vm_cfg);
+        vm_cfg.enable_opaque = use_opaque;
+        vm_cfg.seed = obf_seed;
+        vm_cfg.enable_var_length_encoding = 0;
+        vm_cfg.enable_register_spilling = 0;
+        vm_cfg.enable_self_modifying_code = 0;
+        vm_cfg.enable_conditional_obfuscation = 0;
+        vm_cfg.enable_vram = use_vram;
+        vm_cfg.enable_vram_garble = use_vram_garble;
+        vm_cfg.vram_garble_min_interval = vram_garble_min;
+        vm_cfg.vram_garble_max_interval = vram_garble_max;
+
+        ret = vm_compile_source_ex(vm_src, vm_src_len, &vm_prog, &vm_cfg);
         if (ret != EXIT_OK) {
             fprintf(stderr, "[vm] error: VM compilation failed\n");
             file_buffer_free(&buf); free(obf_buf.data);

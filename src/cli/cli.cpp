@@ -72,6 +72,10 @@ static void print_usage(void) {
     printf("                          junk, decoys, flow blocks, and auto-enable\n");
     printf("                          anti-analysis (scramble at 0.5+, debug/hook at\n");
     printf("                          1.0+, opaque at 1.5+) (protect only)\n");
+    printf("      --vram-enable          Enable Virtual RAM (4 KB XOR-garbled scratch memory)\n");
+    printf("      --vram-garble          Enable periodic vRAM re-key (only with --vram-enable)\n");
+    printf("      --vram-garble-interval <min>-<max>\n");
+    printf("                             Interval range between garbles (default 80-200)\n");
     printf("      --seed <int>        Seed for reproducible obfuscation output\n");
     printf("                          (protect only, any non-negative integer)\n");
     printf("  -o, --output <file>     Output file\n");
@@ -246,6 +250,10 @@ int cli_run(int argc, char **argv) {
     int compress_level = 6;
     int compress_set = 0;
     int use_vm = 0;
+    int use_vram = 0;
+    int use_vram_garble = 0;
+    int vram_garble_min = 80;
+    int vram_garble_max = 200;
     int obf_seed = -1;
     float obf_density = 1.0f;
 
@@ -333,6 +341,18 @@ int cli_run(int argc, char **argv) {
             compress_set = 1;
         } else if (strcmp(argv[i], "--vm") == 0) {
             use_vm = 1;
+        } else if (strcmp(argv[i], "--vram-enable") == 0) {
+            use_vram = 1;
+        } else if (strcmp(argv[i], "--vram-garble") == 0) {
+            use_vram_garble = 1;
+        } else if (strcmp(argv[i], "--vram-garble-interval") == 0) {
+            if (i + 1 >= argc) { fprintf(stderr, "error: --vram-garble-interval requires <min>-<max>\n"); return EXIT_ERR_ARGS; }
+            const char *iv = argv[++i];
+            int n = sscanf(iv, "%d-%d", &vram_garble_min, &vram_garble_max);
+            if (n != 2 || vram_garble_min < 1 || vram_garble_max < vram_garble_min) {
+                fprintf(stderr, "error: --vram-garble-interval must be <min>-<max> (e.g. 80-200)\n");
+                return EXIT_ERR_ARGS;
+            }
         } else if (strcmp(argv[i], "--seed") == 0) {
             if (i + 1 >= argc) { fprintf(stderr, "error: --seed requires an integer\n"); return EXIT_ERR_ARGS; }
             obf_seed = atoi(argv[++i]);
@@ -451,7 +471,9 @@ int cli_run(int argc, char **argv) {
             const char *techs = obf_none ? build_except_techniques(obf_none) : obf_tech;
             ret = protect_file(input, output, algo, key, techs,
                                anti_analysis, compress_algo,
-                               compress_level, use_vm, obf_seed, obf_density);
+                               compress_level, use_vm, obf_seed, obf_density,
+                               use_vram, use_vram_garble,
+                               vram_garble_min, vram_garble_max);
             break;
         }
         default:           ret = EXIT_ERR_ARGS;                           break;

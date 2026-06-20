@@ -9,6 +9,7 @@
 #define VM_SER_FLAG_CFI_ENABLED      (1 << 2)
 #define VM_SER_FLAG_POLY_ENCODING    (1 << 3)
 #define VM_SER_FLAG_HAS_HEADER       (1 << 4)
+#define VM_SER_FLAG_VRAM_ENABLED    (1 << 5)
 
 // VM binary header (32 bytes) — written at start of serialized VM data
 // Backward-compatible: legacy data starts with opcode_map (no magic)
@@ -377,7 +378,8 @@ typedef struct {
     // Code scheduling config
     int schedule_strength;
 
-    // Virtual RAM garble config
+    // Virtual RAM config
+    int enable_vram;
     int enable_vram_garble;
     int vram_garble_min_interval;
     int vram_garble_max_interval;
@@ -388,6 +390,7 @@ ExitCode vm_program_init(VmProgram *prog);
 void vm_program_free(VmProgram *prog);
 
 // ─── Compilation ─────────────────────────────────────────────
+void vm_default_config(VmCompileConfig *cfg);
 ExitCode vm_compile_source(const char *source, size_t source_len,
                             VmProgram *prog, int opaque, int seed = -1);
 ExitCode vm_compile_source_ex(const char *source, size_t source_len,

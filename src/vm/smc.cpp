@@ -22,7 +22,7 @@
 ExitCode vm_pass_inject_vram_garble(VmProgram *prog, VmCompileConfig *cfg) {
     if (!prog || !cfg) return EXIT_ERR_ARGS;
     if (!prog->instrs || prog->count == 0) return EXIT_OK;
-    if (!cfg->enable_vram_garble) return EXIT_OK;
+    if (!cfg->enable_vram || !cfg->enable_vram_garble) return EXIT_OK;
 
     int min_interval = cfg->vram_garble_min_interval;
     if (min_interval <= 0) min_interval = 80;
