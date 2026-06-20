@@ -297,6 +297,29 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
                     _r_odd[_gi >> 1] = _dv
         _garbler_keys[0] = _nk
 
+    # ─── Virtual RAM (4 KB, XOR-garbled byte array) ───
+    _VM_RAM = bytearray(4096)
+    _VM_RAM_KEY = bytes(random.getrandbits(8) for _ in range(16))
+
+    def _vm_ram_read(_addr):
+        if 0 <= _addr < 4096:
+            return _VM_RAM[_addr] ^ (_VM_RAM_KEY[_addr & 15] & 0xFF)
+        return 0
+    def _vm_ram_write(_addr, _val):
+        if 0 <= _addr < 4096:
+            _VM_RAM[_addr] = (_val & 0xFF) ^ (_VM_RAM_KEY[_addr & 15] & 0xFF)
+    def _vm_ram_read_w(_addr):
+        if 0 <= _addr + 3 < 4096:
+            _v = 0
+            for _i in range(4):
+                _v |= (_VM_RAM[_addr + _i] ^ (_VM_RAM_KEY[(_addr + _i) & 15] & 0xFF)) << (_i * 8)
+            return _v
+        return 0
+    def _vm_ram_write_w(_addr, _val):
+        if 0 <= _addr + 3 < 4096:
+            for _i in range(4):
+                _VM_RAM[_addr + _i] = ((_val >> (_i * 8)) & 0xFF) ^ (_VM_RAM_KEY[(_addr + _i) & 15] & 0xFF)
+
     _ip = 0
     _cycle = 0
     _n = len(_code)
@@ -1288,6 +1311,26 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         if _nm:
             _locals[_nm] = _rd_val
 
+    # ─── Virtual RAM handlers (260-264) ───
+    def _h_ram_load_b():
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _vm_ram_read(_rs1_val)
+        _rd_modified = True
+    def _h_ram_store_b():
+        _vm_ram_write(_rs2_val, _rd_val & 0xFF)
+    def _h_ram_load_w():
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _vm_ram_read_w(_rs1_val)
+        _rd_modified = True
+    def _h_ram_store_w():
+        _vm_ram_write_w(_rs2_val, _rd_val & 0xFFFFFFFF)
+    def _h_ram_garble():
+        nonlocal _VM_RAM_KEY
+        _nk = bytes(_vm_os.urandom(16))
+        for _vi in range(4096):
+            _VM_RAM[_vi] ^= (_VM_RAM_KEY[_vi & 15] & 0xFF) ^ (_nk[_vi & 15] & 0xFF)
+        _VM_RAM_KEY = _nk
+
     # ─── Build dispatch table (indexed by opcode) ───
     _dt = [None] * 256
     _dt[0] = _h_nop
@@ -1389,6 +1432,12 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     _dt[140] = _h_obf_move
     _dt[141] = _h_obf_add
     _dt[142] = _h_obf_xor
+    # Virtual RAM opcodes (143-147)
+    _dt[143] = _h_ram_load_b
+    _dt[144] = _h_ram_store_b
+    _dt[145] = _h_ram_load_w
+    _dt[146] = _h_ram_store_w
+    _dt[147] = _h_ram_garble
     _dt[150] = _h_cfi_check
     _dt[151] = _h_cfi_fail
     _dt[152] = _h_nop
@@ -1455,7 +1504,7 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     _dt[253] = _h_load_from_dict_or_deref
     _dt[254] = _h_load_from_dict_or_globals
     # Fill remaining slots with no-op
-    for _di in range(256):
+    for _di in range(len(_dt)):
         if _dt[_di] is None:
             _dt[_di] = _h_nop
 

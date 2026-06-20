@@ -37,6 +37,10 @@ typedef struct __attribute__((packed)) {
 #define VM_CFI_MAX_BLOCKS  64
 #define VM_CONST_KEY_SIZE  16
 
+// ─── Virtual RAM (vRAM) ─────────────────────────────────────
+#define VM_RAM_SIZE        4096  // 4 KB virtual RAM
+#define VM_RAM_KEY_SIZE     16   // 16-byte XOR key for RAM garbling
+
 typedef enum {
     // Base instructions (0-29)
     VM_NOP          = 0,
@@ -246,6 +250,15 @@ typedef enum {
     VM_DELETE_NAME             = 252,
     VM_LOAD_FROM_DICT_OR_DEREF  = 253,
     VM_LOAD_FROM_DICT_OR_GLOBALS = 254,
+
+    // ═══════════════════════════════════════════════════════════
+    // VIRTUAL RAM (143-147) — uses existing opcode range (0-255)
+    // ═══════════════════════════════════════════════════════════
+    VM_LOAD_B       = 143,  // load byte from vRAM[rs1] → rd
+    VM_STORE_B      = 144,  // store byte rd → vRAM[rs2]
+    VM_LOAD_W       = 145,  // load 32-bit word from vRAM[rs1] → rd
+    VM_STORE_W      = 146,  // store 32-bit word rd → vRAM[rs2]
+    VM_RAM_GARBLE   = 147,  // re-key entire vRAM (rotate XOR keys)
 
     // ═══════════════════════════════════════════════════════════
     // UNARY / BITWISE (256-259)
