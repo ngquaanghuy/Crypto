@@ -164,18 +164,21 @@ static ExitCode compile_through_python(const char *source, size_t source_len,
         return EXIT_ERR_FILE;
     }
 
-    // Prepend dummy opcode_map (256 bytes) + zero flags (4 bytes) before deserializing
-    unsigned char *full_buf = (unsigned char *)malloc((size_t)nr + 260);
+    // Prepend dummy opcode_map (256 bytes) + zero flags (4 bytes) before deserializing.
+    // Magic=0 means vm_deserialize uses the legacy sequential path:
+    //   [0:256]=opmap, [256:260]=flags, [260:...]=consts
+    size_t header_pad = 256 + 4;
+    unsigned char *full_buf = (unsigned char *)malloc((size_t)nr + header_pad);
     if (!full_buf) {
         free(buf); free(script_path); free(in_path); free(out_path);
         tmpdir_destroy(tmpdir);
         return EXIT_ERR_CRYPTO;
     }
-    memset(full_buf, 0, 260);
-    memcpy(full_buf + 260, buf, (size_t)nr);
+    memset(full_buf, 0, header_pad);
+    memcpy(full_buf + header_pad, buf, (size_t)nr);
     free(buf);
 
-    ExitCode ret = vm_deserialize(full_buf, (size_t)nr + 260, prog);
+    ExitCode ret = vm_deserialize(full_buf, (size_t)nr + header_pad, prog);
     free(full_buf);
     free(script_path); free(in_path); free(out_path);
     tmpdir_destroy(tmpdir);
@@ -318,16 +321,17 @@ ExitCode vm_compile_source_ex(const char *source, size_t source_len,
     return EXIT_OK;
 }
 
-// ─── Serialize (with constant encryption & CFI table) ────────
+// ─── Serialize (with VM header, constant encryption & CFI table) ───
 ExitCode vm_serialize(const VmProgram *prog, Buffer *out) {
     if (!prog || !out) return EXIT_ERR_ARGS;
 
-    int flags = prog->flags;
+    int flags = prog->flags | VM_SER_FLAG_HAS_HEADER;
     bool encrypt_consts = (flags & VM_SER_FLAG_CONST_ENCRYPTED) != 0;
     bool has_cfi = (flags & VM_SER_FLAG_CFI_ENABLED) != 0;
 
+    const size_t hdr_sz = VM_HEADER_SIZE;
     size_t map_size = 256;
-    size_t flags_size = 4;
+    size_t flags_dup_size = 4;  // duplicate flags after opmap for legacy fallback
     size_t const_key_size = encrypt_consts ? VM_CONST_KEY_SIZE : 0;
     size_t cfi_table_size = has_cfi ? (size_t)(4 + prog->cfi_num_blocks * 12) : 0;
 
@@ -354,21 +358,43 @@ ExitCode vm_serialize(const VmProgram *prog, Buffer *out) {
         code_section_size = 4 + (size_t)prog->count * VM_INSTR_SIZE;
     }
 
-    size_t total = map_size + flags_size + const_key_size + cfi_table_size + consts_size + names_size + code_section_size;
+    size_t total = hdr_sz + map_size + flags_dup_size + const_key_size
+                  + cfi_table_size + consts_size + names_size + code_section_size;
     out->data = (unsigned char *)malloc(total);
     if (!out->data) return EXIT_ERR_CRYPTO;
 
-    size_t pos = 0;
+    // ─── Compute section offsets ───
+    size_t off_opmap = hdr_sz;
+    size_t off_flags = off_opmap + 256;
+    size_t off_const_key = off_flags + 4;
+    size_t off_cfi = off_const_key + const_key_size;
+    size_t off_consts = off_cfi + cfi_table_size;
+    size_t off_names = off_consts + consts_size;
+    size_t off_code = off_names + names_size;
 
-    // Opcode map (256 bytes) — serialized as-is
+    // ─── Write VM header (32 bytes) ───
+    VmHeader hdr;
+    hdr.magic   = VM_HEADER_MAGIC;
+    hdr.flags   = (uint32_t)flags;
+    hdr.entry_point = 0;  // always start at 0 for now
+    hdr.const_offset  = (uint32_t)off_consts;
+    hdr.names_offset  = (uint32_t)off_names;
+    hdr.code_offset   = (uint32_t)off_code;
+    hdr.opmap_offset  = (uint32_t)off_opmap;
+    hdr.total_size    = (uint32_t)total;
+    memcpy(out->data, &hdr, hdr_sz);
+
+    size_t pos = off_opmap;
+
+    // Opcode map (256 bytes)
     if (prog->opcode_map) {
         memcpy(out->data + pos, prog->opcode_map, 256);
     } else {
         memset(out->data + pos, 0, 256);
     }
     pos += 256;
-    
-    // Flags (4 bytes) — stored separately after map
+
+    // Flags (4 bytes) — duplicate after opmap for legacy fallback
     uint32_t flags_val = (uint32_t)flags;
     memcpy(out->data + pos, &flags_val, 4);
     pos += 4;
@@ -394,6 +420,7 @@ ExitCode vm_serialize(const VmProgram *prog, Buffer *out) {
     }
 
     // Const count + data (XOR-encrypt string constants if enabled)
+    pos = off_consts;
     uint32_t cc = (uint32_t)prog->const_count;
     memcpy(out->data + pos, &cc, 4); pos += 4;
     for (int i = 0; i < prog->const_count; i++) {
@@ -415,6 +442,7 @@ ExitCode vm_serialize(const VmProgram *prog, Buffer *out) {
     }
 
     // Name count + data (plaintext, not encrypted)
+    pos = off_names;
     uint32_t nc = (uint32_t)prog->name_count;
     memcpy(out->data + pos, &nc, 4); pos += 4;
     for (int i = 0; i < prog->name_count; i++) {
@@ -427,6 +455,7 @@ ExitCode vm_serialize(const VmProgram *prog, Buffer *out) {
     }
 
     // Code section
+    pos = off_code;
     if (is_vl) {
         uint32_t code_sz = (uint32_t)prog->vl_code_len;
         memcpy(out->data + pos, &code_sz, 4); pos += 4;
@@ -443,44 +472,88 @@ ExitCode vm_serialize(const VmProgram *prog, Buffer *out) {
     return EXIT_OK;
 }
 
-// ─── Deserialize (with constant decryption & CFI table) ──────
+// ─── Deserialize (with VM header, constant decryption & CFI table) ──
 ExitCode vm_deserialize(const unsigned char *data, size_t size,
                          VmProgram *prog) {
     vm_program_init(prog);
 
     size_t pos = 0;
 
-    // Opcode map (256 bytes)
-    if (pos + 256 > size) return EXIT_ERR_CRYPTO;
+    // ─── Detect format: check for VM header magic ───
+    bool has_header = false;
+    size_t off_opmap, off_const_key, off_cfi, off_consts, off_names, off_code;
+    size_t off_flags;
+    uint32_t hdr_flags = 0;
+    bool encrypt_consts = false, has_cfi = false, is_vl = false;
+    uint8_t const_key[VM_CONST_KEY_SIZE] = {0};
+
+    if (size >= VM_HEADER_SIZE) {
+        uint32_t magic;
+        memcpy(&magic, data, 4);
+        if (magic == VM_HEADER_MAGIC) {
+            has_header = true;
+            // Parse header
+            VmHeader hdr;
+            memcpy(&hdr, data, VM_HEADER_SIZE);
+            hdr_flags = hdr.flags;
+            prog->flags = (int)hdr_flags;
+            off_opmap  = hdr.opmap_offset;
+            off_consts = hdr.const_offset;
+            off_names  = hdr.names_offset;
+            off_code   = hdr.code_offset;
+            off_flags  = off_opmap + 256;  // flags follow opmap
+            off_const_key = off_flags + 4;
+
+            is_vl = (hdr_flags & (VM_SER_FLAG_VL_ENCODED | VM_SER_FLAG_POLY_ENCODING)) != 0;
+            encrypt_consts = (hdr_flags & VM_SER_FLAG_CONST_ENCRYPTED) != 0;
+            has_cfi = (hdr_flags & VM_SER_FLAG_CFI_ENABLED) != 0;
+            off_cfi = off_const_key + (encrypt_consts ? VM_CONST_KEY_SIZE : 0);
+        }
+    }
+
+    if (!has_header) {
+        // Legacy format — sequential: opcode_map(256) + flags(4) + ...
+        off_opmap = 0;
+        off_flags = 256;
+        off_const_key = off_flags + 4;
+
+        // Copy raw first 4 bytes to tentatively read flags
+        if (size >= 260) {
+            uint32_t fv;
+            memcpy(&fv, data + 256, 4);
+            hdr_flags = fv;
+            prog->flags = (int)fv;
+        }
+        is_vl = (hdr_flags & (VM_SER_FLAG_VL_ENCODED | VM_SER_FLAG_POLY_ENCODING)) != 0;
+        encrypt_consts = (hdr_flags & VM_SER_FLAG_CONST_ENCRYPTED) != 0;
+        has_cfi = (hdr_flags & VM_SER_FLAG_CFI_ENABLED) != 0;
+        off_cfi = off_const_key + (encrypt_consts ? VM_CONST_KEY_SIZE : 0);
+        off_consts = off_cfi + (has_cfi ? (4 + 12) : 0);  // approximate
+        off_names = 0;  // computed below
+        off_code = 0;
+    }
+
+    // ─── Opcode map ───
+    if (off_opmap + 256 > size) return EXIT_ERR_CRYPTO;
     prog->opcode_map = (uint8_t *)malloc(256);
     if (!prog->opcode_map) return EXIT_ERR_CRYPTO;
-    memcpy(prog->opcode_map, data + pos, 256);
-    pos += 256;
+    memcpy(prog->opcode_map, data + off_opmap, 256);
 
-    // Flags stored as a separate 4-byte field after the opcode map
-    uint32_t flags_val;
-    if (pos + 4 > size) return EXIT_ERR_CRYPTO;
-    memcpy(&flags_val, data + pos, 4);
-    pos += 4;
-    prog->flags = (int)flags_val;
-    bool is_vl = (flags_val & (VM_SER_FLAG_VL_ENCODED | VM_SER_FLAG_POLY_ENCODING)) != 0;
-    bool encrypt_consts = (flags_val & VM_SER_FLAG_CONST_ENCRYPTED) != 0;
-    bool has_cfi = (flags_val & VM_SER_FLAG_CFI_ENABLED) != 0;
+    // Flags already read from header
 
     // Constant encryption key (if present)
-    uint8_t const_key[VM_CONST_KEY_SIZE] = {0};
     if (encrypt_consts) {
-        if (pos + VM_CONST_KEY_SIZE > size) return EXIT_ERR_CRYPTO;
-        memcpy(const_key, data + pos, VM_CONST_KEY_SIZE);
+        if (off_const_key + VM_CONST_KEY_SIZE > size) return EXIT_ERR_CRYPTO;
+        memcpy(const_key, data + off_const_key, VM_CONST_KEY_SIZE);
         memcpy(prog->const_key, const_key, VM_CONST_KEY_SIZE);
-        pos += VM_CONST_KEY_SIZE;
     }
 
     // CFI table (if present)
     if (has_cfi) {
-        if (pos + 4 > size) return EXIT_ERR_CRYPTO;
+        if (off_cfi + 4 > size) return EXIT_ERR_CRYPTO;
         uint32_t nb;
-        memcpy(&nb, data + pos, 4); pos += 4;
+        memcpy(&nb, data + off_cfi, 4);
+        size_t cfi_pos = off_cfi + 4;
         prog->cfi_num_blocks = (int)nb;
         if (nb > 0 && nb <= VM_CFI_MAX_BLOCKS) {
             prog->cfi_checksums = (uint32_t *)calloc(nb, sizeof(uint32_t));
@@ -489,19 +562,35 @@ ExitCode vm_deserialize(const unsigned char *data, size_t size,
             if (!prog->cfi_checksums || !prog->cfi_block_starts || !prog->cfi_block_lengths)
                 return EXIT_ERR_CRYPTO;
             for (uint32_t i = 0; i < nb; i++) {
-                if (pos + 12 > size) return EXIT_ERR_CRYPTO;
+                if (cfi_pos + 12 > size) return EXIT_ERR_CRYPTO;
                 uint32_t s, l, c;
-                memcpy(&s, data + pos, 4); pos += 4;
-                memcpy(&l, data + pos, 4); pos += 4;
-                memcpy(&c, data + pos, 4); pos += 4;
+                memcpy(&s, data + cfi_pos, 4); cfi_pos += 4;
+                memcpy(&l, data + cfi_pos, 4); cfi_pos += 4;
+                memcpy(&c, data + cfi_pos, 4); cfi_pos += 4;
                 prog->cfi_block_starts[i] = (int)s;
                 prog->cfi_block_lengths[i] = (int)l;
                 prog->cfi_checksums[i] = c;
             }
         }
+        if (!has_header) {
+            // Legacy: CFI table ends where consts begin
+            off_consts = cfi_pos;
+        }
+    } else if (!has_header) {
+        // Legacy, no CFI: consts start right after const_key area
+        size_t ck_end = off_const_key + (encrypt_consts ? VM_CONST_KEY_SIZE : 0);
+        off_consts = ck_end;
     }
 
-    // Consts
+    // If no header offsets, compute them as running sequential scan (legacy)
+    if (!has_header) {
+        // Scan consts to find names offset, then names to find code offset
+        // But we need to know all sizes first. Use the known sequential layout.
+        // We already have off_consts. Read consts, then compute names/code offsets.
+    }
+
+    // ─── Constants ───
+    pos = off_consts;
     if (pos + 4 > size) return EXIT_ERR_CRYPTO;
     uint32_t cc;
     memcpy(&cc, data + pos, 4); pos += 4;
@@ -535,7 +624,12 @@ ExitCode vm_deserialize(const unsigned char *data, size_t size,
         }
     }
 
-    // Names
+    // ─── Names ───
+    if (!has_header) {
+        // Legacy: names follow consts sequentially
+        off_names = pos;
+    }
+    pos = off_names;
     if (pos + 4 > size) return EXIT_ERR_CRYPTO;
     uint32_t nc;
     memcpy(&nc, data + pos, 4); pos += 4;
@@ -558,7 +652,12 @@ ExitCode vm_deserialize(const unsigned char *data, size_t size,
         }
     }
 
-    // Code section
+    // ─── Code section ───
+    if (!has_header) {
+        // Legacy: code follows names sequentially
+        off_code = pos;
+    }
+    pos = off_code;
     if (is_vl) {
         if (pos + 4 > size) return EXIT_ERR_CRYPTO;
         uint32_t code_sz;

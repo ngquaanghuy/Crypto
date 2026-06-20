@@ -8,6 +8,24 @@
 #define VM_SER_FLAG_CONST_ENCRYPTED  (1 << 1)
 #define VM_SER_FLAG_CFI_ENABLED      (1 << 2)
 #define VM_SER_FLAG_POLY_ENCODING    (1 << 3)
+#define VM_SER_FLAG_HAS_HEADER       (1 << 4)
+
+// VM binary header (32 bytes) — written at start of serialized VM data
+// Backward-compatible: legacy data starts with opcode_map (no magic)
+#define VM_HEADER_MAGIC      0x0001564D  // "VM\x01\x00" (little-endian)
+#define VM_HEADER_SIZE       32
+#define VM_HEADER_VERSION_MAJOR 1
+
+typedef struct __attribute__((packed)) {
+    uint32_t magic;         // VM_HEADER_MAGIC
+    uint32_t flags;         // VM_SER_FLAG_*
+    uint32_t entry_point;   // initial instruction pointer
+    uint32_t const_offset;  // byte offset to constants section (0 = immediately after header)
+    uint32_t names_offset;  // byte offset to names section
+    uint32_t code_offset;   // byte offset to code section
+    uint32_t opmap_offset;  // byte offset to opcode map (256 bytes)
+    uint32_t total_size;    // total VM data size (including header)
+} VmHeader;
 
 #define VM_INSTR_SIZE    8
 #define VM_INSTR_SIZE_MIN 2

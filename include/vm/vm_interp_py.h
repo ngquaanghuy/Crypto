@@ -1360,33 +1360,81 @@ def _vm_deserialize(_data):
     import struct
     _op_key = _data[:32]
     _decrypted = _data[32:]
-    _map = list(_decrypted[:256])
-    _pos = 256
-    _flags = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
+    _len = len(_decrypted)
+    
+    # ─── Detect format: check for VM header magic "VM\x01\x00" ───
+    _has_hdr = False
+    _off_opmap = 0
+    _off_consts = 0
+    _off_names = 0
+    _off_code = 0
+    if _len >= 4:
+        _magic = int.from_bytes(_decrypted[0:4], 'little')
+        if _magic == 0x0001564D:  # "VM\x01\x00"
+            _has_hdr = True
+            # Parse 32-byte VM header
+            _hdr_flags = int.from_bytes(_decrypted[4:8], 'little')
+            _ep = int.from_bytes(_decrypted[8:12], 'little')
+            _off_consts = int.from_bytes(_decrypted[12:16], 'little')
+            _off_names  = int.from_bytes(_decrypted[16:20], 'little')
+            _off_code   = int.from_bytes(_decrypted[20:24], 'little')
+            _off_opmap  = int.from_bytes(_decrypted[24:28], 'little')
+            # _total_sz = int.from_bytes(_decrypted[28:32], 'little')
+            _flags = _hdr_flags
+        else:
+            # Legacy: first 256 bytes = opcode_map, then 4 bytes = flags
+            _off_opmap = 0
+            _off_consts = 0  # computed below
+            _flags = int.from_bytes(_decrypted[256:260], 'little')
+    
     _vl_flag = (_flags & 1) != 0
     _poly_flag = (_flags & 8) != 0
     _const_enc = (_flags & 2) != 0
     _cfi_flag = (_flags & 4) != 0
     
-    # Read constant encryption key (16 bytes if encrypted)
+    _map = list(_decrypted[_off_opmap:_off_opmap+256])
+    
+    # Compute section positions based on format
+    if _has_hdr:
+        # Header already gives offsets. Compute intermediate sections.
+        _pos = _off_consts  # start reading consts
+    else:
+        # Legacy sequential layout after opcode_map
+        _pos = 260  # after opcode_map(256) + flags(4)
+        _off_consts = _pos
+        # Skip const_key if encrypted
+        if _const_enc:
+            _const_key = _decrypted[_pos:_pos+16]; _pos += 16
+        # Skip CFI table if present
+        if _cfi_flag:
+            _cfi_nb = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
+            for _ in range(_cfi_nb):
+                _pos += 12  # skip start(4) + len(4) + csum(4)
+        _off_consts = _pos
+    
+    # Read constant encryption key if present
     _const_key = None
     if _const_enc:
-        _const_key = _decrypted[_pos:_pos+16]; _pos += 16
+        if _has_hdr:
+            # Const key is right before consts (after opmap + flags + CFI if any)
+            # Compute: opmap ends, then 4 bytes flags, then const_key(16), then CFI, then consts
+            # So const_key = _off_consts - (CFI_size + 16) if CFI present, else _off_consts - 16
+            # Simpler: const_key starts at _off_opmap + 256 + 4 (right after opmap+flags)
+            _ck_start = _off_opmap + 256 + 4
+            if _ck_start + 16 <= _len:
+                _const_key = _decrypted[_ck_start:_ck_start+16]
+        else:
+            # Already read above during sequential scan
+            pass
     
-    # Skip CFI table (if present)
-    if _cfi_flag:
-        _cfi_nb = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
-        for _ in range(_cfi_nb):
-            _pos += 12  # skip start(4) + len(4) + csum(4)
-    
-    # Constants (with optional decryption)
+    # ─── Constants ───
+    _pos = _off_consts
     _cc = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
     _consts = []
     for _ in range(_cc):
         _t = _decrypted[_pos]; _pos += 1
         _sl = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
         _s = _decrypted[_pos:_pos+_sl]; _pos += _sl
-        # Decrypt string constants (type 4) if encryption is enabled
         if _const_enc and _t == 4 and _const_key:
             _dec_bytes = bytearray(len(_s))
             for _j in range(len(_s)):
@@ -1400,11 +1448,19 @@ def _vm_deserialize(_data):
         elif _t == 7: _v = _s
         else: _v = _s
         _consts.append(_v)
+    
+    # ─── Names ───
+    if _has_hdr:
+        _pos = _off_names
     _nc = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
     _names = []
     for _ in range(_nc):
         _nl = int.from_bytes(_decrypted[_pos:_pos+2], 'little'); _pos += 2
         _names.append(_decrypted[_pos:_pos+_nl].decode('utf-8')); _pos += _nl
+    
+    # ─── Code ───
+    if _has_hdr:
+        _pos = _off_code
     if _vl_flag or _poly_flag:
         _code_sz = int.from_bytes(_decrypted[_pos:_pos+4], 'little'); _pos += 4
         _code = _decrypted[_pos:_pos+_code_sz]
