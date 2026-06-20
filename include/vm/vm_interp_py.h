@@ -264,17 +264,21 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     # _r_odd  holds runtime regs 1,3,5,...,63
     _r_even = [None] * 32
     _r_odd = [None] * 32
+    _r_type = [0] * 64  # type tracking: 0=non-int/unknown, 1=int — avoids isinstance()
     _garbler_keys = [[random.getrandbits(64) for _ in range(64)]]
 
     def _r_get(_ix):
         _vv = _r_even[_ix >> 1] if (_ix & 1) == 0 else _r_odd[_ix >> 1]
-        if isinstance(_vv, int):
+        if _r_type[_ix]:  # fast: array lookup instead of isinstance()
             return _vv ^ _garbler_keys[0][_ix]
         return _vv
 
     def _r_set(_ix, _vv):
         if isinstance(_vv, int):
             _vv = _vv ^ _garbler_keys[0][_ix]
+            _r_type[_ix] = 1
+        else:
+            _r_type[_ix] = 0
         if (_ix & 1) == 0:
             _r_even[_ix >> 1] = _vv
         else:
@@ -285,7 +289,7 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         _nk = [random.getrandbits(64) for _ in range(64)]
         for _gi in range(64):
             _gv = _r_even[_gi >> 1] if (_gi & 1) == 0 else _r_odd[_gi >> 1]
-            if isinstance(_gv, int):
+            if _r_type[_gi]:  # fast: only re-XOR int-typed values
                 _dv = _gv ^ _garbler_keys[0][_gi] ^ _nk[_gi]
                 if (_gi & 1) == 0:
                     _r_even[_gi >> 1] = _dv
@@ -320,32 +324,55 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     _S_EXIT = -2  # exit interpreter
     _vm_retval = None
 
+    # ─── Cached register values (pre-read from _r_get, post-write via _r_set) ───
+    _rd_val = _rs1_val = _rs2_val = None
+    _rd_modified = False
+
     # ─── Opcode handler helpers ───
+    # Simple handlers use cached _rd_val/_rs1_val/_rs2_val (no _r_get/_r_set call)
+    # Complex handlers use _r_get/_r_set directly (call, exception, SMC, etc.)
+    #
+    # Main loop does:
+    #   1. Pre-read: _rd_val = _r_get(_rd), _rs1_val = _r_get(_rs1), _rs2_val = _r_get(_rs2)
+    #   2. Call handler
+    #   3. If _rd_modified: _r_set(_rd, _rd_val)
+
     def _h_nop():
         pass
     def _h_load_const():
-        _r_set(_rd, _consts[_imm])
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _consts[_imm]
+        _rd_modified = True
     def _h_load_name():
+        nonlocal _rd_val, _rd_modified
         _nm = _names[_imm]
-        _r_set(_rd, _globals.get(_nm) if _nm in _globals else _b.get(_nm, _nm))
+        _rd_val = _globals.get(_nm) if _nm in _globals else _b.get(_nm, _nm)
+        _rd_modified = True
     def _h_store_name():
-        _globals[_names[_imm]] = _r_get(_rd)
+        _globals[_names[_imm]] = _rd_val
     def _h_load_fast():
-        _r_set(_rd, _locals.get(_names[_imm], None))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _locals.get(_names[_imm], None)
+        _rd_modified = True
     def _h_store_fast():
-        _locals[_names[_imm]] = _r_get(_rd)
+        _locals[_names[_imm]] = _rd_val
     def _h_move():
-        _r_set(_rd, _r_get(_rs1))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val
+        _rd_modified = True
 
     # Unary (7,8)
     def _h_unary_invert():
-        _v = _r_get(_rs1)
+        nonlocal _rd_val, _rd_modified
         try:
-            _r_set(_rd, ~_v)
+            _rd_val = ~_rs1_val
         except Exception:
-            _r_set(_rd, _v)
+            _rd_val = _rs1_val
+        _rd_modified = True
     def _h_unary_not():
-        _r_set(_rd, not _r_get(_rs1))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = not _rs1_val
+        _rd_modified = True
 
     # Setup annotations (9)
     def _h_setup_annotations():
@@ -354,72 +381,112 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
 
     # Arithmetic (10-15)
     def _h_add():
-        _r_set(_rd, _r_get(_rs1) + _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val + _rs2_val
+        _rd_modified = True
     def _h_sub():
-        _r_set(_rd, _r_get(_rs1) - _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val - _rs2_val
+        _rd_modified = True
     def _h_mul():
-        _r_set(_rd, _r_get(_rs1) * _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val * _rs2_val
+        _rd_modified = True
     def _h_div():
-        _r_set(_rd, _r_get(_rs1) / _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val / _rs2_val
+        _rd_modified = True
     def _h_pow():
-        _r_set(_rd, _r_get(_rs1) ** _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val ** _rs2_val
+        _rd_modified = True
     def _h_neg():
-        _r_set(_rd, -_r_get(_rs1))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = -_rs1_val
+        _rd_modified = True
 
     # Bitwise / extended arithmetic (16-19, 34-36)
     def _h_bit_or():
-        _r_set(_rd, _r_get(_rs1) | _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val | _rs2_val
+        _rd_modified = True
     def _h_bit_and():
-        _r_set(_rd, _r_get(_rs1) & _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val & _rs2_val
+        _rd_modified = True
     def _h_bit_xor():
-        _r_set(_rd, _r_get(_rs1) ^ _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val ^ _rs2_val
+        _rd_modified = True
     def _h_lshift():
-        _r_set(_rd, _r_get(_rs1) << _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val << _rs2_val
+        _rd_modified = True
     def _h_rshift():
-        _r_set(_rd, _r_get(_rs1) >> _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val >> _rs2_val
+        _rd_modified = True
     def _h_floor_div():
-        _r_set(_rd, _r_get(_rs1) // _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val // _rs2_val
+        _rd_modified = True
     def _h_mod():
-        _r_set(_rd, _r_get(_rs1) % _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val % _rs2_val
+        _rd_modified = True
 
     # Comparison (20-25)
     def _h_cmp_eq():
-        _r_set(_rd, _r_get(_rs1) == _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val == _rs2_val
+        _rd_modified = True
     def _h_cmp_ne():
-        _r_set(_rd, _r_get(_rs1) != _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val != _rs2_val
+        _rd_modified = True
     def _h_cmp_lt():
-        _r_set(_rd, _r_get(_rs1) < _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val < _rs2_val
+        _rd_modified = True
     def _h_cmp_le():
-        _r_set(_rd, _r_get(_rs1) <= _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val <= _rs2_val
+        _rd_modified = True
     def _h_cmp_gt():
-        _r_set(_rd, _r_get(_rs1) > _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val > _rs2_val
+        _rd_modified = True
     def _h_cmp_ge():
-        _r_set(_rd, _r_get(_rs1) >= _r_get(_rs2))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val >= _rs2_val
+        _rd_modified = True
 
     # Control flow (30-32: jump handlers return new ip)
     def _h_jmp():
         return _imm if _vl_flag else _imm * 8
     def _h_jmp_if_true():
-        if _r_get(_rd):
+        if _rd_val:
             return _imm if _vl_flag else _imm * 8
         return _S_SAME
     def _h_jmp_if_false():
-        if not _r_get(_rd):
+        if not _rd_val:
             return _imm if _vl_flag else _imm * 8
         return _S_SAME
     def _h_binary_subscr():
-        _r_set(_rd, _r_get(_rs1)[_r_get(_rs2)])
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val[_rs2_val]
+        _rd_modified = True
 
-    # Call / Return (40-44)
+    # Call / Return (40-44) — complex, use _r_get/_r_set directly
     def _h_call():
-        _fn = _r_get(_rs1)
+        _fn = _rs1_val
         _args = tuple(_r_get(_rr(_rs1, 1 + _i)) for _i in range(_imm & 0xFFFF))
         _r_set(_rd, _fn(*_args))
     def _h_call_name():
         _r_set(_rd, _names[_rd](*[_r_get(_rr(_rs1, _i)) for _i in range(_imm & 0xFFFF)]))
     def _h_return_op():
         nonlocal _vm_retval
-        _vm_retval = _r_get(_rd)
+        _vm_retval = _rd_val
         return _S_EXIT
     def _h_build_tuple():
         _r_set(_rd, tuple(_r_get(_rr(_rs1, _i)) for _i in range(_rs2)))
@@ -428,67 +495,79 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
 
     # Store subscr (50)
     def _h_store_subscr():
-        _r_get(_rs1)[_r_get(_rs2)] = _r_get(_rd)
+        _rs1_val[_rs2_val] = _rd_val
 
     # Opaque predicates (52-53)
     def _h_opaque_true():
-        _v = _r_get(_rs1)
         try:
             if _imm == 0:
-                if not (_v + 1 == _v): pass
+                if not (_rs1_val + 1 == _rs1_val): pass
             elif _imm == 1:
-                if not (_v != _v): pass
+                if not (_rs1_val != _rs1_val): pass
             else:
-                if not (_v - 1 == _v): pass
+                if not (_rs1_val - 1 == _rs1_val): pass
         except TypeError:
             pass
     def _h_opaque_false():
-        _v = _r_get(_rs1)
         try:
             if _imm == 0:
-                if _v * 0 != 0: pass
+                if _rs1_val * 0 != 0: pass
             elif _imm == 1:
-                if _v != _v: pass
+                if _rs1_val != _rs1_val: pass
             else:
-                if _v + 1 == _v: pass
+                if _rs1_val + 1 == _rs1_val: pass
         except TypeError:
             pass
 
     # MAKE_FUNCTION (54)
     def _h_make_function():
-        _r_set(_rd, types.FunctionType(_r_get(_rs1), _globals))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = types.FunctionType(_rs1_val, _globals)
+        _rd_modified = True
 
     # Attribute / Import (60-63)
     def _h_load_attr():
-        _r_set(_rd, getattr(_r_get(_rs1), _names[_imm]))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = getattr(_rs1_val, _names[_imm])
+        _rd_modified = True
     def _h_import_name():
-        _r_set(_rd, __import__(_names[_imm]))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = __import__(_names[_imm])
+        _rd_modified = True
     def _h_format_simple():
-        _r_set(_rd, str(_r_get(_rs1)))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = str(_rs1_val)
+        _rd_modified = True
     def _h_build_string():
-        _r_set(_rd, ''.join(str(_r_get(_rr(_rs1, _i))) for _i in range(_rs2)))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = ''.join(str(_r_get(_rr(_rs1, _i))) for _i in range(_rs2))
+        _rd_modified = True
 
     # Iteration (70-75)
     def _h_get_iter():
-        _r_set(_rd, iter(_r_get(_rs1)))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = iter(_rs1_val)
+        _rd_modified = True
     def _h_for_iter():
+        nonlocal _rd_val, _rd_modified
         try:
-            _r_set(_rd, next(_r_get(_rs1)))
+            _rd_val = next(_rs1_val)
+            _rd_modified = True
         except StopIteration:
             return _imm
     def _h_list_extend():
-        _r_get(_rd).extend(_r_get(_rs1))
+        _rd_val.extend(_rs1_val)
     def _h_list_append():
-        _r_get(_rd).append(_r_get(_rs1))
+        _rd_val.append(_rs1_val)
 
-    # Indirect & Virtual Call (80-81)
+    # Indirect & Virtual Call (80-81) — complex, use _r_get/_r_set
     def _h_call_indirect():
-        _fn = _r_get(_rs1)
+        _fn = _rs1_val
         _argc = _imm & 0xFFFF
         _args = tuple(_r_get(_rr(_rs1, 1 + _i)) for _i in range(_argc))
         _r_set(_rd, _fn(*_args))
     def _h_call_vtable():
-        _obj = _r_get(_rs1)
+        _obj = _rs1_val
         _vtable = _r_get(_rr(_rs1, 1))
         _midx = _imm & 0xFFFF
         _argc = (_imm >> 16) & 0xFFFF
@@ -496,15 +575,15 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         _args = tuple(_r_get(_rr(_rs1, 2 + _i)) for _i in range(_argc))
         _r_set(_rd, _method(_obj, *_args))
 
-    # Exception Handling (90-93)
+    # Exception Handling (90-93) — complex, use _r_get/_r_set
     def _h_try():
         _handler_stack.append({'s': _ip, 'e': _ip + _imm, 'c': None, 't': None})
     def _h_catch():
         if _handler_stack:
-            _handler_stack[-1]['t'] = _r_get(_rd)
+            _handler_stack[-1]['t'] = _rd_val
             _handler_stack[-1]['c'] = _ip + _ilen
     def _h_throw():
-        _exc = _r_get(_rs1)
+        _exc = _rs1_val
         _found = False
         for _h in reversed(_handler_stack):
             if _h['s'] <= _ip <= _h['e']:
@@ -522,62 +601,60 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
 
     # Obfuscated branching (100-109) — all return new ip or _S_SAME
     def _h_jmp_if_true_obf():
-        _v = _r_get(_rd)
-        _t1 = (_v & _v) | _v
+        _t1 = (_rd_val & _rd_val) | _rd_val
         _t2 = (_t1 ^ 0) + 0
         _t3 = _t2 ^ _t2
         if _t3 == 0 and _t2:
             return _imm
         return _S_SAME
     def _h_jmp_if_false_obf():
-        _v = _r_get(_rd)
-        _t1 = _v | 0
+        _t1 = _rd_val | 0
         _t2 = _t1 & _t1
         if (_t2 ^ _t2) == 0 and not _t2:
             return _imm
         return _S_SAME
     def _h_jmp_eq():
-        _d = _r_get(_rd) - _r_get(_rs1) if isinstance(_r_get(_rd), (int, float)) and isinstance(_r_get(_rs1), (int, float)) else 1
-        _o = _r_get(_rd) ^ _r_get(_rd) if isinstance(_r_get(_rd), int) else 0
+        _d = _rd_val - _rs1_val if isinstance(_rd_val, (int, float)) and isinstance(_rs1_val, (int, float)) else 1
+        _o = _rd_val ^ _rd_val if isinstance(_rd_val, int) else 0
         if _o == 0 and _d == 0:
             return _imm
         return _S_SAME
     def _h_jmp_ne():
-        _d = _r_get(_rd) - _r_get(_rs1) if isinstance(_r_get(_rd), (int, float)) and isinstance(_r_get(_rs1), (int, float)) else 1
-        _m = _r_get(_rd) | 0 if isinstance(_r_get(_rd), int) else 0
+        _d = _rd_val - _rs1_val if isinstance(_rd_val, (int, float)) and isinstance(_rs1_val, (int, float)) else 1
+        _m = _rd_val | 0 if isinstance(_rd_val, int) else 0
         if _m == _m and _d != 0:
             return _imm
         return _S_SAME
     def _h_jmp_lt():
-        _d = _r_get(_rd) - _r_get(_rs1) if isinstance(_r_get(_rd), (int, float)) and isinstance(_r_get(_rs1), (int, float)) else 1
+        _d = _rd_val - _rs1_val if isinstance(_rd_val, (int, float)) and isinstance(_rs1_val, (int, float)) else 1
         _t = (_d ^ _d) & 0
         if _t == 0 and _d < 0:
             return _imm
         return _S_SAME
     def _h_jmp_le():
-        _d = _r_get(_rd) - _r_get(_rs1) if isinstance(_r_get(_rd), (int, float)) and isinstance(_r_get(_rs1), (int, float)) else 1
-        _o = _r_get(_rs1) ^ _r_get(_rs1) if isinstance(_r_get(_rs1), int) else 0
+        _d = _rd_val - _rs1_val if isinstance(_rd_val, (int, float)) and isinstance(_rs1_val, (int, float)) else 1
+        _o = _rs1_val ^ _rs1_val if isinstance(_rs1_val, int) else 0
         if _o == 0 and _d <= 0:
             return _imm
         return _S_SAME
     def _h_jmp_gt():
-        _d = _r_get(_rd) - _r_get(_rs1) if isinstance(_r_get(_rd), (int, float)) and isinstance(_r_get(_rs1), (int, float)) else 1
+        _d = _rd_val - _rs1_val if isinstance(_rd_val, (int, float)) and isinstance(_rs1_val, (int, float)) else 1
         if (_d * 0) == 0 and _d > 0:
             return _imm
         return _S_SAME
     def _h_jmp_ge():
-        _d = _r_get(_rd) - _r_get(_rs1) if isinstance(_r_get(_rd), (int, float)) and isinstance(_r_get(_rs1), (int, float)) else 1
-        _v = _r_get(_rd) & 0xFFFFFFFF if isinstance(_r_get(_rd), int) else 0
+        _d = _rd_val - _rs1_val if isinstance(_rd_val, (int, float)) and isinstance(_rs1_val, (int, float)) else 1
+        _v = _rd_val & 0xFFFFFFFF if isinstance(_rd_val, int) else 0
         if (_v ^ _v) == 0 and _d >= 0:
             return _imm
         return _S_SAME
     def _h_jmp_indirect():
-        _target = _r_get(_rd)
+        _target = _rd_val
         if isinstance(_target, int) and 0 <= _target < _n:
             return _target
         return 0
     def _h_jmp_table():
-        _idx = _r_get(_rd)
+        _idx = _rd_val
         _table_base = _imm & 0xFFFF
         _default_off = (_imm >> 16) & 0xFFFF
         _num_entries = _rs1 & 0xFF
@@ -589,12 +666,14 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             return _ip + _default_off
         return _ip + _default_off
 
-    # Register Spilling (120-123)
+    # Register Spilling (120-123) — complex, use _r_get/_r_set
     def _h_spill():
-        _spill_stack.append(_r_get(_rd))
+        _spill_stack.append(_rd_val)
     def _h_restore():
+        nonlocal _rd_val, _rd_modified
         if _spill_stack:
-            _r_set(_rd, _spill_stack.pop())
+            _rd_val = _spill_stack.pop()
+            _rd_modified = True
     def _h_spill_many():
         _mask = _imm & 0xFFFF
         for _b in range(16):
@@ -608,11 +687,9 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         for _ in range(min(_cnt, len(_spill_stack))):
             _spill_stack.pop()
 
-    # SMC (130-133)
+    # SMC (130-133) — complex, keep _r_get/_r_set
     def _h_patch_instr():
-        _off = _r_get(_rd)
-        _plen = _r_get(_rs1)
-        _key = _r_get(_rs2)
+        _off = _rd_val; _plen = _rs1_val; _key = _rs2_val
         if isinstance(_off, int) and isinstance(_plen, int) and isinstance(_key, int):
             if 0 <= _off and _off + _plen <= _n and abs(_off - _ip) > 16:
                 _ks = _key.to_bytes(8, 'little')
@@ -624,9 +701,7 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         if _shuf < 256:
             _map[_shuf] = _new_op
     def _h_smc_encrypt():
-        _off = _r_get(_rd)
-        _plen = _r_get(_rs1)
-        _key = _r_get(_rs2)
+        _off = _rd_val; _plen = _rs1_val; _key = _rs2_val
         if isinstance(_off, int) and isinstance(_plen, int) and isinstance(_key, int):
             if 0 <= _off and _off + _plen <= _n and abs(_off - _ip) > 16:
                 _seed = _key ^ _cycle
@@ -635,9 +710,7 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
                     _rng = (_rng * 1103515245 + 12345) & 0x7FFFFFFF
                     _code[_off + _i] ^= (_rng >> 16) & 0xFF
     def _h_smc_decrypt():
-        _off = _r_get(_rd)
-        _plen = _r_get(_rs1)
-        _key = _r_get(_rs2)
+        _off = _rd_val; _plen = _rs1_val; _key = _rs2_val
         if isinstance(_off, int) and isinstance(_plen, int) and isinstance(_key, int):
             if 0 <= _off and _off + _plen <= _n and abs(_off - _ip) > 16:
                 _seed = _key ^ _cycle
@@ -648,20 +721,22 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
 
     # Data Obfuscation (140-142)
     def _h_obf_move():
-        _v = _r_get(_rs1)
-        _t = (_v ^ _v) & 0
-        _r_set(_rd, _t | _v)
+        nonlocal _rd_val, _rd_modified
+        _rd_val = (_rs1_val ^ _rs1_val) & 0 | _rs1_val
+        _rd_modified = True
     def _h_obf_add():
-        _v = _r_get(_rs1) + _r_get(_rs2)
-        _m = _r_get(_rs1) ^ _r_get(_rs2)
-        _r_set(_rd, _v + _m - _m)
+        nonlocal _rd_val, _rd_modified
+        _v = _rs1_val + _rs2_val
+        _m = _rs1_val ^ _rs2_val
+        _rd_val = _v + _m - _m
+        _rd_modified = True
     def _h_obf_xor():
-        _v = _r_get(_rs1)
-        _k = _r_get(_rs2)
-        if isinstance(_v, int) and isinstance(_k, int):
-            _r_set(_rd, (_v | _k) - (_v & _k) + (_v & _k) - (_v | _k) + (_v ^ _k))
+        nonlocal _rd_val, _rd_modified
+        if isinstance(_rs1_val, int) and isinstance(_rs2_val, int):
+            _rd_val = (_rs1_val | _rs2_val) - (_rs1_val & _rs2_val) + (_rs1_val & _rs2_val) - (_rs1_val | _rs2_val) + (_rs1_val ^ _rs2_val)
         else:
-            _r_set(_rd, _v)
+            _rd_val = _rs1_val
+        _rd_modified = True
 
     # CFI (150-152)
     def _h_cfi_check():
@@ -689,156 +764,195 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
 
     # CONST_DECRYPT (160)
     def _h_const_decrypt():
-        _r_set(_rd, _consts[_imm])
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _consts[_imm]
+        _rd_modified = True
 
-    # Data structures (161-172)
+    # Data structures (161-172) — many complex, use _r_get/_r_set for indirect
     def _h_binary_slice():
-        _obj = _r_get(_rs1); _start = _r_get(_rs2); _stop = _r_get(_rd)
+        nonlocal _rd_val, _rd_modified
+        _obj = _rs1_val; _start = _rs2_val; _stop = _rd_val
         try:
-            _r_set(_rd, _obj[_start:_stop])
+            _rd_val = _obj[_start:_stop]
         except Exception as _e:
             raise _e
+        _rd_modified = True
     def _h_delete_subscr():
-        _obj = _r_get(_rs1); _key = _r_get(_rs2)
+        _obj = _rs1_val; _key = _rs2_val
         try:
             del _obj[_key]
         except Exception as _e:
             raise _e
     def _h_store_slice():
-        _val = _r_get(_rd); _obj = _r_get(_rs1); _start = _r_get(_rs2)
+        _val = _rd_val; _obj = _rs1_val; _start = _rs2_val
         try:
             _obj[_start:_imm] = _val
         except Exception as _e:
             raise _e
     def _h_build_map():
+        nonlocal _rd_val, _rd_modified
         _cnt = _rs2 & 0xFFFF; _d = {}
         for _i in range(_cnt):
             _key_off = _rr(_rd, _i * 2); _val_off = _rr(_rd, _i * 2 + 1)
             _d[_r_get(_key_off)] = _r_get(_val_off)
-        _r_set(_rd, _d)
+        _rd_val = _d
+        _rd_modified = True
     def _h_build_set():
+        nonlocal _rd_val, _rd_modified
         _cnt = _rs2 & 0xFFFF; _s = set()
         for _i in range(_cnt):
             _s.add(_r_get(_rr(_rd, _i + 1)))
-        _r_set(_rd, _s)
+        _rd_val = _s
+        _rd_modified = True
     def _h_build_slice():
-        _start = _r_get(_rd); _stop = _r_get(_rs1)
-        _step = _r_get(_rs2) if _imm >= 3 else None
+        nonlocal _rd_val, _rd_modified
+        _start = _rd_val; _stop = _rs1_val
+        _step = _rs2_val if _imm >= 3 else None
         from builtins import slice as _slice
-        _r_set(_rd, _slice(_start, _stop, _step))
+        _rd_val = _slice(_start, _stop, _step)
+        _rd_modified = True
     def _h_copy():
-        _v = _r_get(_rs1)
+        nonlocal _rd_val, _rd_modified
+        _v = _rs1_val
         try:
-            _r_set(_rd, _v.copy() if hasattr(_v, 'copy') else _v[:] if hasattr(_v, '__getitem__') else _v)
+            _rd_val = _v.copy() if hasattr(_v, 'copy') else _v[:] if hasattr(_v, '__getitem__') else _v
         except Exception:
-            _r_set(_rd, _v)
+            _rd_val = _v
+        _rd_modified = True
     def _h_dict_merge():
-        _d = _r_get(_rd); _o = _r_get(_rs1)
+        _d = _rd_val; _o = _rs1_val
         if isinstance(_d, dict) and isinstance(_o, dict):
             _d.update(_o)
-        _r_set(_rd, _d)
     def _h_dict_update():
-        _d = _r_get(_rd); _o = _r_get(_rs1)
+        _d = _rd_val; _o = _rs1_val
         if isinstance(_d, dict):
             _d.update(_o)
     def _h_map_add():
-        _d = _r_get(_rd); _k = _r_get(_rs1); _v = _r_get(_rs2)
+        _d = _rd_val; _k = _rs1_val; _v = _rs2_val
         if isinstance(_d, dict):
             _d[_k] = _v
     def _h_set_add():
-        _s = _r_get(_rd); _item = _r_get(_rs1)
+        _s = _rd_val; _item = _rs1_val
         if isinstance(_s, set):
             _s.add(_item)
     def _h_set_update():
-        _s = _r_get(_rd); _other = _r_get(_rs1)
+        _s = _rd_val; _other = _rs1_val
         if isinstance(_s, set):
             _s.update(_other)
 
     # Iterator / Generator / Async (180-195)
     def _h_get_aiter():
-        _r_set(_rd, _r_get(_rs1).__aiter__())
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val.__aiter__()
+        _rd_modified = True
     def _h_get_anext():
-        _r_set(_rd, _r_get(_rs1).__anext__())
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val.__anext__()
+        _rd_modified = True
     def _h_get_yield_from_iter():
-        _obj = _r_get(_rs1)
+        nonlocal _rd_val, _rd_modified
+        _obj = _rs1_val
         try:
-            _r_set(_rd, _obj.__iter__())
+            _rd_val = _obj.__iter__()
         except AttributeError:
-            _r_set(_rd, iter(_obj))
+            _rd_val = iter(_obj)
+        _rd_modified = True
     def _h_load_build_class():
-        _r_set(_rd, _b['__build_class__'])
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _b['__build_class__']
+        _rd_modified = True
     def _h_return_generator():
-        _fn = _r_get(_rs1)
+        nonlocal _rd_val, _rd_modified
+        _fn = _rs1_val
         if callable(_fn):
-            _r_set(_rd, _fn())
+            _rd_val = _fn()
         else:
-            _r_set(_rd, None)
+            _rd_val = None
+        _rd_modified = True
     def _h_delete_deref():
         _nm = _names[_imm] if _imm < len(_names) else None
         if _nm and _nm in _locals:
             del _locals[_nm]
     def _h_get_awaitable():
-        _obj = _r_get(_rs1)
-        _r_set(_rd, _obj.__await__() if hasattr(_obj, '__await__') else _obj)
+        nonlocal _rd_val, _rd_modified
+        _obj = _rs1_val
+        _rd_val = _obj.__await__() if hasattr(_obj, '__await__') else _obj
+        _rd_modified = True
     def _h_load_deref():
+        nonlocal _rd_val, _rd_modified
         _nm = _names[_imm] if _imm < len(_names) else None
         _v = _locals.get(_nm) if _nm else None
         if _v is None:
             _v = _globals.get(_nm) if _nm else None
-        _r_set(_rd, _v)
+        _rd_val = _v
+        _rd_modified = True
     def _h_make_cell():
-        _v = _r_get(_rs1)
+        nonlocal _rd_val, _rd_modified
+        _v = _rs1_val
         try:
-            _r_set(_rd, (lambda _x: lambda: _x)(_v).__closure__[0])
+            _rd_val = (lambda _x: lambda: _x)(_v).__closure__[0]
         except Exception:
-            _r_set(_rd, _v)
+            _rd_val = _v
+        _rd_modified = True
     def _h_send():
-        _gen = _r_get(_rs1); _val = _r_get(_rs2)
+        nonlocal _rd_val, _rd_modified
+        _gen = _rs1_val; _val = _rs2_val
         try:
-            _r_set(_rd, _gen.send(_val))
+            _rd_val = _gen.send(_val)
+            _rd_modified = True
         except StopIteration:
             return _imm
     def _h_store_deref():
         _nm = _names[_imm] if _imm < len(_names) else None
         if _nm:
-            _locals[_nm] = _r_get(_rd)
+            _locals[_nm] = _rd_val
     def _h_yield_value():
-        _r_set(_rd, _r_get(_rs1))
+        nonlocal _rd_val, _rd_modified
+        _rd_val = _rs1_val
+        _rd_modified = True
         return _ip + _ilen
     def _h_load_closure():
+        nonlocal _rd_val, _rd_modified
         _nm = _names[_imm] if _imm < len(_names) else None
         _v = _locals.get(_nm) if _nm else _globals.get(_nm) if _nm else None
-        _r_set(_rd, _v)
+        _rd_val = _v
+        _rd_modified = True
 
-    # Exception handling advanced (200-210)
+    # Exception handling advanced (200-210) — complex, keep _r_get/_r_set for most
     def _h_check_eg_match():
-        _exc = _r_get(_rs1); _mt = _r_get(_rs2)
+        nonlocal _rd_val, _rd_modified
+        _exc = _rs1_val; _mt = _rs2_val
         try:
-            _r_set(_rd, isinstance(_exc, _mt) if isinstance(_mt, type) else False)
+            _rd_val = isinstance(_exc, _mt) if isinstance(_mt, type) else False
         except Exception:
-            _r_set(_rd, False)
+            _rd_val = False
+        _rd_modified = True
     def _h_check_exc_match():
-        _ev = _r_get(_rs1); _ht = _r_get(_rd)
+        nonlocal _rd_val, _rd_modified
+        _ev = _rs1_val; _ht = _rd_val
         _m = False
         if isinstance(_ht, type) and isinstance(_ev, BaseException):
             _m = isinstance(_ev, _ht)
         elif isinstance(_ht, tuple):
             _m = isinstance(_ev, _ht)
-        _r_set(_rd, _m)
+        _rd_val = _m
+        _rd_modified = True
     def _h_pop_except():
         if _exc_stack:
             _exc_stack.pop()
     def _h_push_exc_info():
-        _exc_stack.append(_r_get(_rd))
+        _exc_stack.append(_rd_val)
     def _h_with_except_start():
-        _ctx = _r_get(_rs1)
+        nonlocal _rd_val, _rd_modified
+        _ctx = _rs1_val
         _typ, _val, _tb = sys.exc_info()
         try:
-            _r_set(_rd, _ctx.__exit__(_typ, _val, _tb))
+            _rd_val = _ctx.__exit__(_typ, _val, _tb)
         except Exception:
-            _r_set(_rd, False)
+            _rd_val = False
+        _rd_modified = True
     def _h_reraise():
-        _exc = _r_get(_rd)
+        _exc = _rd_val
         if _exc is not None and isinstance(_exc, BaseException):
             raise _exc
         raise
@@ -850,63 +964,75 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     def _h_setup_finally():
         _handler_stack.append({'s': _ip, 'e': _n, 'c': _imm, 't': BaseException})
     def _h_setup_with():
-        _ctx = _r_get(_rs1)
+        nonlocal _rd_val, _rd_modified
+        _ctx = _rs1_val
         try:
             _handler_stack.append({'s': _ip, 'e': _n, 'c': _imm, 't': BaseException})
-            _r_set(_rd, _ctx.__enter__())
+            _rd_val = _ctx.__enter__()
         except Exception as _e:
             raise _e
+        _rd_modified = True
 
     # Pattern matching (220-223)
     def _h_match_keys():
-        _sj = _r_get(_rs1); _ks = _r_get(_rs2)
+        nonlocal _rd_val, _rd_modified
+        _sj = _rs1_val; _ks = _rs2_val
         if isinstance(_sj, dict) and hasattr(_ks, '__iter__'):
             if all(_k in _sj for _k in _ks):
-                _r_set(_rd, tuple(_sj[_k] for _k in _ks))
+                _rd_val = tuple(_sj[_k] for _k in _ks)
             else:
-                _r_set(_rd, None)
+                _rd_val = None
         else:
-            _r_set(_rd, None)
+            _rd_val = None
+        _rd_modified = True
     def _h_match_mapping():
-        _sj = _r_get(_rs1)
-        _r_set(_rd, isinstance(_sj, dict) or hasattr(_sj, 'keys'))
+        nonlocal _rd_val, _rd_modified
+        _sj = _rs1_val
+        _rd_val = isinstance(_sj, dict) or hasattr(_sj, 'keys')
+        _rd_modified = True
     def _h_match_sequence():
-        _sj = _r_get(_rs1); _ml = _imm & 0xFFFF
-        _r_set(_rd, isinstance(_sj, (list, tuple)) and len(_sj) >= _ml)
+        nonlocal _rd_val, _rd_modified
+        _sj = _rs1_val; _ml = _imm & 0xFFFF
+        _rd_val = isinstance(_sj, (list, tuple)) and len(_sj) >= _ml
+        _rd_modified = True
     def _h_match_class():
-        _sj = _r_get(_rs1); _cn = _names[_imm] if _imm < len(_names) else None; _na = _rs2 & 0xFF
+        nonlocal _rd_val, _rd_modified
+        _sj = _rs1_val; _cn = _names[_imm] if _imm < len(_names) else None; _na = _rs2 & 0xFF
         _m = False
         if _cn is not None:
             _cls = _globals.get(_cn) or _b.get(_cn)
             if _cls is not None and isinstance(_sj, _cls):
                 _m = True
-        _r_set(_rd, _m)
+        _rd_val = _m
+        _rd_modified = True
 
     # Control flow 3.14+ (230-235: jump handlers return ip)
     # Uses shared handlers: _h_nop (230), _h_jmp (231,232,235), _h_jmp_if_false (233), _h_jmp_if_true (234)
 
     # Attribute ops (240-242)
     def _h_delete_attr():
-        _obj = _r_get(_rd); _attr = _names[_imm] if _imm < len(_names) else None
+        _obj = _rd_val; _attr = _names[_imm] if _imm < len(_names) else None
         if _obj is not None and _attr is not None:
             try:
                 delattr(_obj, _attr)
             except AttributeError as _e:
                 raise _e
     def _h_load_super_attr():
+        nonlocal _rd_val, _rd_modified
         _attr = _names[_imm] if _imm < len(_names) else None
         try:
-            _r_set(_rd, super(_r_get(_rs1), _r_get(_rs2)).__getattribute__(_attr) if _attr else None)
+            _rd_val = super(_rs1_val, _rs2_val).__getattribute__(_attr) if _attr else None
         except Exception:
-            _r_set(_rd, getattr(_r_get(_rs2), _attr) if _attr else None)
+            _rd_val = getattr(_rs2_val, _attr) if _attr else None
+        _rd_modified = True
     def _h_store_attr():
-        _val = _r_get(_rd); _obj = _r_get(_rs1); _attr = _names[_imm] if _imm < len(_names) else None
+        _val = _rd_val; _obj = _rs1_val; _attr = _names[_imm] if _imm < len(_names) else None
         if _obj is not None and _attr is not None:
             setattr(_obj, _attr, _val)
 
-    # Call variants (245-248)
+    # Call variants (245-248) — complex, use _r_get/_r_set
     def _h_call_function_ex():
-        _fn = _r_get(_rs1); _args = _r_get(_rs2) if _rs2 < 64 else (); _fl = _imm & 0xFF
+        _fn = _rs1_val; _args = _rs2_val if _rs2 < 64 else (); _fl = _imm & 0xFF
         _hk = _fl & 1
         if isinstance(_args, tuple) and len(_args) > 0 and isinstance(_args[-1], dict):
             _pa = _args[:-1]; _ka = _args[-1]
@@ -924,35 +1050,39 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         except Exception as _e:
             raise _e
     def _h_call_intrinsic_1():
-        _v = _r_get(_rs1); _ix = _imm & 0xFF
-        if _ix == 0: _r_set(_rd, None)
-        elif _ix == 1: _r_set(_rd, _v is None)
-        elif _ix == 2: _r_set(_rd, bool(_v) if _v is not None else False)
-        elif _ix == 3: _r_set(_rd, len(_v))
-        elif _ix == 4: _r_set(_rd, str(_v))
-        elif _ix == 5: _r_set(_rd, repr(_v))
-        elif _ix == 6: _r_set(_rd, ascii(_v))
-        elif _ix == 7: _r_set(_rd, bool(_v))
-        elif _ix == 8: _r_set(_rd, _v.__order__() if hasattr(_v, '__order__') else _v)
-        else: _r_set(_rd, _v)
+        nonlocal _rd_val, _rd_modified
+        _v = _rs1_val; _ix = _imm & 0xFF
+        if _ix == 0: _rd_val = None
+        elif _ix == 1: _rd_val = _v is None
+        elif _ix == 2: _rd_val = bool(_v) if _v is not None else False
+        elif _ix == 3: _rd_val = len(_v)
+        elif _ix == 4: _rd_val = str(_v)
+        elif _ix == 5: _rd_val = repr(_v)
+        elif _ix == 6: _rd_val = ascii(_v)
+        elif _ix == 7: _rd_val = bool(_v)
+        elif _ix == 8: _rd_val = _v.__order__() if hasattr(_v, '__order__') else _v
+        else: _rd_val = _v
+        _rd_modified = True
     def _h_call_intrinsic_2():
-        _v1 = _r_get(_rs1); _v2 = _r_get(_rs2); _ix = _imm & 0xFF
-        if _ix == 0: _r_set(_rd, None)
-        elif _ix == 1: _r_set(_rd, _v1 == _v2)
-        elif _ix == 2: _r_set(_rd, _v1 != _v2)
-        elif _ix == 3: _r_set(_rd, isinstance(_v1, _v2) if isinstance(_v2, type) else False)
-        elif _ix == 4: _r_set(_rd, issubclass(_v1, _v2) if isinstance(_v1, type) and isinstance(_v2, type) else False)
+        nonlocal _rd_val, _rd_modified
+        _v1 = _rs1_val; _v2 = _rs2_val; _ix = _imm & 0xFF
+        if _ix == 0: _rd_val = None
+        elif _ix == 1: _rd_val = _v1 == _v2
+        elif _ix == 2: _rd_val = _v1 != _v2
+        elif _ix == 3: _rd_val = isinstance(_v1, _v2) if isinstance(_v2, type) else False
+        elif _ix == 4: _rd_val = issubclass(_v1, _v2) if isinstance(_v1, type) and isinstance(_v2, type) else False
         elif _ix == 5:
-            try: _r_set(_rd, _v2 in _v1)
-            except Exception: _r_set(_rd, False)
+            try: _rd_val = _v2 in _v1
+            except Exception: _rd_val = False
         elif _ix == 6:
-            try: _r_set(_rd, _v2 not in _v1)
-            except Exception: _r_set(_rd, True)
-        elif _ix == 7: _r_set(_rd, _v1 ** _v2)
-        elif _ix == 8: _r_set(_rd, divmod(_v1, _v2))
-        else: _r_set(_rd, None)
+            try: _rd_val = _v2 not in _v1
+            except Exception: _rd_val = True
+        elif _ix == 7: _rd_val = _v1 ** _v2
+        elif _ix == 8: _rd_val = divmod(_v1, _v2)
+        else: _rd_val = None
+        _rd_modified = True
     def _h_call_kw():
-        _fn = _r_get(_rs1); _nr = _rs2; _ac = _imm & 0xFFFF
+        _fn = _rs1_val; _nr = _rs2; _ac = _imm & 0xFFFF
         _nt = _r_get(_nr) if _nr < 64 else None
         _kwn = _nt if isinstance(_nt, tuple) and len(_nt) == _ac else (None,) * _ac
         _pa = []; _ka = {}
@@ -984,104 +1114,130 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             elif _nm in _globals:
                 del _globals[_nm]
     def _h_load_from_dict_or_deref():
-        _d = _r_get(_rs1); _nm = _names[_imm] if _imm < len(_names) else None
+        nonlocal _rd_val, _rd_modified
+        _d = _rs1_val; _nm = _names[_imm] if _imm < len(_names) else None
         _v = _locals.get(_nm) if _nm else None
         if _v is None and isinstance(_d, dict) and _nm:
             _v = _d.get(_nm)
         if _v is None and _nm:
             _v = _globals.get(_nm) or _b.get(_nm)
-        _r_set(_rd, _v)
+        _rd_val = _v
+        _rd_modified = True
     def _h_load_from_dict_or_globals():
-        _d = _r_get(_rs1); _nm = _names[_imm] if _imm < len(_names) else None
+        nonlocal _rd_val, _rd_modified
+        _d = _rs1_val; _nm = _names[_imm] if _imm < len(_names) else None
         _v = _globals.get(_nm) if _nm else None
         if _v is None and isinstance(_d, dict) and _nm:
             _v = _d.get(_nm)
         if _v is None and _nm:
             _v = _b.get(_nm)
-        _r_set(_rd, _v)
+        _rd_val = _v
+        _rd_modified = True
 
     # Misc: Convert, Common Constant, Special, Annotations (110-113)
     def _h_convert_value():
-        _v = _r_get(_rs1); _conv = _imm & 0xFF
-        if _conv == 0: _r_set(_rd, str(_v))
-        elif _conv == 1: _r_set(_rd, repr(_v))
-        elif _conv == 2: _r_set(_rd, ascii(_v))
-        elif _conv == 3: _r_set(_rd, bool(_v))
-        elif _conv == 4: _r_set(_rd, int(_v) if _v is not None else 0)
-        elif _conv == 5: _r_set(_rd, float(_v) if _v is not None else 0.0)
-        else: _r_set(_rd, _v)
+        nonlocal _rd_val, _rd_modified
+        _v = _rs1_val; _conv = _imm & 0xFF
+        if _conv == 0: _rd_val = str(_v)
+        elif _conv == 1: _rd_val = repr(_v)
+        elif _conv == 2: _rd_val = ascii(_v)
+        elif _conv == 3: _rd_val = bool(_v)
+        elif _conv == 4: _rd_val = int(_v) if _v is not None else 0
+        elif _conv == 5: _rd_val = float(_v) if _v is not None else 0.0
+        else: _rd_val = _v
+        _rd_modified = True
     def _h_load_common_constant():
+        nonlocal _rd_val, _rd_modified
         _cc = _imm & 0xFF
-        if _cc == 0: _r_set(_rd, None)
-        elif _cc == 1: _r_set(_rd, True)
-        elif _cc == 2: _r_set(_rd, False)
-        elif _cc == 3: _r_set(_rd, 0)
-        elif _cc == 4: _r_set(_rd, 1)
-        elif _cc == 5: _r_set(_rd, '')
-        elif _cc == 6: _r_set(_rd, ())
-        elif _cc == 7: _r_set(_rd, 0.0)
-        elif _cc == 8: _r_set(_rd, Ellipsis)
-        elif _cc == 9: _r_set(_rd, NotImplemented)
-        else: _r_set(_rd, None)
+        if _cc == 0: _rd_val = None
+        elif _cc == 1: _rd_val = True
+        elif _cc == 2: _rd_val = False
+        elif _cc == 3: _rd_val = 0
+        elif _cc == 4: _rd_val = 1
+        elif _cc == 5: _rd_val = ''
+        elif _cc == 6: _rd_val = ()
+        elif _cc == 7: _rd_val = 0.0
+        elif _cc == 8: _rd_val = Ellipsis
+        elif _cc == 9: _rd_val = NotImplemented
+        else: _rd_val = None
+        _rd_modified = True
     def _h_load_special():
-        _obj = _r_get(_rs1); _attr = _names[_imm] if _imm < len(_names) else None
+        nonlocal _rd_val, _rd_modified
+        _obj = _rs1_val; _attr = _names[_imm] if _imm < len(_names) else None
         if _attr is not None:
             try:
-                _r_set(_rd, getattr(_obj, _attr))
+                _rd_val = getattr(_obj, _attr)
             except AttributeError:
-                _r_set(_rd, None)
+                _rd_val = None
         else:
-            _r_set(_rd, None)
+            _rd_val = None
+        _rd_modified = True
     def _h_annotations_placeholder():
-        _r_set(_rd, None)
+        nonlocal _rd_val, _rd_modified
+        _rd_val = None
+        _rd_modified = True
 
     # Misc ops (114-119, 124-129, 134-139)
     def _h_build_template():
+        nonlocal _rd_val, _rd_modified
         _cnt = _rs2 & 0xFFFF; _parts = []
         for _i in range(_cnt):
             _parts.append(str(_r_get(_rr(_rd, 1 + _i))) if _r_get(_rr(_rd, 1 + _i)) is not None else 'None')
-        _r_set(_rd, ''.join(_parts))
+        _rd_val = ''.join(_parts)
+        _rd_modified = True
     def _h_format_with_spec():
-        _v = _r_get(_rs1); _fmt = _r_get(_rs2)
+        nonlocal _rd_val, _rd_modified
+        _v = _rs1_val; _fmt = _rs2_val
         if isinstance(_fmt, str) and _fmt:
             try:
-                _r_set(_rd, format(_v, _fmt))
+                _rd_val = format(_v, _fmt)
             except Exception:
-                _r_set(_rd, str(_v))
+                _rd_val = str(_v)
         else:
-            _r_set(_rd, format(_v, '') if hasattr(_v, '__format__') else str(_v))
+            _rd_val = format(_v, '') if hasattr(_v, '__format__') else str(_v)
+        _rd_modified = True
     def _h_get_len():
-        _v = _r_get(_rs1)
+        nonlocal _rd_val, _rd_modified
+        _v = _rs1_val
         try:
-            _r_set(_rd, len(_v))
+            _rd_val = len(_v)
         except Exception:
-            _r_set(_rd, 0)
+            _rd_val = 0
+        _rd_modified = True
     def _h_interpreter_exit():
         sys.exit(0)
     def _h_build_interpolation():
+        nonlocal _rd_val, _rd_modified
         _cnt = _rs2 & 0xFFFF; _parts = []
         for _i in range(_cnt):
             _parts.append(str(_r_get(_rr(_rd, 1 + _i))) if _r_get(_rr(_rd, 1 + _i)) is not None else 'None')
-        _r_set(_rd, ''.join(_parts))
+        _rd_val = ''.join(_parts)
+        _rd_modified = True
     def _h_contains_op():
-        _item = _r_get(_rs1); _seq = _r_get(_rs2); _inv = _imm & 0xFF
+        nonlocal _rd_val, _rd_modified
+        _item = _rs1_val; _seq = _rs2_val; _inv = _imm & 0xFF
         try:
             _r = _item in _seq
-            _r_set(_rd, not _r if _inv else _r)
+            _rd_val = not _r if _inv else _r
         except Exception:
-            _r_set(_rd, False)
+            _rd_val = False
+        _rd_modified = True
     def _h_is_op():
-        _v1 = _r_get(_rs1); _v2 = _r_get(_rs2); _inv = _imm & 0xFF
+        nonlocal _rd_val, _rd_modified
+        _v1 = _rs1_val; _v2 = _rs2_val; _inv = _imm & 0xFF
         _r = _v1 is _v2
-        _r_set(_rd, not _r if _inv else _r)
+        _rd_val = not _r if _inv else _r
+        _rd_modified = True
     def _h_load_fast_check():
+        nonlocal _rd_val, _rd_modified
         _nm = _names[_imm] if _imm < len(_names) else None
         _v = _locals.get(_nm) if _nm else None
         if _v is None and _nm is not None and _nm not in _locals:
             raise UnboundLocalError(f"local variable '{_nm}' referenced before assignment")
-        _r_set(_rd, _v)
+        _rd_val = _v
+        _rd_modified = True
     def _h_raise_varargs():
-        _exc = _r_get(_rd); _cause = _r_get(_rs1); _argc = _imm & 0xFF
+        _exc = _rd_val; _cause = _rs1_val; _argc = _imm & 0xFF
         if _argc == 0:
             raise
         elif _argc == 1:
@@ -1092,17 +1248,19 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             else:
                 raise _exc.with_traceback(None)
     def _h_store_fast_load_fast():
+        nonlocal _rd_val, _rd_modified
         _nm = _names[_imm] if _imm < len(_names) else None
-        _v = _r_get(_rs1)
+        _v = _rs1_val
         if _nm:
             _locals[_nm] = _v
-        _r_set(_rd, _v)
+        _rd_val = _v
+        _rd_modified = True
     def _h_store_fast_store_fast():
         _nm = _names[_imm] if _imm < len(_names) else None
         if _nm:
-            _locals[_nm] = _r_get(_rd)
+            _locals[_nm] = _rd_val
     def _h_unpack_ex():
-        _nb = _rd & 0xFF; _na = _rs2 & 0xFF; _seq = _r_get(_rs1)
+        _nb = _rd & 0xFF; _na = _rs2 & 0xFF; _seq = _rs1_val
         _ns = len(_seq) - _nb - _na
         if _ns < 0:
             raise ValueError(f"not enough values to unpack (expected at least {_nb + _na}, got {len(_seq)})")
@@ -1115,18 +1273,20 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         for _i, _v in enumerate(_res):
             _r_set(_rr(_rd, _i), _v)
     def _h_unpack_sequence():
-        _cnt = _rd & 0xFF; _seq = _r_get(_rs1)
+        _cnt = _rd & 0xFF; _seq = _rs1_val
         if len(_seq) != _cnt:
             raise ValueError(f"cannot unpack {len(_seq)} values into {_cnt} targets")
         for _i in range(_cnt):
             _r_set(_rr(_rd, 1 + _i), _seq[_i])
     def _h_enter_executor():
-        _er = _r_get(_rs1)
-        _r_set(_rd, _er.__enter__() if hasattr(_er, '__enter__') else _er)
+        nonlocal _rd_val, _rd_modified
+        _er = _rs1_val
+        _rd_val = _er.__enter__() if hasattr(_er, '__enter__') else _er
+        _rd_modified = True
     def _h_store_fast_maybe_null():
         _nm = _names[_imm] if _imm < len(_names) else None
         if _nm:
-            _locals[_nm] = _r_get(_rd)
+            _locals[_nm] = _rd_val
 
     # ─── Build dispatch table (indexed by opcode) ───
     _dt = [None] * 256
@@ -1331,10 +1491,24 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             else:
                 _op, _rd, _rs1, _rs2, _imm, _ilen, _ = _decode()
 
+        # ─── Pre-read cached register values ───
+        _rd_val = _r_get(_rd)
+        _rs1_val = _r_get(_rs1)
+        if _rs2 < 64:
+            _rs2_val = _r_get(_rs2)
+        else:
+            _rs2_val = None
+        _rd_modified = False
+
         # O(1) dispatch via lookup table (vs O(n) if-elif chain)
         # Handlers return: _S_EXIT (exit), int (new ip for jumps),
         # _S_SAME or None (normal flow — ip += ilen)
         _new_ip = _dt[_op]()
+
+        # ─── Post-writeback: if handler modified rd, write it back ───
+        if _rd_modified:
+            _r_set(_rd, _rd_val)
+
         if _new_ip is _S_EXIT:
             break
         if _new_ip is _S_SAME or _new_ip is None:
