@@ -1,5 +1,4 @@
 # Build outputs
-crypto
 test_crypto
 test_openssl
 
