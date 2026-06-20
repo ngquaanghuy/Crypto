@@ -64,6 +64,9 @@ static void default_config(VmCompileConfig *cfg) {
     cfg->enable_code_scheduling = 0;
     cfg->cfi_check_interval = 20;
     cfg->schedule_strength = 1;
+    cfg->enable_vram_garble = 1;
+    cfg->vram_garble_min_interval = 80;
+    cfg->vram_garble_max_interval = 200;
 }
 
 // ─── Compile Python source → VmProgram (via Python subprocess) ──
@@ -284,11 +287,17 @@ ExitCode vm_compile_source_ex(const char *source, size_t source_len,
         if (ret != EXIT_OK) return ret;
     }
 
-    // Step 7: Apply opcode shuffle BEFORE encoding
+    // Step 7: Virtual RAM Garble Injection (re-keys vRAM periodically)
+    if (cfg->enable_vram_garble) {
+        ret = vm_pass_inject_vram_garble(prog, cfg);
+        if (ret != EXIT_OK) return ret;
+    }
+
+    // Step 8: Apply opcode shuffle BEFORE encoding
     ret = apply_opcode_shuffle(prog);
     if (ret != EXIT_OK) return ret;
 
-    // Step 8: Variable-Length or Polymorphic Encoding
+    // Step 9: Variable-Length or Polymorphic Encoding
     bool do_poly = cfg->enable_polymorphic_encoding;
     bool do_vl = cfg->enable_var_length_encoding || do_poly;
 
@@ -307,12 +316,12 @@ ExitCode vm_compile_source_ex(const char *source, size_t source_len,
         prog->vl_code_len = (int)vl_buf.size;
     }
 
-    // Step 9: Constant Pool Encryption (must happen after encoding, before serialization)
+    // Step 10: Constant Pool Encryption (must happen after encoding, before serialization)
     if (cfg->enable_constant_encryption) {
         prog->flags |= VM_SER_FLAG_CONST_ENCRYPTED;
     }
 
-    // Step 10: Control Flow Integrity pass (operates on encoded bytecode)
+    // Step 11: Control Flow Integrity pass (operates on encoded bytecode)
     if (cfg->enable_cfi) {
         ret = vm_pass_cfi(prog, cfg);
         if (ret != EXIT_OK) return ret;

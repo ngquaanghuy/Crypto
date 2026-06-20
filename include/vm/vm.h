@@ -376,6 +376,11 @@ typedef struct {
 
     // Code scheduling config
     int schedule_strength;
+
+    // Virtual RAM garble config
+    int enable_vram_garble;
+    int vram_garble_min_interval;
+    int vram_garble_max_interval;
 } VmCompileConfig;
 
 // ─── VmProgram lifecycle ─────────────────────────────────────
@@ -430,6 +435,7 @@ ExitCode vm_pass_inject_self_modifying(VmProgram *prog, VmCompileConfig *cfg);
 ExitCode vm_pass_obfuscate_conditions(VmProgram *prog, int strength);
 ExitCode vm_pass_cfi(VmProgram *prog, VmCompileConfig *cfg);
 ExitCode vm_pass_code_schedule(VmProgram *prog, VmCompileConfig *cfg);
+ExitCode vm_pass_inject_vram_garble(VmProgram *prog, VmCompileConfig *cfg);
 
 // ─── Serialization ───────────────────────────────────────────
 ExitCode vm_serialize(const VmProgram *prog, Buffer *out);

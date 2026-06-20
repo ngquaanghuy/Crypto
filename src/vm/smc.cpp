@@ -12,6 +12,64 @@
 // code regions that are NOT the currently executing instruction.
 // The interpreter also enforces a safety window of 16 bytes.
 
+// ─── Virtual RAM Garble Injection Pass ───────────────────────
+// Injects VM_RAM_GARBLE instructions at pseudo-random intervals.
+// Each garble re-keys the entire 4 KB vRAM, rotating XOR keys
+// to make memory analysis and dumping harder. Garble has no
+// register operands, so injection is a single instruction with
+// no setup overhead.
+
+ExitCode vm_pass_inject_vram_garble(VmProgram *prog, VmCompileConfig *cfg) {
+    if (!prog || !cfg) return EXIT_ERR_ARGS;
+    if (!prog->instrs || prog->count == 0) return EXIT_OK;
+    if (!cfg->enable_vram_garble) return EXIT_OK;
+
+    int min_interval = cfg->vram_garble_min_interval;
+    if (min_interval <= 0) min_interval = 80;
+    int max_interval = cfg->vram_garble_max_interval;
+    if (max_interval <= 0) max_interval = 200;
+    if (max_interval < min_interval) max_interval = min_interval + 50;
+
+    int seed = cfg->seed >= 0 ? cfg->seed : (int)rand();
+    srand(seed);
+
+    std::vector<VmInstr> out;
+    out.reserve(prog->count + 10);
+
+    int garble_counter = 0;
+    int next_garble = min_interval + rand() % (max_interval - min_interval + 1);
+
+    for (int i = 0; i < prog->count; i++) {
+        out.push_back(prog->instrs[i]);
+        garble_counter++;
+
+        // Inject VM_RAM_GARBLE at pseudo-random intervals
+        // Garble has no register operands — just the opcode
+        if (garble_counter >= next_garble && i < prog->count - 1) {
+            garble_counter = 0;
+            next_garble = min_interval + rand() % (max_interval - min_interval + 1);
+
+            VmInstr garble;
+            garble.op = VM_RAM_GARBLE;
+            garble.rd = 0;
+            garble.rs1 = 0;
+            garble.rs2 = 0;
+            garble.imm = 0;
+            out.push_back(garble);
+        }
+    }
+
+    // Replace prog instruction array
+    VmInstr *nd = (VmInstr *)realloc(prog->instrs, out.size() * sizeof(VmInstr));
+    if (nd || out.size() == 0) {
+        if (nd) prog->instrs = nd;
+        memcpy(prog->instrs, out.data(), out.size() * sizeof(VmInstr));
+        prog->count = (int)out.size();
+    }
+
+    return EXIT_OK;
+}
+
 ExitCode vm_pass_inject_self_modifying(VmProgram *prog, VmCompileConfig *cfg) {
     if (!prog || !cfg) return EXIT_ERR_ARGS;
     if (!prog->instrs || prog->count == 0) return EXIT_OK;
