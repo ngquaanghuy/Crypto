@@ -9,7 +9,7 @@ def _vm_rs2(_dec, _rm, _op):
     _mapped = _rm[_raw & 0x3F] if (_raw & 0x3F) < 64 else 0
     # Ops using rs2 as count (not register): BUILD_TUPLE(43), BUILD_LIST(44), BUILD_STRING(63)
     # Also BUILD_STRING - the Python compiler uses rs2 for count. Others use _imm low bits.
-    _count_ops = frozenset((43, 44, 63, 164, 165, 270, 277, 284, 285))
+    _count_ops = frozenset((43, 44, 63, 136, 137, 164, 165, 270, 277, 284, 285))
     if _op in _count_ops:
         return _raw, _raw  # return unmapped as both (used as count)
     return _mapped, _raw  # mapped for register, raw for reference
@@ -48,7 +48,7 @@ def _vm_decode_vl(_c, _p, _k, _m, _rm):
         _i2 = _c[_p+7] ^ _k[(_p+7) % 32]
         _i3 = _c[_p+8] ^ _k[(_p+8) % 32]
         _imm = _i0 | (_i1 << 8) | (_i2 << 16) | (_i3 << 24)
-        _count_ops = frozenset((43, 44, 63, 164, 165, 270, 277, 284, 285))
+        _count_ops = frozenset((43, 44, 63, 136, 137, 164, 165, 270, 277, 284, 285))
         _rs2 = _rs2_u if _op in _count_ops else _rs2_m
         return _op, _rd, _rs1, _rs2, _imm, 9, _rs2_u
     else:
@@ -66,7 +66,7 @@ def _vm_decode_vl(_c, _p, _k, _m, _rm):
         _i3 = _c[_p+8] ^ _k[(_p+8) % 32]
         _imm = _i0 | (_i1 << 8) | (_i2 << 16) | (_i3 << 24)
         _ilen = 2 + _nb * 8
-        _count_ops = frozenset((43, 44, 63, 164, 165, 270, 277, 284, 285))
+        _count_ops = frozenset((43, 44, 63, 136, 137, 164, 165, 270, 277, 284, 285))
         _rs2 = _rs2_u if _op in _count_ops else _rs2_m
         return _op, _rd, _rs1, _rs2, _imm, _ilen, _rs2_u
 
@@ -136,7 +136,7 @@ def _vm_decode_poly(_c, _p, _k, _m, _rm):
         return 0, 0, 0, 0, 0, 2, 0
     elif _cls == 2:
         # Long class
-        _count_ops = frozenset((43, 44, 63, 164, 165, 270, 277, 284, 285))
+        _count_ops = frozenset((43, 44, 63, 136, 137, 164, 165, 270, 277, 284, 285))
         _variant = (_tag >> 2) & 0x0F
         if _variant == 0 and _p + 9 <= len(_c):
             _b1 = _c[_p+1] ^ _k[(_p+1) % 32]
@@ -205,7 +205,7 @@ def _vm_decode_poly(_c, _p, _k, _m, _rm):
             return _op, _rd, _rs1, _rs2, _imm, 9, _rs2_u
         return 0, 0, 0, 0, 0, 2, 0
     else:
-        _count_ops = frozenset((43, 44, 63, 164, 165, 270, 277, 284, 285))
+        _count_ops = frozenset((43, 44, 63, 136, 137, 164, 165, 270, 277, 284, 285))
         _nb = _tag & 0x0F
         if _nb == 0:
             _nb = 1
@@ -1324,7 +1324,7 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         if _nm:
             _locals[_nm] = _rd_val
     def _h_unpack_ex():
-        _nb = _rd & 0xFF; _na = _rs2 & 0xFF; _seq = _rs1_val
+        _nb = _imm & 0xFFFF; _na = _rs2 & 0xFF; _seq = _rs1_val
         _ns = len(_seq) - _nb - _na
         if _ns < 0:
             raise ValueError(f"not enough values to unpack (expected at least {_nb + _na}, got {len(_seq)})")
@@ -1335,13 +1335,13 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         for _i in range(_na):
             _res.append(_seq[len(_seq) - _na + _i])
         for _i, _v in enumerate(_res):
-            _r_set(_rr(_rd, _i), _v)
+            _r_set(_rr(_rd, len(_res) - 1 - _i), _v)
     def _h_unpack_sequence():
-        _cnt = _rd & 0xFF; _seq = _rs1_val
+        _cnt = _imm & 0xFFFF; _seq = _rs1_val
         if len(_seq) != _cnt:
             raise ValueError(f"cannot unpack {len(_seq)} values into {_cnt} targets")
         for _i in range(_cnt):
-            _r_set(_rr(_rd, 1 + _i), _seq[_i])
+            _r_set(_rr(_rd, _cnt - 1 - _i), _seq[_i])
     def _h_enter_executor():
         nonlocal _rd_val, _rd_modified
         _er = _rs1_val
@@ -1619,7 +1619,7 @@ def _vm_decode_fixed(_c, _p, _k, _m, _rm):
     _rd = _rm[_dec[1] & 0x3F] if (_dec[1] & 0x3F) < 64 else 0
     _rs1 = _rm[_dec[2] & 0x3F] if (_dec[2] & 0x3F) < 64 else 0
     _rs2_u = _dec[3] & 0x3F
-    _count_ops = frozenset((43, 44, 63, 164, 165, 270, 277, 284, 285))
+    _count_ops = frozenset((43, 44, 63, 136, 137, 164, 165, 270, 277, 284, 285))
     _rs2 = _rs2_u if _op in _count_ops else _rm[_rs2_u]
     _imm = _dec[4] | (_dec[5] << 8) | (_dec[6] << 16) | (_dec[7] << 24)
     return _op, _rd, _rs1, _rs2, _imm, 8, _rs2_u

@@ -378,8 +378,9 @@ def convert(source, opaque=0):
                     vm_code.extend(struct.pack('<BBBBi', 4, rd, 0, 0, name_set[av]))
 
         if on == 'SWAP':
-            if len(reg_stack) >= 2:
-                reg_stack[-1], reg_stack[-2] = reg_stack[-2], reg_stack[-1]
+            _swap_n = arg if arg is not None else 2
+            if len(reg_stack) >= _swap_n:
+                reg_stack[-1], reg_stack[-(_swap_n)] = reg_stack[-(_swap_n)], reg_stack[-1]
             # No VM instruction needed - just reorder the register stack
 
         if on == 'LIST_APPEND':
@@ -452,12 +453,18 @@ def convert(source, opaque=0):
                     _moves.append((_tgt, _a))
             # Detect source-target overlap between moves: if a source is also a target
             # of a later move, save it first.
+            _move_targets = set(_t for _t, _ in _moves)
             _saved = {}
             for _i, (_tgt, _src) in enumerate(_moves):
                 for _j in range(_i):
                     _prev_tgt = _moves[_j][0]
                     if _src == _prev_tgt and _src not in _saved:
+                        # Allocate save register, avoiding conflict with move targets
                         _tmp = alloc_reg()
+                        if _tmp in _move_targets:
+                            free_regs.append(_tmp)
+                            _tmp = next_reg
+                            next_reg += 1
                         vm_code.extend(struct.pack('<BBBBi', 6, _tmp, _src, 0, 0))
                         _saved[_src] = _tmp
                         if _src in reg_stack:
@@ -467,6 +474,10 @@ def convert(source, opaque=0):
             for _tgt, _src in _moves:
                 if _tgt in _live and _tgt not in _saved:
                     _tmp = alloc_reg()
+                    if _tmp in _move_targets:
+                        free_regs.append(_tmp)
+                        _tmp = next_reg
+                        next_reg += 1
                     vm_code.extend(struct.pack('<BBBBi', 6, _tmp, _tgt, 0, 0))
                     _saved[_tgt] = _tmp
                     reg_stack[reg_stack.index(_tgt)] = _tmp
@@ -1289,18 +1300,24 @@ def convert(source, opaque=0):
             nafter = (arg >> 8) & 0xFF
             seq_reg = reg_stack.pop() if reg_stack else 0
             free_reg(seq_reg)
+            new_regs = []
             for _ in range(nbefore + nafter + 1):
                 rd = alloc_reg()
                 reg_stack.append(rd)
-            vm_code.extend(struct.pack('<BBBBi', 136, nbefore, seq_reg, nafter, 0))
+                new_regs.append(rd)
+            base_reg = new_regs[0] if new_regs else 0
+            vm_code.extend(struct.pack('<BBBBi', 136, base_reg, seq_reg, nafter, nbefore))
 
         if on == 'UNPACK_SEQUENCE':
             seq_reg = reg_stack.pop() if reg_stack else 0
             free_reg(seq_reg)
+            new_regs = []
             for _ in range(arg):
                 rd = alloc_reg()
                 reg_stack.append(rd)
-            vm_code.extend(struct.pack('<BBBBi', 137, arg, seq_reg, 0, 0))
+                new_regs.append(rd)
+            base_reg = new_regs[0] if new_regs else 0
+            vm_code.extend(struct.pack('<BBBBi', 137, base_reg, seq_reg, 0, arg))
 
         if on == 'ENTER_EXECUTOR':
             exc_reg = reg_stack[-1] if reg_stack else 0
