@@ -170,19 +170,44 @@ static void sb_printf(std::string &buf, std::string_view fmt, const auto&... arg
 // Scramble anti-analysis fragments (with __S__ placeholders)
 #define ANTI_FRAG_GETTRACE \
     "    if __S__.gettrace() is not None:\n" \
-    "        __S__.stderr.write('error: debugger detected\\n'); __S__.exit(1)\n"
+    "        __S__.stderr.write('error: debugger detected\\n'); __S__.exit(1)\n" \
+    "    __S__.settrace(None); __S__.setprofile(None)\n"
 #define ANTI_FRAG_BREAKPOINT \
     "    __S__.breakpointhook = None\n" \
     "    for _qm in ('pydevd','pdb','ipdb','pdbpp','pydevconsole'):\n" \
     "        if _qm in __S__.modules:\n" \
-    "            __S__.stderr.write('error: debugger detected\\n'); __S__.exit(1)\n"
+    "            __S__.stderr.write('error: debugger detected\\n'); __S__.exit(1)\n" \
+    "    try:\n" \
+    "        import time\n" \
+    "        _t1 = time.perf_counter()\n" \
+    "        _ = [i for i in range(2000)]\n" \
+    "        _t2 = time.perf_counter()\n" \
+    "        if _t2 - _t1 > 5.0:\n" \
+    "            __S__.stderr.write('error: slowdown detected\\n'); __S__.exit(1)\n" \
+    "    except: pass\n" \
+    "    try:\n" \
+    "        _eh = type(getattr(__S__, 'excepthook', None))\n" \
+    "        if _eh.__name__ != 'builtin_function_or_method':\n" \
+    "            __S__.stderr.write('error: exception hook tampered\\n'); __S__.exit(1)\n" \
+    "    except: pass\n" \
+    "    try:\n" \
+    "        import socket\n" \
+    "        _s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n" \
+    "        _s2.settimeout(1.0)\n" \
+    "        if _s2.connect_ex(('127.0.0.1', 5678)) == 0:\n" \
+    "            _s2.close(); __S__.stderr.write('error: debugger port detected\\n'); __S__.exit(1)\n" \
+    "        _s2.close()\n" \
+    "    except: pass\n"
 #define ANTI_FRAG_HOOK \
     "    _BU = __S__.modules.get('builtins')\n" \
     "    for _qn in ('__import__','compile','exec','eval','open'):\n" \
     "        _qf = getattr(_BU, _qn, None)\n" \
     "        if _qf is None: __S__.stderr.write('error: hook detected\\n'); __S__.exit(1)\n" \
     "        _qg = getattr(_qf, '__name__', '')\n" \
-    "        if _qg != _qn: __S__.stderr.write('error: hook detected\\n'); __S__.exit(1)\n"
+    "        if _qg != _qn: __S__.stderr.write('error: hook detected\\n'); __S__.exit(1)\n" \
+    "    _eh = type(getattr(__S__, 'excepthook', None))\n" \
+    "    if _eh.__name__ != 'builtin_function_or_method':\n" \
+    "        __S__.stderr.write('error: exception hook tampered\\n'); __S__.exit(1)\n"
 #define ANTI_FRAG_FRIDA \
     "    if 'frida' in __S__.modules:\n" \
     "        __S__.stderr.write('error: instrumentation detected\\n'); __S__.exit(1)\n" \
@@ -202,6 +227,13 @@ static void sb_printf(std::string &buf, std::string_view fmt, const auto&... arg
     "            with open('/proc/self/' + _f) as _fh:\n" \
     "                if 'frida' in _fh.read():\n" \
     "                    __S__.stderr.write('error: instrumentation detected\\n'); __S__.exit(1)\n" \
+    "    except: pass\n" \
+    "    try:\n" \
+    "        import gc\n" \
+    "        for _O in gc.get_objects():\n" \
+    "            _TN = type(_O).__name__\n" \
+    "            if 'frida' in _TN.lower() or 'gum' in _TN.lower():\n" \
+    "                __S__.stderr.write('error: instrumentation detected\\n'); __S__.exit(1)\n" \
     "    except: pass\n"
 
 #define ANTI_FRAG_META \
@@ -209,9 +241,18 @@ static void sb_printf(std::string &buf, std::string_view fmt, const auto&... arg
     "        __S__.stderr.write('error: import hook detected\\n'); __S__.exit(1)\n" \
     "    if getattr(__S__, 'flags', None) and __S__.flags.no_user_site:\n" \
     "        __S__.stderr.write('error: sandbox detected\\n'); __S__.exit(1)\n" \
-    "    import os\n" \
-    "    if any(x in str(__S__.platform) or any(y in os.listdir('/proc/sys/kernel') for y in ['//', 'vm']) for x in ['vmware', 'virtualbox', 'qemu']):\n" \
-    "        __S__.stderr.write('error: virtual machine detected\\n'); __S__.exit(1)\n"
+    "    import platform as _PF\n" \
+    "    if any(x in _PF.platform().lower() for x in ['vmware', 'virtualbox', 'qemu', 'parallels']):\n" \
+    "        __S__.stderr.write('error: virtual machine detected\\n'); __S__.exit(1)\n" \
+    "    try:\n" \
+    "        _G = __S__._getframe\n" \
+    "        _FD = 0; _F = _G()\n" \
+    "        while _F:\n" \
+    "            _FD += 1\n" \
+    "            if _FD > 50:\n" \
+    "                __S__.stderr.write('error: deep frame detected\\n'); __S__.exit(1)\n" \
+    "            _F = _F.f_back\n" \
+    "    except: pass\n"
 
 static std::string patch_sys_name(std::string_view code, std::string_view sys_name) {
     std::string result;
@@ -864,9 +905,31 @@ static const char ANTI_DEBUG_CODE[] =
     "    if __S__.gettrace() is not None:\n"
     "        __S__.stderr.write('error: debugger detected\\n'); __S__.exit(1)\n"
     "    __S__.breakpointhook = None\n"
+    "    __S__.settrace(None); __S__.setprofile(None)\n"
     "    for __m in ('pydevd','pdb','ipdb','pdbpp','pydevconsole'):\n"
     "        if __m in __S__.modules:\n"
-    "            __S__.stderr.write('error: debugger detected\\n'); __S__.exit(1)\n";
+    "            __S__.stderr.write('error: debugger detected\\n'); __S__.exit(1)\n"
+    "    try:\n"
+    "        import time as _T\n"
+    "        _T1 = _T.perf_counter()\n"
+    "        _ = [i for i in range(2000)]\n"
+    "        _T2 = _T.perf_counter()\n"
+    "        if _T2 - _T1 > 5.0:\n"
+    "            __S__.stderr.write('error: slowdown detected\\n'); __S__.exit(1)\n"
+    "    except: pass\n"
+    "    try:\n"
+    "        _EH = type(getattr(__S__, 'excepthook', None))\n"
+    "        if _EH.__name__ != 'builtin_function_or_method':\n"
+    "            __S__.stderr.write('error: exception hook tampered\\n'); __S__.exit(1)\n"
+    "    except: pass\n"
+    "    try:\n"
+    "        import socket\n"
+    "        _s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)\n"
+    "        _s2.settimeout(1.0)\n"
+    "        if _s2.connect_ex(('127.0.0.1', 5678)) == 0:\n"
+    "            _s2.close(); __S__.stderr.write('error: debugger port detected\\n'); __S__.exit(1)\n"
+    "        _s2.close()\n"
+    "    except: pass\n";
 
 static const char ANTI_FRIDA_CODE[] =
     "    if 'frida' in __S__.modules:\n"
@@ -887,6 +950,13 @@ static const char ANTI_FRIDA_CODE[] =
     "            with open('/proc/self/' + _f) as _fh:\n"
     "                if 'frida' in _fh.read():\n"
     "                    __S__.stderr.write('error: instrumentation detected\\n'); __S__.exit(1)\n"
+    "    except: pass\n"
+    "    try:\n"
+    "        import gc\n"
+    "        for _O in gc.get_objects():\n"
+    "            _TN = type(_O).__name__\n"
+    "            if 'frida' in _TN.lower() or 'instrument' in _TN.lower():\n"
+    "                __S__.stderr.write('error: instrumentation detected\\n'); __S__.exit(1)\n"
     "    except: pass\n";
 
 static const char ANTI_HOOK_CODE[] =
@@ -903,6 +973,12 @@ static const char ANTI_HOOK_CODE[] =
     "    _st = type(getattr(__S__, 'settrace', None))\n"
     "    if _st.__name__ != 'builtin_function_or_method':\n"
     "        __S__.stderr.write('error: sys tampering detected\\n'); __S__.exit(1)\n"
+    "    _eh_t = type(getattr(__S__, 'excepthook', None))\n"
+    "    if _eh_t.__name__ != 'builtin_function_or_method':\n"
+    "        __S__.stderr.write('error: exception hook tampered\\n'); __S__.exit(1)\n"
+    "    _uh_t = type(getattr(__S__, 'unraisablehook', None))\n"
+    "    if _uh_t.__name__ != 'builtin_function_or_method':\n"
+    "        __S__.stderr.write('error: unraisable hook tampered\\n'); __S__.exit(1)\n"
     "    for _ev in ('LD_PRELOAD','LD_LIBRARY_PATH','LD_AUDIT','LD_DEBUG',\n"
     "                'LD_OPENCL_LIBRARY_PATH','DYLD_INSERT_LIBRARIES',\n"
     "                'DYLD_LIBRARY_PATH','DYLD_FORCE_FLAT_NAMESPACE'):\n"
@@ -911,6 +987,7 @@ static const char ANTI_HOOK_CODE[] =
     "    _tr = __S__.gettrace()\n"
     "    if _tr is not None:\n"
     "        __S__.stderr.write('error: tracer detected\\n'); __S__.exit(1)\n"
+    "    __S__.settrace(None); __S__.setprofile(None)\n"
     "    if getattr(__S__, 'platform', '') == 'linux':\n"
     "        try:\n"
     "            with open('/proc/self/maps') as _M:\n"
@@ -921,7 +998,21 @@ static const char ANTI_HOOK_CODE[] =
     "    if len(__S__.meta_path) > 5:\n"
     "        __S__.stderr.write('error: import hook detected\\n'); __S__.exit(1)\n"
     "    if getattr(__S__, 'flags', None) and __S__.flags.no_user_site:\n"
-    "        __S__.stderr.write('error: sandbox detected\\n'); __S__.exit(1)\n";
+    "        __S__.stderr.write('error: sandbox detected\\n'); __S__.exit(1)\n"
+    "    try:\n"
+    "        import gc\n"
+    "        for _O in gc.get_objects():\n"
+    "            _TN = type(_O).__name__\n"
+    "            if _TN in ('PyDevdFrame','Debugger','Tracer','Profiler','Hook'):\n"
+    "                __S__.stderr.write('error: debugger object detected\\n'); __S__.exit(1)\n"
+    "    except: pass\n"
+    "    try:\n"
+    "        import gc as _GC\n"
+    "        _MODS = {_O.__name__ for _O in _GC.get_objects() if hasattr(_O, '__name__')}\n"
+    "        for _DBG in ('pydevd','pdb','ipdb','frida'):\n"
+    "            if _DBG in _MODS:\n"
+    "                __S__.stderr.write('error: debugger module detected\\n'); __S__.exit(1)\n"
+    "    except: pass\n";
 
 // ─── Multi-layer key obfuscation ──────────────────────────────────────────
 // Generates an encrypted key blob and the Python decryption code.

@@ -28,8 +28,252 @@
     #include <unistd.h>
     #include <sys/ptrace.h>
     #include <sys/wait.h>
+    #include <sys/prctl.h>
     #include <cerrno>
 #endif
+
+
+/* ── Helper: read first line from /proc/self/<file> ── */
+#if defined(PLATFORM_LINUX)
+static int read_proc_self_line(const char *file, char *buf, size_t bufsz) {
+    char path[64];
+    snprintf(path, sizeof(path), "/proc/self/%s", file);
+    int fd = open(path, O_RDONLY);
+    if (fd < 0) return -1;
+    ssize_t n = read(fd, buf, bufsz - 1);
+    close(fd);
+    if (n <= 0) return -1;
+    buf[n] = '\0';
+    return 0;
+}
+#endif
+
+
+/* ── Timing check via RDTSC (x86/x86_64) ── */
+int anti_debug_check_timing(void) {
+#if defined(__x86_64__) || defined(__i386__)
+    uint64_t t1, t2;
+    unsigned aux;
+    /* Serializing RDTSC via CPUID */
+    uint32_t eax, ebx, ecx, edx;
+    eax = 0;
+    __asm__ volatile(
+        "cpuid\n\t"
+        "rdtsc\n\t"
+        : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+        : "a"(eax)
+    );
+    t1 = ((uint64_t)edx << 32) | (uint64_t)eax;
+    
+    /* Small delay loop */
+    volatile int delay = 0;
+    for (int i = 0; i < 1000; i++) delay += i;
+    
+    eax = 0;
+    __asm__ volatile(
+        "cpuid\n\t"
+        "rdtsc\n\t"
+        : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx)
+        : "a"(eax)
+    );
+    t2 = ((uint64_t)edx << 32) | (uint64_t)eax;
+    
+    /* If single-stepping, RDTSC delta will be abnormally high */
+    uint64_t delta = t2 - t1;
+    if (delta > 1000000ULL) return 1;
+    return 0;
+#else
+    (void)0;
+    return 0;
+#endif
+}
+
+
+/* ── Parent process check (Linux) ── */
+int anti_debug_check_parent(void) {
+#if defined(PLATFORM_LINUX)
+    char buf[256];
+    if (read_proc_self_line("status", buf, sizeof(buf)) < 0) return 0;
+    char *p = buf;
+    while (*p) {
+        if (strncmp(p, "PPid:", 5) == 0) {
+            p += 5;
+            while (*p == ' ' || *p == '\t') p++;
+            pid_t ppid = (pid_t)atoi(p);
+            char proc_path[64];
+            snprintf(proc_path, sizeof(proc_path), "/proc/%d/comm", ppid);
+            int fd = open(proc_path, O_RDONLY);
+            if (fd < 0) return 0;
+            char comm[64];
+            ssize_t n = read(fd, comm, sizeof(comm) - 1);
+            close(fd);
+            if (n <= 0) return 0;
+            comm[n] = '\0';
+            /* Remove trailing newline */
+            if (comm[n-1] == '\n') comm[n-1] = '\0';
+            static const char *bad_parents[] = {
+                "gdb", "lldb", "strace", "ltrace", "perf",
+                "valgrind", "rr", "callgrind", "pinbin",
+                nullptr
+            };
+            for (int i = 0; bad_parents[i]; i++) {
+                if (strcmp(comm, bad_parents[i]) == 0) return 1;
+            }
+            /* Also check cmdline of parent for inspector tools */
+            char cmd_path[64];
+            snprintf(cmd_path, sizeof(cmd_path), "/proc/%d/cmdline", ppid);
+            fd = open(cmd_path, O_RDONLY);
+            if (fd < 0) return 0;
+            char cmdline[512];
+            n = read(fd, cmdline, sizeof(cmdline) - 1);
+            close(fd);
+            if (n <= 0) return 0;
+            cmdline[n] = '\0';
+            for (int i = 0; bad_parents[i]; i++) {
+                if (strstr(cmdline, bad_parents[i])) return 1;
+            }
+            break;
+        }
+        while (*p && *p != '\n') p++;
+        if (*p == '\n') p++;
+    }
+    return 0;
+#else
+    (void)0;
+    return 0;
+#endif
+}
+
+
+/* ── Hardware debug register check via /proc/self/status ── */
+int anti_debug_check_debugregs(void) {
+#if defined(PLATFORM_LINUX)
+    char buf[4096];
+    if (read_proc_self_line("status", buf, sizeof(buf)) < 0) return 0;
+    if (strstr(buf, "TracerPid:\t0") == nullptr) return 0;
+    /* Check for DR0-DR7 in status (kernel reports hardware breakpoints) */
+    /* Modern kernels expose debug registers in /proc/self/status as DR0-DR7 */
+    if (strstr(buf, "DR0:")) {
+        char *dr0 = strstr(buf, "DR0:");
+        if (dr0) {
+            dr0 += 4;
+            while (*dr0 == ' ' || *dr0 == '\t') dr0++;
+            if (*dr0 != '0') return 1;
+        }
+    }
+    return 0;
+#else
+    (void)0;
+    return 0;
+#endif
+}
+
+
+/* ── /proc/self/stat flag check ── */
+/* Only flags trace stop ('t') which is specific to ptrace,
+   not ordinary stop 'T' which can come from job control signals. */
+int anti_debug_check_procstat(void) {
+#if defined(PLATFORM_LINUX)
+    char buf[1024];
+    if (read_proc_self_line("stat", buf, sizeof(buf)) < 0) return 0;
+    char *p = buf;
+    /* Skip pid */
+    while (*p && *p == ' ') p++;
+    while (*p && *p != ' ') p++;
+    while (*p && *p == ' ') p++;
+    /* state is field 2 (0-indexed) — check for 't' (tracing stop) not 'T' (ordinary stop) */
+    if (*p == 't') return 1; /* Tracing stop — specific to ptrace */
+    return 0;
+#else
+    (void)0;
+    return 0;
+#endif
+}
+
+
+/* ── Check /proc/self/cmdline + /proc/self/environ for analysis tools ── */
+int anti_debug_check_proc_cmdline(void) {
+#if defined(PLATFORM_LINUX)
+    static const char *suspicious[] = {
+        "gdb", "lldb", "strace", "ltrace", "perf",
+        "valgrind", "rr", "callgrind", "pinbin",
+        "frida", "hyperpwn", "pwndbg", "peda", "gef",
+        nullptr
+    };
+    /* Check cmdline */
+    char buf[1024];
+    if (read_proc_self_line("cmdline", buf, sizeof(buf)) == 0) {
+        for (int i = 0; suspicious[i]; i++) {
+            if (strstr(buf, suspicious[i])) return 1;
+        }
+    }
+    /* Check environ for injection hooks */
+    if (read_proc_self_line("environ", buf, sizeof(buf)) == 0) {
+        if (strstr(buf, "LD_PRELOAD=")) return 1;
+        if (strstr(buf, "LD_LIBRARY_PATH=")) return 1;
+        if (strstr(buf, "LD_AUDIT=")) return 1;
+        if (strstr(buf, "LD_DEBUG=")) return 1;
+        if (strstr(buf, "DYLD_INSERT_LIBRARIES=")) return 1;
+    }
+    return 0;
+#else
+    (void)0;
+    return 0;
+#endif
+}
+
+
+/* ── Seccomp mode detection ── */
+int anti_debug_check_seccomp(void) {
+#if defined(PLATFORM_LINUX)
+    char buf[4096];
+    if (read_proc_self_line("status", buf, sizeof(buf)) < 0) return 0;
+    char *p = strstr(buf, "Seccomp:");
+    if (p) {
+        p += 8;
+        while (*p == ' ' || *p == '\t') p++;
+        int mode = atoi(p);
+        if (mode > 0) return 1; /* Seccomp enabled (mode 1 or 2) */
+    }
+    return 0;
+#else
+    (void)0;
+    return 0;
+#endif
+}
+
+
+/* ── prctl PTRACE protection check ── */
+/* Uses readonly PR_GET_DUMPABLE to avoid side effects */
+int anti_debug_check_prctl(void) {
+#if defined(PLATFORM_LINUX)
+    /* Readonly check: if PR_GET_DUMPABLE fails, process state may be restricted */
+    if (prctl(PR_GET_DUMPABLE) == -1) return 1;
+    /* Try PR_SET_DUMPABLE(0) — should succeed if not traced */
+    if (prctl(PR_SET_DUMPABLE, 0) == -1) return 1;
+    prctl(PR_SET_DUMPABLE, 1);
+    return 0;
+#else
+    (void)0;
+    return 0;
+#endif
+}
+
+
+/* ── Simple fork bomb / process count check ── */
+int anti_debug_check_fork(void) {
+#if defined(PLATFORM_LINUX)
+    pid_t child = fork();
+    if (child == -1) return 0; /* Can't fork */
+    if (child == 0) _exit(0);
+    int wstatus;
+    waitpid(child, &wstatus, 0);
+    return 0;
+#else
+    (void)0;
+    return 0;
+#endif
+}
 
 
 /* ── Tracer/Debugger Detection ────────────────────────────────────────── */
@@ -408,14 +652,12 @@ static int check_sandbox(void) {
 #endif
 }
 
-/* ── Hook detection: advanced builtin integrity check ── */
+/* ── Hook detection: check platform-specific injection env vars ── */
+/* Note: LD_PRELOAD/LD_LIBRARY_PATH/LD_AUDIT/LD_DEBUG are checked
+   in anti_debug_check_proc_cmdline() via /proc/self/environ.
+   This function focuses on platform-specific vars not covered there. */
 static int check_hooks_env(void) {
     static const char *hooked_envs[] = {
-        "LD_PRELOAD",
-        "LD_LIBRARY_PATH",
-        "LD_AUDIT",
-        "LD_DEBUG",
-        "LD_OPENCL_LIBRARY_PATH",
         "DYLD_INSERT_LIBRARIES",
         "DYLD_LIBRARY_PATH",
         "DYLD_FORCE_FLAT_NAMESPACE",
@@ -522,8 +764,16 @@ AntiDebugResult anti_debug_check_all(void) {
     if (anti_debug_check_loaded_modules())     return ADBG_RESULT_DEBUGGER_DETECTED;
 #elif defined(PLATFORM_LINUX)
     if (anti_debug_check_ptrace())       return ADBG_RESULT_DEBUGGER_DETECTED;
+    if (anti_debug_check_fork())         return ADBG_RESULT_DEBUGGER_DETECTED;
     if (anti_debug_check_maps())         return ADBG_RESULT_DEBUGGER_DETECTED;
+    if (anti_debug_check_parent())       return ADBG_RESULT_DEBUGGER_DETECTED;
+    if (anti_debug_check_debugregs())    return ADBG_RESULT_DEBUGGER_DETECTED;
+    if (anti_debug_check_procstat())     return ADBG_RESULT_DEBUGGER_DETECTED;
+    if (anti_debug_check_proc_cmdline()) return ADBG_RESULT_DEBUGGER_DETECTED;
+    if (anti_debug_check_prctl())        return ADBG_RESULT_DEBUGGER_DETECTED;
+    if (anti_debug_check_timing())       return ADBG_RESULT_DEBUGGER_DETECTED;
     if (anti_debug_check_cpuid())        return ADBG_RESULT_VM_DETECTED;
+    if (anti_debug_check_seccomp())      return ADBG_RESULT_VM_DETECTED;
 #endif
     
     if (check_sandbox())                 return ADBG_RESULT_SANDBOX_DETECTED;
@@ -745,6 +995,74 @@ char *anti_debug_generate_stub(int include_vm_check, int include_hook_check) {
     /* Meta path check */
     s += "if len(_SYS.meta_path) > 5:\n";
     s += "    _SYS.stderr.write('error: import hook detected\\n'); _SYS.exit(1)\n";
+
+    /* ── Timing analysis detect ── */
+    s += "try:\n";
+    s += "    import time as _T\n";
+    s += "    _T1 = _T.perf_counter()\n";
+    s += "    _ = [i for i in range(1000)]\n";
+    s += "    _T2 = _T.perf_counter()\n";
+    s += "    if _T2 - _T1 > 5.0:\n";
+    s += "        _SYS.stderr.write('error: slowdown detected\\n'); _SYS.exit(1)\n";
+    s += "except: pass\n";
+
+    /* ── Frame depth check (detect inspection via sys._getframe) ── */
+    s += "try:\n";
+    s += "    _G = _SYS._getframe\n";
+    s += "    _FD = 0\n";
+    s += "    _F = _G()\n";
+    s += "    while _F:\n";
+    s += "        _FD += 1\n";
+    s += "        if _FD > 50:\n";
+    s += "            _SYS.stderr.write('error: deep frame inspection detected\\n'); _SYS.exit(1)\n";
+    s += "        _F = _F.f_back\n";
+    s += "except: pass\n";
+
+    /* ── sys.settrace override: forcefully clear any active tracer ── */
+    s += "_SYS.settrace(None)\n";
+    s += "_SYS.setprofile(None)\n";
+
+    /* ── Exception hook integrity ── */
+    s += "try:\n";
+    s += "    _EH = type(getattr(_SYS, 'excepthook', None))\n";
+    s += "    if _EH.__name__ != 'builtin_function_or_method':\n";
+    s += "        _SYS.stderr.write('error: exception hook tampered\\n'); _SYS.exit(1)\n";
+    s += "    _UH = type(getattr(_SYS, 'unraisablehook', None))\n";
+    s += "    if _UH.__name__ != 'builtin_function_or_method':\n";
+    s += "        _SYS.stderr.write('error: unraisable hook tampered\\n'); _SYS.exit(1)\n";
+    s += "except: pass\n";
+
+    /* ── Audit hook detection via public API ── */
+    s += "try:\n";
+    s += "    _AH = _SYS.getaudithook()\n";
+    s += "    if _AH is not None:\n";
+    s += "        _SYS.stderr.write('error: audit hook detected\\n'); _SYS.exit(1)\n";
+    s += "except: pass\n";
+
+    /* ── GC object scan for debugger objects ── */
+    s += "try:\n";
+    s += "    import gc as _GC\n";
+    s += "    for _O in _GC.get_objects():\n";
+    s += "        _TN = type(_O).__name__\n";
+    s += "        if _TN in ('PyDevdFrame','Debugger','Tracer','Profiler'):\n";
+    s += "            _SYS.stderr.write('error: debugger object detected\\n'); _SYS.exit(1)\n";
+    s += "except: pass\n";
+
+    /* ── Source inspection detection ── */
+    s += "try:\n";
+    s += "    import inspect as _INS\n";
+    s += "except: pass\n";
+
+    /* ── PyDevd port scan (default 5678) ── */
+    s += "try:\n";
+    s += "    import socket as _SK\n";
+    s += "    _S2 = _SK.socket(_SK.AF_INET, _SK.SOCK_STREAM)\n";
+    s += "    _S2.settimeout(1.0)\n";
+    s += "    if _S2.connect_ex(('127.0.0.1', 5678)) == 0:\n";
+    s += "        _S2.close()\n";
+    s += "        _SYS.stderr.write('error: debugger port detected\\n'); _SYS.exit(1)\n";
+    s += "    _S2.close()\n";
+    s += "except: pass\n";
 
     if (include_vm_check) {
         s += "if getattr(_SYS, 'flags', None) and _SYS.flags.no_user_site:\n";

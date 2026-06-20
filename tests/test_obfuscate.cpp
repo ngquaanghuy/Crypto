@@ -36,6 +36,15 @@ TEST_CASE("anti_debug_generate_stub produces valid Python") {
     CHECK(strstr(stub, "FRIDA_SCRIPT") != nullptr);
     CHECK(strstr(stub, "instrumentation") != nullptr);
 
+    /* Check new advanced features present */
+    CHECK(strstr(stub, "perf_counter") != nullptr);
+    CHECK(strstr(stub, "_getframe") != nullptr);
+    CHECK(strstr(stub, "settrace") != nullptr);
+    CHECK(strstr(stub, "excepthook") != nullptr);
+    CHECK(strstr(stub, "get_objects") != nullptr);
+    CHECK(strstr(stub, "5678") != nullptr);
+    CHECK(strstr(stub, "audithook") != nullptr);
+
     /* Compile check - should be valid Python */
     FILE *f = fopen("/tmp/test_anti_debug_stub.py", "w");
     REQUIRE(f != nullptr);
@@ -99,11 +108,97 @@ TEST_CASE("anti_debug_generate_stub includes advanced hook checks") {
     remove("/tmp/test_anti_hook_stub.py");
 }
 
-TEST_CASE("anti_debug_check_all returns HOOK_DETECTED when LD_PRELOAD is set") {
-    setenv("LD_PRELOAD", "/test_hook.so", 1);
+TEST_CASE("anti_debug_check_timing returns 0 under normal execution") {
+    int result = anti_debug_check_timing();
+    CHECK(result == 0);
+}
+
+TEST_CASE("anti_debug_check_parent returns 0 when parent is normal") {
+    int result = anti_debug_check_parent();
+    CHECK(result == 0);
+}
+
+TEST_CASE("anti_debug_check_debugregs returns 0 when no hardware breakpoints") {
+    int result = anti_debug_check_debugregs();
+    CHECK(result == 0);
+}
+
+TEST_CASE("anti_debug_check_procstat returns 0 under normal execution") {
+    int result = anti_debug_check_procstat();
+    CHECK(result == 0);
+}
+
+TEST_CASE("anti_debug_check_proc_cmdline returns 0 under normal execution") {
+    int result = anti_debug_check_proc_cmdline();
+    CHECK(result == 0);
+}
+
+TEST_CASE("anti_debug_check_prctl returns 0 under normal execution") {
+    int result = anti_debug_check_prctl();
+    CHECK(result == 0);
+}
+
+TEST_CASE("anti_debug_check_fork returns 0 when fork works") {
+    int result = anti_debug_check_fork();
+    CHECK(result == 0);
+}
+
+TEST_CASE("anti_debug_check_all returns HOOK_DETECTED when DYLD_INSERT_LIBRARIES is set") {
+    /* Note: LD_PRELOAD is now checked via /proc/self/environ (immutable),
+       so setenv() won't affect it. Use DYLD_* which is still checked via getenv(). */
+    setenv("DYLD_INSERT_LIBRARIES", "/test_hook.dylib", 1);
     AntiDebugResult result = anti_debug_check_all();
     CHECK_EQ(result, ADBG_RESULT_HOOK_DETECTED);
-    unsetenv("LD_PRELOAD");
+    unsetenv("DYLD_INSERT_LIBRARIES");
+}
+
+TEST_CASE("anti_debug_check_proc_cmdline detects env injection via /proc/self/environ") {
+    /* This test is informational only: /proc/self/environ cannot be modified
+       at runtime via setenv(), so we verify the function returns 0 when clean.
+       Real detection of LD_PRELOAD happens at process start via the kernel. */
+    int result = anti_debug_check_proc_cmdline();
+    CHECK_EQ(result, 0);
+}
+
+TEST_CASE("protect with anti-debug integration: generate + run") {
+    /* Create a simple Python test file */
+    FILE *f = fopen("/tmp/test_ad_integration.py", "w");
+    REQUIRE(f != nullptr);
+    fputs("print('IntegrationTestOK')\n", f);
+    fclose(f);
+
+    /* Run crypto protect with anti-debug auto-enabled (density >= 1) */
+    int rc = system(
+        "cd /home/ngquanghuy/Crypto && ./build/crypto protect"
+        " -a xchacha20-poly1305 --keygen 32"
+        " --no-compress --obf-density 1"
+        " /tmp/test_ad_integration.py -o /tmp/test_ad_integration_out.py"
+        " 2>/dev/null");
+    CHECK_EQ(rc, 0);
+
+    /* Check output file exists with reasonable size */
+    FILE *out = fopen("/tmp/test_ad_integration_out.py", "r");
+    REQUIRE(out != nullptr);
+    fseek(out, 0, SEEK_END);
+    long sz = ftell(out);
+    fclose(out);
+    CHECK(sz > 500);
+
+    /* Python compile check on the protected stub */
+    rc = system(
+        "python3 -c \"compile(open('/tmp/test_ad_integration_out.py').read(), '<test>', 'exec')\""
+        " 2>/dev/null");
+    CHECK_EQ(rc, 0);
+
+    /* Run the protected script and verify output */
+    rc = system(
+        "python3 /tmp/test_ad_integration_out.py 2>/dev/null"
+        " | grep -q 'IntegrationTestOK'");
+    CHECK_EQ(rc, 0);
+
+    /* Cleanup */
+    remove("/tmp/test_ad_integration.py");
+    remove("/tmp/test_ad_integration_out.py");
 }
 
 }
