@@ -11,11 +11,12 @@ Nếu bạn là người dùng Window/MacOS hãy sử dụng docker đã đượ
 
 # Đảm bảo các package
 
-CMake => 3.16 trở lên
-C++ 20
-OpenSSL
-ZLIB
-Python 3.10 trở lên
+- CMake => 3.16 trở lên
+- C++ 20
+- OpenSSL
+- ZLIB
+- Python 3.10 trở lên
+- Brotli
 
 # Cảnh báo
 - Chỉ sử dụng với dữ liệu nhảy cảm
