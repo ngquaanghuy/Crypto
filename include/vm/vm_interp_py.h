@@ -618,7 +618,7 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             _rd_val = next(_rs1_val)
             _rd_modified = True
         except StopIteration:
-            return _imm
+            return _imm if _vl_flag else _imm * 8
     def _h_list_extend():
         _rd_val.extend(_rs1_val)
     def _h_list_append():
@@ -965,7 +965,7 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             _rd_val = _gen.send(_val)
             _rd_modified = True
         except StopIteration:
-            return _imm
+            return _imm if _vl_flag else _imm * 8
     def _h_store_deref():
         _nm = _names[_imm] if _imm < len(_names) else None
         if _nm:
@@ -1148,12 +1148,14 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     def _h_call_kw():
         _fn = _rs1_val; _nr = _rs2; _ac = _imm & 0xFFFF
         _nt = _r_get(_nr) if _nr < 64 else None
-        _kwn = _nt if isinstance(_nt, tuple) and len(_nt) == _ac else (None,) * _ac
+        _kwn = _nt if isinstance(_nt, tuple) else ()
+        _num_kw = len(_kwn)
+        _num_pos = _ac - _num_kw
         _pa = []; _ka = {}
         for _i in range(_ac):
             _av = _r_get(_rr(_rs1, 1 + _i))
-            if _i < len(_kwn) and _kwn[_i] is not None:
-                _ka[_kwn[_i]] = _av
+            if _i >= _num_pos:
+                _ka[_kwn[_i - _num_pos]] = _av
             else:
                 _pa.append(_av)
         try:
@@ -1718,6 +1720,11 @@ def _vm_deserialize(_data):
         elif _t == 3: _v = float(_s)
         elif _t == 4: _v = _s.decode('utf-8')
         elif _t == 7: _v = _s
+        elif _t == 6 or _t == 8:
+            try:
+                _v = eval(_s.decode('utf-8'))
+            except (SyntaxError, NameError, TypeError, ValueError):
+                _v = _s
         else: _v = _s
         _consts.append(_v)
     

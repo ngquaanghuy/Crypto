@@ -211,6 +211,16 @@ def convert(source, opaque=0):
     vm_code = bytearray()
     prev_op = None
     _ii = 0
+    
+    # Track actual VM instruction positions (accounts for extra MOVEs from CALL, BUILD_*, etc.)
+    _py_off_to_vm_slot = {}  # Python bytecode offset → actual VM slot at start of that instruction
+    _jump_patches = []  # list of (byte_position_of_imm_in_vm_code, target_python_offset)
+    
+    def _record_target(_off):
+        """Instead of vm_target (which uses stale off2vm), record jump for patching after main pass."""
+        _jump_patches.append((len(vm_code) + 4, _off))
+        return 0  # placeholder; patched after main pass
+    
     while _ii < len(instrs):
         instr = instrs[_ii]
         on = instr.opname
@@ -260,6 +270,9 @@ def convert(source, opaque=0):
             reg_stack.append(rd)
             vm_code.extend(struct.pack('<BBBBi', 54, rd, code_reg, 0, 0))
             continue
+
+        # Record actual VM slot for this Python instruction BEFORE generating any VM code
+        _py_off_to_vm_slot[instr.offset] = len(vm_code) // 8
 
         # Map specialized opcodes to generic
         if on in SPECIAL_MAP:
@@ -389,7 +402,12 @@ def convert(source, opaque=0):
                 free_reg(val_reg)
             else:
                 val_reg = 0
-            list_reg = reg_stack[-1] if reg_stack else 0
+            # LIST_APPEND i → list is at stack[-i] from current top
+            _list_offset = max(arg, 1)
+            if _list_offset >= 1 and len(reg_stack) >= _list_offset:
+                list_reg = reg_stack[-_list_offset]
+            else:
+                list_reg = 0
             vm_code.extend(struct.pack('<BBBBi', 75, list_reg, val_reg, 0, 0))
 
         if on == 'BINARY_OP':
@@ -511,15 +529,13 @@ def convert(source, opaque=0):
 
         if on == 'FOR_ITER':
             if reg_stack:
-                iter_reg = reg_stack.pop()
-                # Don't free iter_reg — keep it alive for next iterations
+                iter_reg = reg_stack[-1]  # peek, don't pop — keep for next iterations
             else:
                 iter_reg = 0
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
             rd = alloc_reg()
             reg_stack.append(rd)
-            vm_code.extend(struct.pack('<BBBBi', 71, rd, iter_reg, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 71, rd, iter_reg, 0, _record_target(target)))
 
         if on == 'RETURN_VALUE':
             if reg_stack:
@@ -542,8 +558,7 @@ def convert(source, opaque=0):
 
         if on == 'JUMP_FORWARD':
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 30, 0, 0, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 30, 0, 0, 0, _record_target(target)))
 
         if on in ('POP_JUMP_IF_TRUE', 'POP_JUMP_IF_NOT_NONE'):
             if reg_stack:
@@ -552,8 +567,7 @@ def convert(source, opaque=0):
             else:
                 rs = 0
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 31, rs, 0, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 31, rs, 0, 0, _record_target(target)))
 
         if on in ('POP_JUMP_IF_FALSE', 'POP_JUMP_IF_NONE'):
             if reg_stack:
@@ -562,13 +576,11 @@ def convert(source, opaque=0):
             else:
                 rs = 0
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 32, rs, 0, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 32, rs, 0, 0, _record_target(target)))
 
         if on == 'JUMP_BACKWARD':
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 30, 0, 0, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 30, 0, 0, 0, _record_target(target)))
 
         if on == 'LIST_EXTEND':
             # Pop the tuple/values register, extend the list below it
@@ -861,8 +873,7 @@ def convert(source, opaque=0):
             rd = alloc_reg()
             reg_stack.append(rd)
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 192, rd, gen_reg, val_reg, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 192, rd, gen_reg, val_reg, _record_target(target)))
 
         if on == 'STORE_DEREF':
             ni(av)
@@ -935,19 +946,16 @@ def convert(source, opaque=0):
 
         if on == 'SETUP_CLEANUP':
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 208, 0, 0, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 208, 0, 0, 0, _record_target(target)))
 
         if on == 'SETUP_FINALLY':
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 209, 0, 0, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 209, 0, 0, 0, _record_target(target)))
 
         if on == 'SETUP_WITH':
             ctx_reg = reg_stack[-1] if reg_stack else 0
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 210, 0, ctx_reg, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 210, 0, ctx_reg, 0, _record_target(target)))
 
         if on == 'MATCH_KEYS':
             keys_reg = reg_stack.pop() if reg_stack else 0
@@ -990,13 +998,11 @@ def convert(source, opaque=0):
 
         if on == 'JUMP_BACKWARD_NO_INTERRUPT':
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 231, 0, 0, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 231, 0, 0, 0, _record_target(target)))
 
         if on == 'JUMP':
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 232, 0, 0, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 232, 0, 0, 0, _record_target(target)))
 
         if on == 'JUMP_IF_FALSE':
             if reg_stack:
@@ -1005,8 +1011,7 @@ def convert(source, opaque=0):
             else:
                 rs = 0
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 233, rs, 0, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 233, rs, 0, 0, _record_target(target)))
 
         if on == 'JUMP_IF_TRUE':
             if reg_stack:
@@ -1015,13 +1020,11 @@ def convert(source, opaque=0):
             else:
                 rs = 0
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 234, rs, 0, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 234, rs, 0, 0, _record_target(target)))
 
         if on == 'JUMP_NO_INTERRUPT':
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
-            vm_idx_target = vm_target(target)
-            vm_code.extend(struct.pack('<BBBBi', 235, 0, 0, 0, vm_idx_target))
+            vm_code.extend(struct.pack('<BBBBi', 235, 0, 0, 0, _record_target(target)))
 
         if on == 'DELETE_ATTR':
             ni(av)
@@ -1095,6 +1098,56 @@ def convert(source, opaque=0):
                 fn_reg = reg_stack.pop()
             else:
                 fn_reg = 0
+            # Move args to consecutive registers after fn_reg.
+            _moves = []
+            for _i, _a in enumerate(args):
+                _tgt = fn_reg + 1 + _i
+                if _a != _tgt:
+                    _moves.append((_tgt, _a))
+            _move_targets = set(_t for _t, _ in _moves)
+            _saved = {}
+            for _i, (_tgt, _src) in enumerate(_moves):
+                for _j in range(_i):
+                    _prev_tgt = _moves[_j][0]
+                    if _src == _prev_tgt and _src not in _saved:
+                        _tmp = alloc_reg()
+                        if _tmp in _move_targets:
+                            free_regs.append(_tmp)
+                            _tmp = next_reg
+                            next_reg += 1
+                        vm_code.extend(struct.pack('<BBBBi', 6, _tmp, _src, 0, 0))
+                        _saved[_src] = _tmp
+                        if _src in reg_stack:
+                            reg_stack[reg_stack.index(_src)] = _tmp
+            # Save names_idx if it's a MOVE target (already popped from reg_stack)
+            if names_idx and names_idx in _move_targets and names_idx not in _saved:
+                _tmp = alloc_reg()
+                if _tmp in _move_targets:
+                    free_regs.append(_tmp)
+                    _tmp = next_reg
+                    next_reg += 1
+                vm_code.extend(struct.pack('<BBBBi', 6, _tmp, names_idx, 0, 0))
+                names_idx = _tmp
+            _live = set(reg_stack)
+            for _tgt, _src in _moves:
+                if _tgt in _live and _tgt not in _saved:
+                    _tmp = alloc_reg()
+                    if _tmp in _move_targets:
+                        free_regs.append(_tmp)
+                        _tmp = next_reg
+                        next_reg += 1
+                    vm_code.extend(struct.pack('<BBBBi', 6, _tmp, _tgt, 0, 0))
+                    _saved[_tgt] = _tmp
+                    reg_stack[reg_stack.index(_tgt)] = _tmp
+            for _tgt, _src in _moves:
+                if _src in _saved:
+                    vm_code.extend(struct.pack('<BBBBi', 6, _tgt, _saved[_src], 0, 0))
+                elif _tgt in _saved:
+                    vm_code.extend(struct.pack('<BBBBi', 6, _tgt, _src, 0, 0))
+                else:
+                    vm_code.extend(struct.pack('<BBBBi', 6, _tgt, _src, 0, 0))
+            for _r in _saved.values():
+                free_reg(_r)
             for a in args: free_reg(a)
             free_reg(names_idx)
             free_reg(fn_reg)
@@ -1344,6 +1397,17 @@ def convert(source, opaque=0):
                 rs = 0
             vm_code.extend(struct.pack('<BBBBi', 139, rs, 0, 0, name_set[av]))
 
+    # ─── Patch all jump targets to use actual VM slots ───
+    for _pos, _target_off in _jump_patches:
+        _actual_target = _py_off_to_vm_slot.get(_target_off)
+        if _actual_target is None:
+            # Search forward for next valid offset (same fallback logic as vm_target)
+            _o = _target_off
+            while _o not in _py_off_to_vm_slot and _o < 65536:
+                _o += 2
+            _actual_target = _py_off_to_vm_slot.get(_o, len(vm_code) // 8)
+        struct.pack_into('<i', vm_code, _pos, _actual_target)
+
     # Opaque predicates: insert random always-true/always-false dead code
     if opaque and next_reg > 0:
         used = list(range(min(next_reg, 16)))
@@ -1358,8 +1422,9 @@ def convert(source, opaque=0):
     # Serialize
     out = bytearray()
     
-    # Apply Junk Insertion to bytecode
-    vm_code = insert_junk(vm_code)
+    # Apply Junk Insertion to bytecode (only when opaque flag set — otherwise breaks jump targets!)
+    if opaque:
+        vm_code = insert_junk(vm_code)
     
     # Consts
     out += struct.pack('<I', len(all_consts))
