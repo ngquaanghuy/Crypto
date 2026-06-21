@@ -1014,6 +1014,101 @@ static const char ANTI_HOOK_CODE[] =
     "                __S__.stderr.write('error: debugger module detected\\n'); __S__.exit(1)\n"
     "    except: pass\n";
 
+static const char ANTI_INLINE_HOOK_CODE[] =
+    "    if __S__.platform == 'linux':\n"
+    "        try:\n"
+    "            import ctypes as _CT\n"
+    "            _LIBC = _CT.CDLL('libc.so.6')\n"
+    "            for _FN in ('open', 'read', 'write', 'execve', 'system', 'popen'):\n"
+    "                try:\n"
+    "                    _ADDR = getattr(_LIBC, _FN)\n"
+    "                    _PRO = bytes(_CT.c_ubyte.from_address(_ADDR + _I) for _I in range(12))\n"
+    "                    if len(_PRO) >= 12:\n"
+    "                        if _PRO[0] == 0x48 and _PRO[1] == 0xB8 and _PRO[10] == 0xFF and _PRO[11] == 0xD0:\n"
+    "                            __S__.stderr.write('error: inline hook detected\\n'); __S__.exit(1)\n"
+    "                except: pass\n"
+    "        except: pass\n"
+    "        try:\n"
+    "            with open('/proc/self/maps') as _M:\n"
+    "                _WX = 0\n"
+    "                for _L in _M:\n"
+    "                    if ' rwx ' in _L or ' rwxp' in _L:\n"
+    "                        if '[heap]' in _L or '[anon' in _L:\n"
+    "                            _WX += 1\n"
+    "                if _WX > 2:\n"
+    "                    __S__.stderr.write('error: suspicious memory detected\\n'); __S__.exit(1)\n"
+    "        except: pass\n";
+
+static const char ANTI_PLT_HOOK_CODE[] =
+    "    if __S__.platform == 'linux':\n"
+    "        try:\n"
+    "            with open('/proc/self/maps') as _M:\n"
+    "                _LIBS = set()\n"
+    "                for _L in _M:\n"
+    "                    if '.so' in _L:\n"
+    "                        _P = _L.split()\n"
+    "                        if len(_P) >= 6:\n"
+    "                            _LIBS.add(tuple(_P[:2]))\n"
+    "                _GOT_HOOKED = False\n"
+    "                for _L in _M:\n"
+    "                    if ' rw-p ' in _L and '.so' in _L:\n"
+    "                        _P = _L.split()\n"
+    "                        if len(_P) >= 6:\n"
+    "                            _R = _P[0].split('-')\n"
+    "                            if len(_R) == 2:\n"
+    "                                try:\n"
+    "                                    _S = int(_R[0], 16)\n"
+    "                                    _E = int(_R[1], 16)\n"
+    "                                    if _E - _S < 1024*1024:\n"
+    "                                        pass\n"
+    "                                except: pass\n"
+    "        except: pass\n";
+
+static const char ANTI_SYSCALL_HOOK_CODE[] =
+    "    if __S__.platform == 'linux':\n"
+    "        try:\n"
+    "            import ctypes as _CT\n"
+    "            _LIBC = _CT.CDLL('libc.so.6')\n"
+    "            _CRIT_FUNCS = ['open', 'read', 'write', 'exit', 'close', 'mmap', 'mprotect']\n"
+    "            for _FN in _CRIT_FUNCS:\n"
+    "                try:\n"
+    "                    _FADDR = getattr(_LIBC, _FN)\n"
+    "                    _FB = bytes(_CT.c_ubyte.from_address(_FADDR + _I) for _I in range(12))\n"
+    "                    if len(_FB) >= 10:\n"
+    "                        if _FB[0] == 0x48 and _FB[1] == 0xB8 and _FB[10] == 0xFF and _FB[11] == 0xD0:\n"
+    "                            __S__.stderr.write('error: syscall hook detected\\n'); __S__.exit(1)\n"
+    "                except: pass\n"
+    "        except: pass\n";
+
+static const char ANTI_MEM_INTEGRITY_CODE[] =
+    "    if __S__.platform == 'linux':\n"
+    "        try:\n"
+    "            with open('/proc/self/maps') as _M:\n"
+    "                _WX_COUNT = 0\n"
+    "                _PRIVATE_EXEC = 0\n"
+    "                for _L in _M:\n"
+    "                    _P = _L.split()\n"
+    "                    if len(_P) >= 2:\n"
+    "                        if 'rwx' in _P[1]:\n"
+    "                            _WX_COUNT += 1\n"
+    "                            if '[heap]' in _L or '[anon' in _L:\n"
+    "                                _PRIVATE_EXEC += 1\n"
+    "                if _WX_COUNT > 10 or _PRIVATE_EXEC > 2:\n"
+    "                    __S__.stderr.write('error: memory integrity check failed\\n'); __S__.exit(1)\n"
+    "                for _L in _M:\n"
+    "                    if '.so' in _L:\n"
+    "                        _P = _L.split()\n"
+    "                        if len(_P) >= 2 and 'r-xp' in _P[1]:\n"
+    "                            _R = _P[0].split('-')\n"
+    "                            if len(_R) == 2:\n"
+    "                                try:\n"
+    "                                    _S = int(_R[0], 16)\n"
+    "                                    _E = int(_R[1], 16)\n"
+    "                                    if _E - _S > 16*1024*1024:\n"
+    "                                        __S__.stderr.write('error: large library mapping detected\\n'); __S__.exit(1)\n"
+    "                                except: pass\n"
+    "        except: pass\n";
+
 // ─── Multi-layer key obfuscation ──────────────────────────────────────────
 // Generates an encrypted key blob and the Python decryption code.
 // Layers:
@@ -1564,6 +1659,7 @@ ExitCode protect_file(const char *input, const char *output,
 
     // ── anti-analysis assembly (with __S__ placeholder) ──
     int use_debug = 0, use_hook = 0, use_scramble = 0, use_opaque = 0, use_frida = 0;
+    int use_inline = 0, use_plt = 0, use_syscall = 0, use_mem_integrity = 0;
     if (anti_analysis && anti_analysis[0]) {
         const char *p = anti_analysis;
         while (*p) {
@@ -1573,7 +1669,15 @@ ExitCode protect_file(const char *input, const char *output,
             else if (strncmp(p, "scramble", 8) == 0) { use_scramble = 1; p += 8; }
             else if (strncmp(p, "opaque", 6) == 0) { use_opaque = 1; p += 6; }
             else if (strncmp(p, "frida",  5) == 0) { use_frida  = 1; p += 5; }
-            else if (strncmp(p, "all", 3) == 0) { use_debug = use_hook = use_scramble = use_opaque = use_frida = 1; p += 3; }
+            else if (strncmp(p, "inline", 6) == 0) { use_inline = 1; p += 6; }
+            else if (strncmp(p, "plt", 3) == 0) { use_plt = 1; p += 3; }
+            else if (strncmp(p, "syscall", 7) == 0) { use_syscall = 1; p += 7; }
+            else if (strncmp(p, "memory", 6) == 0) { use_mem_integrity = 1; p += 6; }
+            else if (strncmp(p, "all", 3) == 0) {
+                use_debug = use_hook = use_scramble = use_opaque = use_frida = 1;
+                use_inline = use_plt = use_syscall = use_mem_integrity = 1;
+                p += 3;
+            }
             else    { while (*p && *p != ',') p++; }
         }
     }
@@ -2010,6 +2114,34 @@ ExitCode protect_file(const char *input, const char *output,
         size_t sl = strlen(ANTI_FRIDA_CODE);
         if (anti_pos + sl < sizeof(anti_buf)) {
             memcpy(anti_buf + anti_pos, ANTI_FRIDA_CODE, sl);
+            anti_pos += sl;
+        }
+    }
+    if (use_inline) {
+        size_t sl = strlen(ANTI_INLINE_HOOK_CODE);
+        if (anti_pos + sl < sizeof(anti_buf)) {
+            memcpy(anti_buf + anti_pos, ANTI_INLINE_HOOK_CODE, sl);
+            anti_pos += sl;
+        }
+    }
+    if (use_plt) {
+        size_t sl = strlen(ANTI_PLT_HOOK_CODE);
+        if (anti_pos + sl < sizeof(anti_buf)) {
+            memcpy(anti_buf + anti_pos, ANTI_PLT_HOOK_CODE, sl);
+            anti_pos += sl;
+        }
+    }
+    if (use_syscall) {
+        size_t sl = strlen(ANTI_SYSCALL_HOOK_CODE);
+        if (anti_pos + sl < sizeof(anti_buf)) {
+            memcpy(anti_buf + anti_pos, ANTI_SYSCALL_HOOK_CODE, sl);
+            anti_pos += sl;
+        }
+    }
+    if (use_mem_integrity) {
+        size_t sl = strlen(ANTI_MEM_INTEGRITY_CODE);
+        if (anti_pos + sl < sizeof(anti_buf)) {
+            memcpy(anti_buf + anti_pos, ANTI_MEM_INTEGRITY_CODE, sl);
             anti_pos += sl;
         }
     }

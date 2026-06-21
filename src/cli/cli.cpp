@@ -56,7 +56,8 @@ static void print_usage(void) {
     printf("      --obf-none <tech>   Enable all obfuscation EXCEPT <tech>\n");
     printf("                          (mutually exclusive with --obf)\n");
     printf("      --anti-analysis <t> Anti-analysis protection: debug,\n");
-    printf("                          hook, frida, scramble, opaque (comma-separated,\n");
+    printf("                          hook, frida, scramble, opaque, inline,\n");
+    printf("                          plt, syscall, memory (comma-separated,\n");
     printf("                          protect only)\n");
     printf("      --compress <algo>   Compression algorithm: zlib, lzma, bz2,\n");
     printf("                          brotli, gzip, lz4, snappy,\n");

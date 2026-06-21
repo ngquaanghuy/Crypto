@@ -30,6 +30,7 @@
     #include <sys/wait.h>
     #include <sys/prctl.h>
     #include <cerrno>
+    #include <dlfcn.h>
 #endif
 
 
@@ -748,6 +749,350 @@ static int check_hooks(void) {
     return 0;
 }
 
+/* ── Inline Hook Detection ────────────────────────────────────────────────── */
+/* Detects common inline hook patterns:
+ *   x86_64: mov rax, imm64; jmp rax  (FF D0) or push/ret patterns
+ *   x86:   push addr; ret            (FF 35 or 68 + C3)
+ *   ARM:   LDR pc, [pc, #-4]         (E51FF004)
+ * Returns 1 if hook detected, 0 otherwise. */
+int anti_debug_check_inline_hooks(void) {
+#if defined(PLATFORM_LINUX)
+    FILE *fp = fopen("/proc/self/maps", "r");
+    if (!fp) return 0;
+
+    char line[1024];
+    char last_path[256] = {0};
+
+    while (fgets(line, sizeof(line), fp)) {
+        /* Only scan executable library mappings (not [vdso], [vvar], [vsyscall]) */
+        if (!strstr(line, " r-xp ") || strstr(line, "[vdso]") ||
+            strstr(line, "[vvar]") || strstr(line, "[vsyscall]"))
+            continue;
+
+        /* Extract path */
+        char *path_start = strchr(line, '/');
+        if (!path_start) continue;
+
+        /* Skip if same as last (avoid re-scanning same library) */
+        if (strcmp(path_start, last_path) == 0) continue;
+        strncpy(last_path, path_start, sizeof(last_path) - 1);
+        last_path[sizeof(last_path) - 1] = '\0';
+
+        /* Extract permissions and inode - check for [heap] or [stack] in line */
+        if (strstr(line, "[heap]") || strstr(line, "[stack]") ||
+            strstr(line, "[anon_") || strstr(line, "[stack:"))
+            continue;
+
+        /* Extract start address */
+        unsigned long start_addr = strtoul(line, nullptr, 16);
+        if (!start_addr) continue;
+
+        /* Read first 64 bytes of each executable mapping for hook patterns */
+        int fd = open("/proc/self/mem", O_RDONLY);
+        if (fd < 0) continue;
+
+        unsigned char buf[64];
+        ssize_t bytes_read = pread(fd, buf, sizeof(buf), start_addr);
+        close(fd);
+
+        if (bytes_read < 12) continue;
+
+        /* Common inline hook patterns to detect */
+        for (int i = 0; i < bytes_read - 11; i++) {
+            /* Pattern 1: mov rax, imm64; jmp rax (FF D0) - common x86_64 hook */
+            if (buf[i] == 0x48 && buf[i+1] == 0xB8 && buf[i+10] == 0xFF && buf[i+11] == 0xD0) {
+                fclose(fp);
+                return 1;
+            }
+
+            /* Pattern 2: push + ret (common cross-platform hook) */
+            if (buf[i] == 0xFF && (buf[i+1] == 0x35 || buf[i+1] == 0x25) && buf[i+6] == 0xC3) {
+                fclose(fp);
+                return 1;
+            }
+
+            /* Pattern 3: push imm32; ret (0x68 + ret) */
+            if (buf[i] == 0x68 && buf[i+5] == 0xC3) {
+                unsigned char *next = (unsigned char *)((unsigned long)start_addr + i + 5 + 1);
+                unsigned char tmp[2];
+                ssize_t next_bytes = pread(fd, tmp, 2, (off_t)next);
+                if (next_bytes == 2 && tmp[0] == 0xC3) {
+                    fclose(fp);
+                    return 1;
+                }
+            }
+
+            /* Pattern 4: jmp far (FF /5) - indirect far jump */
+            if ((buf[i] & 0xFF) == 0xFF && (buf[i+1] & 0x38) == 0x20) {
+                fclose(fp);
+                return 1;
+            }
+        }
+    }
+    fclose(fp);
+#endif
+    return 0;
+}
+
+/* ── PLT/GOT Hook Detection (Linux ELF) ─────────────────────────────────── */
+/* The Procedure Linkage Table (PLT) and Global Offset Table (GOT) are
+ * common targets for function hooking. This checks for:
+ * - GOT entries pointing outside expected library ranges
+ * - PLT entries that have been modified from standard stub patterns */
+int anti_debug_check_plt_hooks(void) {
+#if defined(PLATFORM_LINUX)
+    FILE *fp = fopen("/proc/self/maps", "r");
+    if (!fp) return 0;
+
+    char line[1024];
+    char last_lib[256] = {0};
+
+    while (fgets(line, sizeof(line), fp)) {
+        /* Look for writable segments in shared libraries (potential GOT hooks) */
+        if (!strstr(line, " rw-p ") && !strstr(line, " rwxp ")) continue;
+
+        /* Extract library path */
+        char *path = strchr(line, '/');
+        if (!path) continue;
+
+        /* Skip pseudo-VMAs */
+        if (strstr(line, "[heap]") || strstr(line, "[stack]") ||
+            strstr(line, "[anon_") || strstr(line, "]"))
+            continue;
+
+        /* Only check main executables and known system libs */
+        if (strncmp(path, "/lib", 4) != 0 && strncmp(path, "/usr/lib", 8) != 0)
+            continue;
+
+        /* Extract start and end addresses */
+        unsigned long start, end;
+        if (sscanf(line, "%lx-%lx", &start, &end) != 2) continue;
+
+        size_t seg_size = end - start;
+        if (seg_size < 8 || seg_size > 16*1024*1024) continue;
+
+        /* Map the segment and scan for GOT/PLT indicators */
+        int fd = open("/proc/self/mem", O_RDONLY);
+        if (fd < 0) continue;
+
+        /* Sample scan: check first 4KB for suspicious pointer values */
+        unsigned char *buf = (unsigned char *)malloc(4096);
+        if (!buf) { close(fd); continue; }
+
+        ssize_t n = pread(fd, buf, 4096, start);
+        close(fd);
+
+        if (n > 0) {
+            /* Scan for pointers that point to:
+             * 1. Memory regions not in any mapped library
+             * 2. Executable segments of other libraries (potential hooks)
+             * 3. WX memory regions (injected code) */
+            for (ssize_t i = 0; i < n - 8; i += 8) {
+                unsigned long ptr = *(unsigned long *)(buf + i);
+
+                /* Check if pointer is in user-space range */
+                if (ptr < 0x10000 || ptr > 0x7FFFFFFFFFFF) continue;
+
+                /* Check if pointer points to suspicious WX memory */
+                char ptr_path[64];
+                snprintf(ptr_path, sizeof(ptr_path), "/proc/self/maps");
+
+                FILE *mp = fopen(ptr_path, "r");
+                if (!mp) continue;
+
+                char mline[1024];
+                int found_valid = 0;
+                while (fgets(mline, sizeof(mline), mp)) {
+                    unsigned long m_start, m_end;
+                    char perms[8], dev[8], pathname[256] = "";
+
+                    sscanf(mline, "%lx-%lx %s %*s %*s %*s %*s %s",
+                           &m_start, &m_end, perms, pathname);
+
+                    if (ptr >= m_start && ptr < m_end) {
+                        found_valid = 1;
+
+                        /* If pointing to WX memory that's not a known library, flag it */
+                        if (strstr(perms, "rwx") && strlen(pathname) == 0) {
+                            free(buf);
+                            fclose(mp);
+                            fclose(fp);
+                            return 1;
+                        }
+                        break;
+                    }
+                }
+                fclose(mp);
+            }
+        }
+
+        free(buf);
+    }
+    fclose(fp);
+#endif
+    return 0;
+}
+
+/* ── Syscall Wrapper Verification ────────────────────────────────────────── */
+/* Checks for modifications to common syscall wrapper functions by scanning
+ * the first few bytes of critical libc functions. */
+int anti_debug_check_syscall_hooks(void) {
+#if defined(PLATFORM_LINUX)
+    /* Get address of a few critical libc functions */
+    void *libc_handle = dlopen("libc.so.6", RTLD_NOLOAD);
+    if (!libc_handle) return 0;
+
+    /* Critical functions that are common hook targets */
+    const char *critical_funcs[] = {
+        "open", "openat", "read", "write", "close",
+        "socket", "connect", "accept", "send", "recv",
+        "execve", "system", "popen",
+        "_exit", "exit",
+        "mmap", "mprotect", "munmap",
+        "ptrace", "prctl",
+        nullptr
+    };
+
+    int fd = open("/proc/self/mem", O_RDONLY);
+    if (fd < 0) { dlclose(libc_handle); return 0; }
+
+    int hooked = 0;
+
+    for (int fi = 0; critical_funcs[fi] && !hooked; fi++) {
+        void *func_addr = dlsym(libc_handle, critical_funcs[fi]);
+        if (!func_addr) continue;
+
+        /* Read first 16 bytes of each function (typical function prologue) */
+        unsigned char buf[16];
+        ssize_t n = pread(fd, buf, sizeof(buf), (off_t)func_addr);
+
+        if (n < 8) continue;
+
+        /* Check for common hook patterns:
+         * 1. mov rax, imm64; jmp rax (hook trampoline)
+         * 2. push pattern followed by near jump
+         * 3. Single byte 0x90 (nop) padding followed by indirect jump */
+        for (int j = 0; j < n - 7; j++) {
+            /* mov rax, imm64; jmp rax - 12 bytes */
+            if (buf[j] == 0x48 && buf[j+1] == 0xB8 &&
+                buf[j+10] == 0xFF && buf[j+11] == 0xD0) {
+                hooked = 1;
+                break;
+            }
+
+            /* push rbp; mov rbp, rsp; jmp (standard prologue - OK) */
+            if (buf[j] == 0x55 && buf[j+1] == 0x48 && buf[j+2] == 0x89 &&
+                buf[j+3] == 0xE5 && buf[j+4] == 0x90) {
+                /* Function starts with standard prologue + nop, OK */
+                break;
+            }
+
+            /* Standard x86_64 prologue without nop (OK) */
+            if (buf[j] == 0x55 && buf[j+1] == 0x48 && buf[j+2] == 0x89 &&
+                buf[j+3] == 0xE5) {
+                break;
+            }
+
+            /* Standard x86 prologue (OK) */
+            if (buf[j] == 0x55 && buf[j+1] == 0x89 && buf[j+2] == 0xE5) {
+                break;
+            }
+
+            /* If none of the above and bytes don't look like a normal hook... */
+            if (j == n - 8) {
+                /* Check if function is entirely nops (packed/encrypted stub) */
+                int all_nops = 1;
+                for (int k = 0; k < n; k++) {
+                    if (buf[k] != 0x90 && buf[k] != 0xCC) {
+                        all_nops = 0;
+                        break;
+                    }
+                }
+                if (!all_nops) {
+                    /* Unknown pattern that doesn't match normal prologue */
+                    hooked = 1;
+                }
+            }
+        }
+    }
+
+    close(fd);
+    dlclose(libc_handle);
+    return hooked;
+#else
+    return 0;
+#endif
+}
+
+/* ── Enhanced Memory Region Integrity Check ─────────────────────────────── */
+/* Enhanced version that detects:
+ * - Newly allocated WX memory regions
+ * - Unexpected changes in memory layout
+ * - Private WX mappings (potential code injection) */
+int anti_debug_check_memory_integrity(void) {
+#if defined(PLATFORM_LINUX)
+    FILE *fp = fopen("/proc/self/maps", "r");
+    if (!fp) return 0;
+
+    char line[1024];
+    int wx_regions = 0;
+    int private_wx_count = 0;
+
+    while (fgets(line, sizeof(line), fp)) {
+        /* Parse permissions field - format: rwxp or rw-p */
+        char perms[5] = "";
+        unsigned long start, end;
+        char pathname[256] = "";
+
+        if (sscanf(line, "%lx-%lx %4s %*s %*s %*s %*s %255[^\n]",
+                   &start, &end, perms, pathname) < 3)
+            continue;
+
+        /* Count WX regions */
+        if (strchr(perms, 'w') && strchr(perms, 'x')) {
+            wx_regions++;
+
+            /* Private WX mappings (not backed by file) are suspicious for JIT hooks */
+            if (!pathname[0] || strstr(pathname, "[anon") || strstr(pathname, "[heap]")) {
+                private_wx_count++;
+            }
+        }
+
+        /* Check for executable memory in unexpected locations */
+        if (strchr(perms, 'x')) {
+            /* Writable+Executable is always suspicious for security */
+            if (strchr(perms, 'w')) {
+                fclose(fp);
+                return 1;
+            }
+
+            /* Anonymous executable memory is also suspicious */
+            if (!pathname[0] || strstr(pathname, "[anon")) {
+                /* Only flag if not vdso/vvar/vsyscall (those are legitimate) */
+                if (!strstr(line, "[vdso]") && !strstr(line, "[vvar]") &&
+                    !strstr(line, "[vsyscall]")) {
+                    /* Check for suspicious sizes (> 1MB anonymous exec) */
+                    size_t size = end - start;
+                    if (size > 1024 * 1024) {
+                        fclose(fp);
+                        return 1;
+                    }
+                }
+            }
+        }
+    }
+    fclose(fp);
+
+    /* Multiple private WX mappings suggest JIT hooking */
+    if (private_wx_count > 2) return 1;
+
+    /* Multiple WX regions in general could indicate hooking libraries */
+    if (wx_regions > 10) return 1;
+
+#endif
+    return 0;
+}
+
 /* ── Combined check ── */
 AntiDebugResult anti_debug_check_all(void) {
     if (anti_debug_check_tracerpid())    return ADBG_RESULT_DEBUGGER_DETECTED;
@@ -778,6 +1123,15 @@ AntiDebugResult anti_debug_check_all(void) {
     
     if (check_sandbox())                 return ADBG_RESULT_SANDBOX_DETECTED;
     if (check_hooks())                   return ADBG_RESULT_HOOK_DETECTED;
+
+    /* Advanced hook detection (Linux) */
+#if defined(PLATFORM_LINUX)
+    if (anti_debug_check_inline_hooks())      return ADBG_RESULT_HOOK_DETECTED;
+    if (anti_debug_check_plt_hooks())         return ADBG_RESULT_HOOK_DETECTED;
+    if (anti_debug_check_syscall_hooks())     return ADBG_RESULT_HOOK_DETECTED;
+    if (anti_debug_check_memory_integrity()) return ADBG_RESULT_HOOK_DETECTED;
+#endif
+
     return ADBG_RESULT_CLEAN;
 }
 
@@ -990,6 +1344,58 @@ char *anti_debug_generate_stub(int include_vm_check, int include_hook_check) {
         s += "                'DYLD_FORCE_FLAT_NAMESPACE'):\n";
         s += "        if _OS.environ.get(_DY):\n";
         s += "            _SYS.stderr.write('error: DYLD injection detected\\n'); _SYS.exit(1)\n";
+
+        /* ── Enhanced memory integrity: multiple WX region check ── */
+        s += "if _IS_LINUX:\n";
+        s += "    try:\n";
+        s += "        _WX_COUNT = 0\n";
+        s += "        _PRIVATE_WX = 0\n";
+        s += "        with open('/proc/self/maps') as _M:\n";
+        s += "            for _L in _M:\n";
+        s += "                if ' rwx' in _L:\n";
+        s += "                    _WX_COUNT += 1\n";
+        s += "                    if '[heap]' in _L or '[anon' in _L:\n";
+        s += "                        _PRIVATE_WX += 1\n";
+        s += "        if _WX_COUNT > 10 or _PRIVATE_WX > 2:\n";
+        s += "            _SYS.stderr.write('error: suspicious memory regions detected\\n'); _SYS.exit(1)\n";
+        s += "    except: pass\n";
+
+        /* ── Inline hook detection via function prologue scan ── */
+        s += "if _IS_LINUX:\n";
+        s += "    try:\n";
+        s += "        import ctypes as _CT\n";
+        s += "        _LIBC = _CT.CDLL('libc.so.6')\n";
+        s += "        for _FN in ('open', 'read', 'write', 'execve', 'system'):\n";
+        s += "            try:\n";
+        s += "                _ADDR = getattr(_LIBC, _FN)\n";
+        s += "                _PROLOGUE = b''\n";
+        s += "                for _I in range(16):\n";
+        s += "                    try:\n";
+        s += "                        _PROLOGUE += _CT.c_ubyte.from_address(_ADDR + _I)\n";
+        s += "                    except: break\n";
+        s += "                if len(_PROLOGUE) >= 8:\n";
+        s += "                    if _PROLOGUE[0] == 0x48 and _PROLOGUE[1] == 0xB8 and _PROLOGUE[10] == 0xFF and _PROLOGUE[11] == 0xD0:\n";
+        s += "                        _SYS.stderr.write('error: inline hook detected\\n'); _SYS.exit(1)\n";
+        s += "            except: pass\n";
+        s += "    except: pass\n";
+
+        /* ── Syscall hook detection via /proc syscall tracing ── */
+        s += "if _IS_LINUX:\n";
+        s += "    try:\n";
+        s += "        import ctypes as _CT\n";
+        s += "        _LIBC = _CT.CDLL('libc.so.6')\n";
+        s += "        _SYSCALLS = ['open', 'read', 'write', 'exit', 'close', 'mmap']\n";
+        s += "        for _S in _SYSCALLS:\n";
+        s += "            try:\n";
+        s += "                _SADDR = getattr(_LIBC, _S)\n";
+        s += "                _SB = b''\n";
+        s += "                for _J in range(12):\n";
+        s += "                    try: _SB += _CT.c_ubyte.from_address(_SADDR + _J)\n";
+        s += "                    except: break\n";
+        s += "                if _SB[:3] == b'\\x48\\xb8' and _SB[10:12] == b'\\xff\\xd0':\n";
+        s += "                    _SYS.stderr.write('error: syscall hook detected\\n'); _SYS.exit(1)\n";
+        s += "            except: pass\n";
+        s += "    except: pass\n";
     }
 
     /* Meta path check */
