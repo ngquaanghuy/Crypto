@@ -235,7 +235,7 @@ TEST_CASE("rename_mangle_name is context-dependent") {
     free(m2);
 }
 
-TEST_CASE("rename_mangle_name same input gives same output") {
+TEST_CASE("rename_mangle_name is non-deterministic (random length/prefix)") {
     unsigned char key[32];
     RAND_bytes(key, sizeof(key));
 
@@ -243,7 +243,13 @@ TEST_CASE("rename_mangle_name same input gives same output") {
     char *m2 = rename_mangle_name("test", 0, "", key, 32);
     REQUIRE(m1 != nullptr);
     REQUIRE(m2 != nullptr);
-    CHECK_EQ(strcmp(m1, m2), 0);
+    /* rename_mangle_name intentionally uses random hex length and random prefix
+       (_ vs __ vs _0–_9) so two calls with identical inputs MUST differ */
+    CHECK_NE(strcmp(m1, m2), 0);
+    CHECK(strlen(m1) >= 3);
+    CHECK(strlen(m2) >= 3);
+    CHECK(m1[0] == '_');
+    CHECK(m2[0] == '_');
     free(m1);
     free(m2);
 }
