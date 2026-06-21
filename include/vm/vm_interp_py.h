@@ -862,7 +862,11 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         nonlocal _rd_val, _rd_modified
         _cnt = _rs2 & 0xFFFF; _d = {}
         for _i in range(_cnt):
-            _key_off = _rr(_rd, _i * 2); _val_off = _rr(_rd, _i * 2 + 1)
+            # Items were moved to sequential raw indices starting at rd+1:
+            # [key0, val0, key1, val1, ...] at [rd+1, rd+2, rd+3, rd+4, ...]
+            # Use offset 1 (not 0) because offset 0 is the BUILD_MAP dest register itself
+            _key_off = _rr(_rd, 1 + _i * 2)
+            _val_off = _rr(_rd, 1 + _i * 2 + 1)
             _d[_r_get(_key_off)] = _r_get(_val_off)
         _rd_val = _d
         _rd_modified = True
