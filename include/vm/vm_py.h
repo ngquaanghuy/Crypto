@@ -492,7 +492,6 @@ def convert(source, opaque=0):
                 fn_reg = reg_stack.pop()
             else:
                 fn_reg = 0
-            
             # Move args to consecutive registers after fn_reg.
             # Build list of (target, source) moves
             _moves = []
@@ -1373,6 +1372,7 @@ def convert(source, opaque=0):
 
         if on == 'STORE_FAST_STORE_FAST':
             if isinstance(av, tuple) and len(av) >= 2:
+                import sys as _sys2
                 ni(av[0])
                 ni(av[1])
                 # Pop both regs from reg_stack (pushed by UNPACK_SEQUENCE)
@@ -1382,6 +1382,8 @@ def convert(source, opaque=0):
                 if reg_first: free_reg(reg_first)
                 if reg_second: free_reg(reg_second)
                 # Generate two STORE_FAST instructions (opcode 5)
+                _sys2.stderr.write(f'[vm.compile] STORE_FAST_STORE_FAST {av}: reg_first={reg_first}, reg_second={reg_second}, names={name_set[av[0]]},{name_set[av[1]]}\n')
+                _sys2.stderr.flush()
                 vm_code.extend(struct.pack('<BBBBi', 5, reg_first, 0, 0, name_set[av[0]]))
                 vm_code.extend(struct.pack('<BBBBi', 5, reg_second, 0, 0, name_set[av[1]]))
             else:
@@ -1395,23 +1397,27 @@ def convert(source, opaque=0):
             nafter = (arg >> 8) & 0xFF
             seq_reg = reg_stack.pop() if reg_stack else 0
             free_reg(seq_reg)
-            new_regs = []
-            for _ in range(nbefore + nafter + 1):
-                rd = alloc_reg()
-                reg_stack.append(rd)
-                new_regs.append(rd)
-            base_reg = new_regs[0] if new_regs else 0
+            nouts = nbefore + nafter + 1
+            base_reg = alloc_reg()
+            new_regs = [base_reg]
+            for _ in range(1, nouts):
+                r = base_reg + _
+                new_regs.append(r)
+            reg_stack.extend(new_regs)
             vm_code.extend(struct.pack('<BBBBi', 136, base_reg, seq_reg, nafter, nbefore))
 
         if on == 'UNPACK_SEQUENCE':
             seq_reg = reg_stack.pop() if reg_stack else 0
             free_reg(seq_reg)
-            new_regs = []
-            for _ in range(arg):
-                rd = alloc_reg()
-                reg_stack.append(rd)
-                new_regs.append(rd)
-            base_reg = new_regs[0] if new_regs else 0
+            # Use sequential raw indices for outputs (like BUILD_TUPLE convention)
+            # _rr(base_reg, 0) = _reg_map[base_reg], _rr(base_reg, 1) = _reg_map[base_reg+1], ...
+            # So STORE_NAME must read from _reg_map[base_reg], _reg_map[base_reg+1], ...
+            base_reg = alloc_reg()
+            new_regs = [base_reg]
+            for _ in range(1, arg):
+                r = base_reg + _
+                new_regs.append(r)
+            reg_stack.extend(new_regs)
             vm_code.extend(struct.pack('<BBBBi', 137, base_reg, seq_reg, 0, arg))
 
         if on == 'ENTER_EXECUTOR':

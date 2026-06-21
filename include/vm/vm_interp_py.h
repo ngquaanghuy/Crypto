@@ -414,6 +414,10 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         _rd_val = _globals.get(_nm) if _nm in _globals else _b.get(_nm, _nm)
         _rd_modified = True
     def _h_store_name():
+        if _vm_debug:
+            import sys
+            _nm = _names[_imm] if _imm < len(_names) else '???'
+            print(f'[vm STN] store {_nm!r} = {repr(_rd_val)[:60]} (rd={_rd}, rs1={_rs1}, _reg_map[rd]={_reg_map[_rd] if _rd < 64 else "?"})', file=sys.stderr)
         _globals[_names[_imm]] = _rd_val
     def _h_load_fast():
         nonlocal _rd_val, _rd_modified
@@ -1343,8 +1347,17 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         _cnt = _imm & 0xFFFF; _seq = _rs1_val
         if len(_seq) != _cnt:
             raise ValueError(f"cannot unpack {len(_seq)} values into {_cnt} targets")
+        if _vm_debug:
+            import sys
+            print(f'[vm UNPACK] seq[0]= {repr(_seq[0])[:60]}', file=sys.stderr)
+            print(f'[vm UNPACK] seq[1]= {repr(_seq[1])[:60]}', file=sys.stderr)
+            print(f'[vm UNPACK] rd={_rd}, _rr(rd,0)={_rr(_rd,0)}, _rr(rd,1)={_rr(_rd,1)}', file=sys.stderr)
         for _i in range(_cnt):
             _r_set(_rr(_rd, _cnt - 1 - _i), _seq[_i])
+        if _vm_debug:
+            import sys
+            print(f'[vm UNPACK] after: r{_rr(_rd,0)}={repr(_r_get(_rr(_rd,0)))[:60]}', file=sys.stderr)
+            print(f'[vm UNPACK] after: r{_rr(_rd,1)}={repr(_r_get(_rr(_rd,1)))[:60]}', file=sys.stderr)
     def _h_enter_executor():
         nonlocal _rd_val, _rd_modified
         _er = _rs1_val
@@ -1600,20 +1613,25 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             _rs2_val = None
         _rd_modified = False
 
-        # ─── Debug: log CALL(40) and MOVE(6) with register values ───
-        if _vm_debug and _op in (6, 40, 248):
-            _rdr = repr(_rd_val)[:20] if _rd_val is not None else 'N'
-            _r1r = repr(_rs1_val)[:20] if _rs1_val is not None else 'N'
-            _r2r = repr(_rs2_val)[:20] if _rs2_val is not None else 'N'
-            import sys
-            print(f'[dbg {_cycle:4d}] op={_op}{f"CALL" if _op==40 else "MOV" if _op==6 else "KW "} rd={_rd:2d}({_rdr}) rs1={_rs1:2d}({_r1r}) rs2={_rs2:2d}({_r2r}) imm={_imm}', file=sys.stderr)
+        # ─── Debug: log key opcodes with register values ───
+        if _vm_debug:
+            _rdr = repr(_rd_val)[:25] if _rd_val is not None else 'N'
+            _r1r = repr(_rs1_val)[:25] if _rs1_val is not None else 'N'
+            _r2r = repr(_rs2_val)[:25] if _rs2_val is not None else 'N'
+            _op_name = {2:'LDN',3:'STN',4:'LDF',5:'STF',6:'MOV',40:'CAL',60:'LDA',137:'UNP',248:'KW '}.get(_op, f'{_op:3d}')
+            if _op in (2, 3, 4, 5, 6, 40, 137, 248):
+                import sys
+                print(f'[dbg {_cycle:4d}] {_op_name} rd={_rd:2d}({_rdr}) rs1={_rs1:2d}({_r1r}) rs2={_rs2:2d}({_r2r}) imm={_imm}', file=sys.stderr)
             if _op == 40 and _rs1_val is not None:
-                _fn_name = getattr(_rs1_val, '__name__', str(_rs1_val))[:30]
+                _fn_name = getattr(_rs1_val, '__name__', str(_rs1_val))[:35]
                 print(f'[dbg {_cycle:4d}]   => CALL {_fn_name} argc={_imm}', file=sys.stderr)
                 for _ai in range(_imm & 0xFFFF):
                     _av = _r_get(_rr(_rs1, 1 + _ai))
-                    _avr = repr(_av)[:30] if _av is not None else 'N'
+                    _avr = repr(_av)[:35] if _av is not None else 'N'
                     print(f'[dbg {_cycle:4d}]   => arg[{_ai}] = r{_rr(_rs1, 1 + _ai):2d} = {_avr}', file=sys.stderr)
+            if _op == 137 and _rs1_val is not None:
+                _seq_len = len(_rs1_val) if hasattr(_rs1_val, '__len__') else -1
+                print(f'[dbg {_cycle:4d}]   => UNPACK seq(len={_seq_len})={repr(_rs1_val)[:60]}', file=sys.stderr)
 
         # O(1) dispatch via lookup table (vs O(n) if-elif chain)
         # Handlers return: _S_EXIT (exit), int (new ip for jumps),
