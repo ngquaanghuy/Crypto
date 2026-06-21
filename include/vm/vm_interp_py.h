@@ -284,6 +284,25 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             _r_even[_ix >> 1] = _vv
         else:
             _r_odd[_ix >> 1] = _vv
+        # ─── Record write history (critical for debugging register corruption) ───
+        if _vm_trace_reg >= 0 and _ix == _vm_trace_reg:
+            _op_name = {1:'LDC',2:'LDN',3:'STN',4:'LDF',5:'STF',6:'MOV',7:'INV',8:'NOT',
+                        10:'ADD',11:'SUB',12:'MUL',13:'DIV',30:'JMP',31:'JMT',32:'JMF',
+                        33:'SUB',40:'CAL',42:'RET',43:'TUP',44:'LST',50:'SBS',
+                        54:'MKF',60:'LDA',61:'IMP',62:'FMT',63:'BST',70:'ITR',
+                        71:'FOR',72:'LEX',75:'LAP',110:'CVT',111:'LCC',112:'LSP',
+                        114:'TPL',117:'FWS',119:'LEN',125:'BIN',126:'CTN',127:'ISO',
+                        128:'LFC',134:'SFL',135:'SFS',136:'UPX',137:'UNP',138:'ENT',
+                        139:'SFN',161:'BSL',163:'STS',164:'MAP',165:'SET',166:'SLI',
+                        167:'CPY',170:'MAD',171:'SAD',172:'SUP',190:'LDR',191:'MKC',
+                        192:'SND',193:'SDR',194:'YLD',195:'LDC',
+                        220:'MKY',221:'MMP',222:'MSQ',223:'MCL',
+                        240:'DAT',241:'LSA',242:'STA',245:'CFX',246:'CI1',247:'CI2',
+                        248:'KW ',250:'DLF',251:'DLG',252:'DLN',253:'LFD',254:'LFG'}.get(_op, f'{_op:3d}')
+            import sys as _tr_sys
+            _tr_sys.stderr.write(f'[TRACE r{_ix}] cycle={_cycle} op={_op_name} val={repr(_vv)[:60]}\n')
+            _tr_sys.stderr.flush()
+        _vm_reg_history[_ix] = (_cycle, _rd, _rs1, _rs2, _op)
 
     # Re-garbler: rotate all 64 XOR keys simultaneously
     def _r_re_garbler():
@@ -840,7 +859,10 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     # Data structures (161-172) — many complex, use _r_get/_r_set for indirect
     def _h_binary_slice():
         nonlocal _rd_val, _rd_modified
-        _obj = _rs1_val; _start = _rs2_val; _stop = _rd_val
+        _obj = _rs1_val; _start = _rs2_val
+        # NOTE: _imm stores raw register for stop; decode by mapping through _reg_map
+        _stop_raw = _imm & 0x3F
+        _stop = _r_get(_reg_map[_stop_raw]) if _stop_raw < 64 else _rd_val
         try:
             _rd_val = _obj[_start:_stop]
         except Exception as _e:
@@ -854,8 +876,14 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             raise _e
     def _h_store_slice():
         _val = _rd_val; _obj = _rs1_val; _start = _rs2_val
+        # NOTE: _imm stores raw register for stop; decode by mapping through _reg_map
+        _stop_raw = _imm & 0x3F
+        _stop = _r_get(_reg_map[_stop_raw]) if _stop_raw < 64 else None
         try:
-            _obj[_start:_imm] = _val
+            if _stop is not None:
+                _obj[_start:_stop] = _val
+            else:
+                _obj[_start:] = _val
         except Exception as _e:
             raise _e
     def _h_build_map():
@@ -879,8 +907,11 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         _rd_modified = True
     def _h_build_slice():
         nonlocal _rd_val, _rd_modified
-        _start = _rd_val; _stop = _rs1_val
-        _step = _rs2_val if _imm >= 3 else None
+        _start = _rs1_val; _stop = _rs2_val
+        # _imm[0:6] = step register, _imm[6:8] = arg count
+        _step_raw = _imm & 0x3F
+        _arg_cnt = (_imm >> 6) & 0x3
+        _step = _r_get(_reg_map[_step_raw]) if _step_raw < 64 and _arg_cnt >= 3 else None
         from builtins import slice as _slice
         _rd_val = _slice(_start, _stop, _step)
         _rd_modified = True
@@ -1156,6 +1187,35 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         _rd_modified = True
     def _h_call_kw():
         _fn = _rs1_val; _nr = _rs2; _ac = _imm & 0xFFFF
+        import sys as _dbg_kw
+        if not callable(_fn):
+            _dbg_kw.stderr.write(f'[KW FATAL] _fn={repr(_fn)[:60]} type={type(_fn).__name__} rs1={_rs1} nr={_nr}\n')
+            _dbg_kw.stderr.write(f'[KW FATAL] reg_map={_reg_map}\n')
+            # Show write history for the function register
+            _hst = _vm_reg_history[_rs1]
+            _op_name_h = {1:'LDC',2:'LDN',3:'STN',4:'LDF',5:'STF',6:'MOV',7:'INV',8:'NOT',
+                        10:'ADD',11:'SUB',12:'MUL',13:'DIV',30:'JMP',31:'JMT',32:'JMF',
+                        33:'SUB',40:'CAL',42:'RET',43:'TUP',44:'LST',50:'SBS',
+                        54:'MKF',60:'LDA',61:'IMP',62:'FMT',63:'BST',70:'ITR',
+                        71:'FOR',72:'LEX',75:'LAP',110:'CVT',111:'LCC',112:'LSP',
+                        114:'TPL',117:'FWS',119:'LEN',125:'BIN',126:'CTN',127:'ISO',
+                        128:'LFC',134:'SFL',135:'SFS',136:'UPX',137:'UNP',138:'ENT',
+                        139:'SFN',161:'BSL',163:'STS',164:'MAP',165:'SET',166:'SLI',
+                        167:'CPY',170:'MAD',171:'SAD',172:'SUP',190:'LDR',191:'MKC',
+                        192:'SND',193:'SDR',194:'YLD',195:'LDC',
+                        220:'MKY',221:'MMP',222:'MSQ',223:'MCL',
+                        240:'DAT',241:'LSA',242:'STA',245:'CFX',246:'CI1',247:'CI2',
+                        248:'KW ',250:'DLF',251:'DLG',252:'DLN',253:'LFD',254:'LFG'}.get(_hst[4], f'{_hst[4]:3d}')
+            _dbg_kw.stderr.write(f'[KW FATAL] r{_rs1} last_write: cycle={_hst[0]} op={_op_name_h} rd={_hst[1]} rs1={_hst[2]} rs2={_hst[3]}\n')
+            # Also show history for argument registers
+            for _hi in range(_ac):
+                _raw = _reg_map.index(_rs1)
+                _arg_r = _reg_map[_raw + 1 + _hi] if _raw + 1 + _hi < 64 else -1
+                if 0 <= _arg_r < 64:
+                    _ah = _vm_reg_history[_arg_r]
+                    _an = {1:'LDC',2:'LDN',3:'STN',4:'LDF',5:'STF',6:'MOV'}.get(_ah[4], f'{_ah[4]:3d}')
+                    _dbg_kw.stderr.write(f'[KW FATAL] r{_arg_r}(arg{_hi}) last_write: cycle={_ah[0]} op={_an} rd={_ah[1]} rs1={_ah[2]} rs2={_ah[3]}\n')
+            _dbg_kw.stderr.flush()
         _nt = _r_get(_nr) if _nr < 64 else None
         _kwn = _nt if isinstance(_nt, tuple) else ()
         _num_kw = len(_kwn)
@@ -1168,24 +1228,20 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             else:
                 _pa.append(_av)
         if _vm_debug:
-            import sys
             _fn_name = getattr(_fn, '__name__', str(_fn))[:40]
-            # Debug: show how each arg was read
-            sys.stderr.write(f'[dbg KW REGS] rs1={_rs1}, _rr(rs1,1)={_rr(_rs1,1)} val={repr(_r_get(_rr(_rs1,1)))[:40]}\n')
-            sys.stderr.write(f'[dbg KW REGS] _rr(rs1,2)={_rr(_rs1,2)} val={repr(_r_get(_rr(_rs1,2)))[:40]}\n')
-            sys.stderr.write(f'[dbg KW REGS] _rr(rs1,3)={_rr(_rs1,3)} val={repr(_r_get(_rr(_rs1,3)))[:40]}\n')
-            sys.stderr.write(f'[dbg KW REGS] nr={_nr} val={repr(_nt)[:40]}\n')
-            sys.stderr.write(f'[dbg KW REGS] rs1_raw={_imm & 0xFF}, names_raw={(_imm >> 8) & 0xFF}\n')
+            _dbg_kw.stderr.write(f'[dbg KW REGS] rs1={_rs1}, _rr(rs1,1)={_rr(_rs1,1)} val={repr(_r_get(_rr(_rs1,1)))[:40]}\n')
+            _dbg_kw.stderr.write(f'[dbg KW REGS] _rr(rs1,2)={_rr(_rs1,2)} val={repr(_r_get(_rr(_rs1,2)))[:40]}\n')
+            _dbg_kw.stderr.write(f'[dbg KW REGS] _rr(rs1,3)={_rr(_rs1,3)} val={repr(_r_get(_rr(_rs1,3)))[:40]}\n')
+            _dbg_kw.stderr.write(f'[dbg KW REGS] nr={_nr} val={repr(_nt)[:40]}\n')
             _par = ', '.join(repr(x)[:40] for x in _pa)
             _kar = ', '.join(f'{k}={repr(v)[:30]}' for k, v in _ka.items())
-            sys.stderr.write(f'[dbg KW DBG] {_fn_name}({_par}, {_kar})\n')
+            _dbg_kw.stderr.write(f'[dbg KW DBG] {_fn_name}({_par}, {_kar})\n')
         try:
             _r_set(_rd, _fn(*_pa, **_ka))
         except Exception as _e:
             if _vm_debug:
-                import sys
-                sys.stderr.write(f'[dbg KW ERR] {_e}\n')
-                sys.stderr.write(f'[dbg KW ERR] _pa[0] type={type(_pa[0]).__name__}, len={len(_pa[0]) if hasattr(_pa[0], "__len__") else "N/A"}, repr={repr(_pa[0])[:80]}\n')
+                _dbg_kw.stderr.write(f'[dbg KW ERR] {_e}\n')
+                _dbg_kw.stderr.write(f'[dbg KW ERR] _pa[0] type={type(_pa[0]).__name__}, len={len(_pa[0]) if hasattr(_pa[0], "__len__") else "N/A"}, repr={repr(_pa[0])[:80]}\n')
             raise _e
 
     # Name delete (250-254)
@@ -1421,6 +1477,17 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             _vm_critical_regs = set(int(x.strip()) for x in _vm_crit_env.split(',') if x.strip())
         except ValueError:
             _vm_critical_regs = set()
+    # ─── Register Write History ───
+    # Tracks the last write to each runtime register: (cycle, rd, rs1, op)
+    _vm_reg_history = [(-1, -1, -1, -1, 'INIT')] * 64  # (cycle, rd, rs1, rs2, op_name)
+    # When VM_TRACE_REG is set, dump all writes to that runtime register to stderr
+    _vm_trace_reg = -1
+    _vm_trace_env = _vm_os.environ.get('VM_TRACE_REG', '')
+    if _vm_trace_env:
+        try:
+            _vm_trace_reg = int(_vm_trace_env.strip())
+        except ValueError:
+            _vm_trace_reg = -1
 
     # ─── Build dispatch table (indexed by opcode) ───
     _dt = [None] * 256

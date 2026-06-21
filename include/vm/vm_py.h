@@ -503,6 +503,8 @@ def convert(source, opaque=0):
                 fn_reg = reg_stack.pop()
             else:
                 fn_reg = 0
+            # CRITICAL: Protect fn_reg from alloc_reg() during MOVE generation.
+            reg_stack.append(fn_reg)
             # Move args to consecutive registers after fn_reg.
             # Build list of (target, source) moves
             _moves = []
@@ -553,8 +555,15 @@ def convert(source, opaque=0):
             # Now free all used registers
             for a in args:
                 free_reg(a)
+            if reg_stack:
+                reg_stack.pop()
             free_reg(fn_reg)
             rd = alloc_reg()
+            # Ensure rd != fn_reg to prevent result register aliasing with function register
+            while rd == fn_reg:
+                free_regs.append(rd)
+                rd = next_reg
+                next_reg += 1
             reg_stack.append(rd)
             vm_code.extend(struct.pack('<BBBBi', 40, rd, fn_reg, 0, argc))
 
@@ -733,7 +742,8 @@ def convert(source, opaque=0):
                 if r: free_reg(r)
             rd = alloc_reg()
             reg_stack.append(rd)
-            vm_code.extend(struct.pack('<BBBBi', 161, rd, obj_reg, start_reg, 0))
+            # Encode stop register in _imm[0:6] (instruction format has no 3rd source reg field)
+            vm_code.extend(struct.pack('<BBBBi', 161, rd, obj_reg, start_reg, stop_reg & 0x3F))
 
         if on == 'DELETE_SUBSCR':
             key_reg = reg_stack.pop() if reg_stack else 0
@@ -743,14 +753,15 @@ def convert(source, opaque=0):
             vm_code.extend(struct.pack('<BBBBi', 162, 0, obj_reg, key_reg, 0))
 
         if on == 'STORE_SLICE':
-            step_reg = reg_stack.pop() if reg_stack else 0
+            # Stack (bottom to top): obj, start, stop, val (no step; extended slices use BUILD_SLICE+STORE_SUBSCR)
+            val_reg = reg_stack.pop() if reg_stack else 0
             stop_reg = reg_stack.pop() if reg_stack else 0
             start_reg = reg_stack.pop() if reg_stack else 0
             obj_reg = reg_stack.pop() if reg_stack else 0
-            val_reg = reg_stack.pop() if reg_stack else 0
-            for r in (step_reg, stop_reg, start_reg, obj_reg, val_reg):
+            for r in (val_reg, stop_reg, start_reg, obj_reg):
                 if r: free_reg(r)
-            vm_code.extend(struct.pack('<BBBBi', 163, val_reg, obj_reg, start_reg, 0))
+            # Encode stop register in _imm[0:6]
+            vm_code.extend(struct.pack('<BBBBi', 163, val_reg, obj_reg, start_reg, stop_reg & 0x3F))
 
         if on == 'BUILD_MAP':
             items = []
@@ -787,7 +798,10 @@ def convert(source, opaque=0):
                 if r: free_reg(r)
             rd = alloc_reg()
             reg_stack.append(rd)
-            vm_code.extend(struct.pack('<BBBBi', 166, rd, start_reg, stop_reg, arg))
+            # Encode step register in _imm[0:6] and arg count in _imm[6:8]
+            # Instruction format has no 3rd source reg field, so use imm for step
+            _imm_val = (step_reg & 0x3F) | ((arg & 0x3) << 6)
+            vm_code.extend(struct.pack('<BBBBi', 166, rd, start_reg, stop_reg, _imm_val))
 
         if on == 'COPY':
             if reg_stack:
@@ -1140,6 +1154,11 @@ def convert(source, opaque=0):
                 fn_reg = reg_stack.pop()
             else:
                 fn_reg = 0
+            # CRITICAL: Protect fn_reg from alloc_reg() during MOVE generation.
+            # alloc_reg() checks _r not in reg_stack, but fn_reg was just popped.
+            # If alloc_reg() returns fn_reg for a SAVE MOVE _tmp, the MOVE would
+            # overwrite the function value. Push fn_reg back to protect it.
+            reg_stack.append(fn_reg)
             # Move args to consecutive registers after fn_reg.
             _moves = []
             for _i, _a in enumerate(args):
@@ -1161,6 +1180,7 @@ def convert(source, opaque=0):
                         _saved[_src] = _tmp
                         if _src in reg_stack:
                             reg_stack[reg_stack.index(_src)] = _tmp
+            import sys as _kw_dbg; _kw_dbg.stderr.write(f'[vm.CALL_KW] fn={fn_reg} names={names_idx} args={args} argc={argc} moves={_moves} targets={set(_t for _t,_ in _moves)} reg_stack={reg_stack} free_regs={free_regs}\n'); _kw_dbg.stderr.flush()
             # Save names_idx if it falls in the arg range [fn_reg+1, fn_reg+argc].
             # CRITICAL: CALL_KW reads args via _rr(rs1, 1+_i) which maps to raw registers
             # fn_reg+1..fn_reg+argc. If names_idx overlaps with this range, _rr() and _nr
@@ -1168,6 +1188,8 @@ def convert(source, opaque=0):
             # as an arg value. Check against the full range (not just _move_targets) because
             # no MOVE is generated when an arg is already at its target position.
             _names_range = set(fn_reg + 1 + _i for _i in range(argc))
+            # Save ORIGINAL names_idx before any update (used for free later)
+            _orig_names_idx = names_idx
             if names_idx and names_idx in _names_range and names_idx not in _saved:
                 _tmp = alloc_reg()
                 while _tmp in _move_targets or _tmp == names_idx:
@@ -1198,9 +1220,20 @@ def convert(source, opaque=0):
             for _r in _saved.values():
                 free_reg(_r)
             for a in args: free_reg(a)
-            free_reg(names_idx)
+            # Free the ORIGINAL names_idx register (before it was potentially saved to _tmp).
+            # The _saved dict maps original->temp, so _saved.values() only frees temp regs,
+            # NOT the original names_idx register. ALWAYS free _orig_names_idx.
+            free_reg(_orig_names_idx)
+            # Pop fn_reg from reg_stack (was pushed back for protection during MOVE gen)
+            if reg_stack:
+                reg_stack.pop()
             free_reg(fn_reg)
             rd = alloc_reg()
+            # Ensure rd != fn_reg to prevent destination == function register conflict
+            while rd == fn_reg:
+                free_regs.append(rd)
+                rd = next_reg
+                next_reg += 1
             reg_stack.append(rd)
             vm_code.extend(struct.pack('<BBBBi', 248, rd, fn_reg, names_idx, argc))
 
