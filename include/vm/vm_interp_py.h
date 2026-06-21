@@ -1378,6 +1378,9 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
                 _pg[_vi] ^= (_VM_RAM_KEY[_a & 15] & 0xFF) ^ (_nk[_a & 15] & 0xFF)
         _VM_RAM_KEY = _nk
 
+    # ─── Debug: log CALL (40) and MOVE (6) when env VM_DEBUG=1 ───
+    _vm_debug = 'VM_DEBUG' in _vm_os.environ
+
     # ─── Build dispatch table (indexed by opcode) ───
     _dt = [None] * 256
     _dt[0] = _h_nop
@@ -1596,6 +1599,21 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         else:
             _rs2_val = None
         _rd_modified = False
+
+        # ─── Debug: log CALL(40) and MOVE(6) with register values ───
+        if _vm_debug and _op in (6, 40, 248):
+            _rdr = repr(_rd_val)[:20] if _rd_val is not None else 'N'
+            _r1r = repr(_rs1_val)[:20] if _rs1_val is not None else 'N'
+            _r2r = repr(_rs2_val)[:20] if _rs2_val is not None else 'N'
+            import sys
+            print(f'[dbg {_cycle:4d}] op={_op}{f"CALL" if _op==40 else "MOV" if _op==6 else "KW "} rd={_rd:2d}({_rdr}) rs1={_rs1:2d}({_r1r}) rs2={_rs2:2d}({_r2r}) imm={_imm}', file=sys.stderr)
+            if _op == 40 and _rs1_val is not None:
+                _fn_name = getattr(_rs1_val, '__name__', str(_rs1_val))[:30]
+                print(f'[dbg {_cycle:4d}]   => CALL {_fn_name} argc={_imm}', file=sys.stderr)
+                for _ai in range(_imm & 0xFFFF):
+                    _av = _r_get(_rr(_rs1, 1 + _ai))
+                    _avr = repr(_av)[:30] if _av is not None else 'N'
+                    print(f'[dbg {_cycle:4d}]   => arg[{_ai}] = r{_rr(_rs1, 1 + _ai):2d} = {_avr}', file=sys.stderr)
 
         # O(1) dispatch via lookup table (vs O(n) if-elif chain)
         # Handlers return: _S_EXIT (exit), int (new ip for jumps),

@@ -81,7 +81,7 @@ def convert(source, opaque=0):
             _op = getattr(dis.opmap, _n, None)
             if _op is not None:
                 SPECIAL_MAP[_n] = 'UNARY_NEGATIVE'
-        elif _n.startswith('LOAD_') and _n not in ('LOAD_CONST', 'LOAD_NAME', 'LOAD_GLOBAL', 'LOAD_FAST', 'LOAD_SMALL_INT', 'LOAD_BUILD_CLASS', 'LOAD_FAST_AND_CLEAR', 'LOAD_FAST_BORROW', 'LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'LOAD_ATTR', 'LOAD_DEREF', 'LOAD_CLOSURE', 'LOAD_SUPER_ATTR', 'LOAD_FROM_DICT_OR_DEREF', 'LOAD_FROM_DICT_OR_GLOBALS', 'LOAD_COMMON_CONSTANT', 'LOAD_SPECIAL', 'LOAD_FAST_CHECK'):
+        elif _n.startswith('LOAD_') and _n not in ('LOAD_CONST', 'LOAD_NAME', 'LOAD_GLOBAL', 'LOAD_FAST', 'LOAD_SMALL_INT', 'LOAD_BUILD_CLASS', 'LOAD_FAST_AND_CLEAR', 'LOAD_FAST_BORROW', 'LOAD_FAST_BORROW_LOAD_FAST_BORROW', 'LOAD_FAST_LOAD_FAST', 'LOAD_ATTR', 'LOAD_DEREF', 'LOAD_CLOSURE', 'LOAD_SUPER_ATTR', 'LOAD_FROM_DICT_OR_DEREF', 'LOAD_FROM_DICT_OR_GLOBALS', 'LOAD_COMMON_CONSTANT', 'LOAD_SPECIAL', 'LOAD_FAST_CHECK'):
             _op = getattr(dis.opmap, _n, None)
             if _op is not None:
                 SPECIAL_MAP[_n] = 'LOAD_NAME'
@@ -395,6 +395,31 @@ def convert(source, opaque=0):
                     rd = alloc_reg()
                     reg_stack.append(rd)
                     vm_code.extend(struct.pack('<BBBBi', 4, rd, 0, 0, name_set[av]))
+
+        # LOAD_FAST_LOAD_FAST (Python 3.14+): load two local variables at once
+        # arg encodes indices as: idx1 = arg // 16, idx2 = arg % 16
+        if on == 'LOAD_FAST_LOAD_FAST':
+            if isinstance(av, tuple) and len(av) >= 2:
+                for n in av:
+                    ni(n)
+                    rd = alloc_reg()
+                    reg_stack.append(rd)
+                    vm_code.extend(struct.pack('<BBBBi', 4, rd, 0, 0, name_set[n]))
+            elif arg is not None and code.co_varnames:
+                idx1 = arg // 16
+                idx2 = arg % 16
+                if idx1 < len(code.co_varnames):
+                    n1 = code.co_varnames[idx1]
+                    ni(n1)
+                    rd1 = alloc_reg()
+                    reg_stack.append(rd1)
+                    vm_code.extend(struct.pack('<BBBBi', 4, rd1, 0, 0, name_set[n1]))
+                if idx2 < len(code.co_varnames):
+                    n2 = code.co_varnames[idx2]
+                    ni(n2)
+                    rd2 = alloc_reg()
+                    reg_stack.append(rd2)
+                    vm_code.extend(struct.pack('<BBBBi', 4, rd2, 0, 0, name_set[n2]))
 
         if on == 'SWAP':
             _swap_n = arg if arg is not None else 2
@@ -1096,10 +1121,11 @@ def convert(source, opaque=0):
 
         if on == 'CALL_KW':
             argc = arg
+            # CPython stack: fn, arg1, ..., argN, names_tuple (names_tuple ON TOP)
+            names_idx = reg_stack.pop() if reg_stack else 0  # pop names tuple FIRST
             args = []
             for _ in range(argc):
                 if reg_stack: args.insert(0, reg_stack.pop())
-            names_idx = reg_stack.pop() if reg_stack else 0
             if reg_stack:
                 fn_reg = reg_stack.pop()
             else:
@@ -1328,31 +1354,41 @@ def convert(source, opaque=0):
             if isinstance(av, tuple) and len(av) >= 2:
                 ni(av[0])
                 ni(av[1])
+                # Pop the value to store
                 val_reg = reg_stack.pop() if reg_stack else 0
                 if val_reg: free_reg(val_reg)
+                # STORE_FAST (opcode 5): store val_reg to av[0]
+                vm_code.extend(struct.pack('<BBBBi', 5, val_reg, 0, 0, name_set[av[0]]))
+                # LOAD_FAST (opcode 4): load av[1] into new register, push to stack
                 rd = alloc_reg()
                 reg_stack.append(rd)
-                vm_code.extend(struct.pack('<BBBBi', 134, rd, val_reg, 0, name_set[av[0]]))
+                vm_code.extend(struct.pack('<BBBBi', 4, rd, 0, 0, name_set[av[1]]))
             else:
                 ni(av)
                 val_reg = reg_stack.pop() if reg_stack else 0
                 if val_reg: free_reg(val_reg)
                 rd = alloc_reg()
                 reg_stack.append(rd)
-                vm_code.extend(struct.pack('<BBBBi', 134, rd, val_reg, 0, name_set[av]))
+                vm_code.extend(struct.pack('<BBBBi', 4, rd, 0, 0, name_set[av]))
 
         if on == 'STORE_FAST_STORE_FAST':
             if isinstance(av, tuple) and len(av) >= 2:
                 ni(av[0])
                 ni(av[1])
-                val_reg = reg_stack.pop() if reg_stack else 0
-                if val_reg: free_reg(val_reg)
-                vm_code.extend(struct.pack('<BBBBi', 135, val_reg, 0, 0, name_set[av[0]]))
+                # Pop both regs from reg_stack (pushed by UNPACK_SEQUENCE)
+                # reg_stack top = seq[0] (first element after unpack), then seq[1]
+                reg_first = reg_stack.pop() if reg_stack else 0  # first destructured var
+                reg_second = reg_stack.pop() if reg_stack else 0  # second destructured var
+                if reg_first: free_reg(reg_first)
+                if reg_second: free_reg(reg_second)
+                # Generate two STORE_FAST instructions (opcode 5)
+                vm_code.extend(struct.pack('<BBBBi', 5, reg_first, 0, 0, name_set[av[0]]))
+                vm_code.extend(struct.pack('<BBBBi', 5, reg_second, 0, 0, name_set[av[1]]))
             else:
                 ni(av)
                 val_reg = reg_stack.pop() if reg_stack else 0
                 if val_reg: free_reg(val_reg)
-                vm_code.extend(struct.pack('<BBBBi', 135, val_reg, 0, 0, name_set[av]))
+                vm_code.extend(struct.pack('<BBBBi', 5, val_reg, 0, 0, name_set[av]))
 
         if on == 'UNPACK_EX':
             nbefore = arg & 0xFF
