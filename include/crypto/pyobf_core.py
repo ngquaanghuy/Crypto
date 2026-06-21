@@ -625,7 +625,7 @@ def funcenc_obfuscate(source):
 
         def visit_FunctionDef(self, node):
             self.generic_visit(node)
-            if len(node.body) < 2 or node.name.startswith('_'):
+            if len(node.body) < 2 or node.name.startswith('__'):
                 return node
 
             orig_name = node.name
