@@ -305,6 +305,12 @@ def convert(source, opaque=0):
                 rs = 0
             rd = alloc_reg()
             reg_stack.append(rd)
+            # Python 3.14+: when instr.arg & 1 == 1, LOAD_ATTR is a method-call
+            # that pushes NULL + method (2 items). The VM skips the NULL sentinel
+            # because _h_load_attr returns getattr(obj, attr) which is already
+            # a bound method (self captured) for methods, or a plain value for
+            # regular attributes. CALL uses the returned value directly without
+            # needing the NULL/self sentinel from CPython's calling convention.
             vm_code.extend(struct.pack('<BBBBi', 60, rd, rs, 0, name_set[av]))
 
         if on == 'IMPORT_NAME':

@@ -1708,6 +1708,7 @@ ExitCode protect_file(const char *input, const char *output,
         vm_cfg.enable_register_spilling = 0;
         vm_cfg.enable_self_modifying_code = 0;
         vm_cfg.enable_conditional_obfuscation = 0;
+        vm_cfg.enable_indirect_calls = 0;
         vm_cfg.enable_vram = use_vram;
         vm_cfg.vram_size = use_vram_auto ? 0 : vram_size;
         vm_cfg.enable_vram_garble = use_vram_garble;

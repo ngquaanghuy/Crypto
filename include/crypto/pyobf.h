@@ -160,7 +160,13 @@ def rename_code(source):
                 node.id = name_map[node.id]
             return node
         def visit_Attribute(self, node):
-            if node.attr in name_map:
+            # Only rename attributes on self/cls to avoid corrupting
+            # library method calls (e.g. chacha.encrypt, file.read).
+            # The class method definition itself is renamed via visit_FunctionDef,
+            # so self.encrypt → self._renamed is correct, but
+            # obj.encrypt → obj._renamed breaks if obj is a library type.
+            if node.attr in name_map and isinstance(node.value, ast.Name) \
+                    and node.value.id in ('self', 'cls'):
                 node.attr = name_map[node.attr]
             self.generic_visit(node)
             return node
@@ -182,10 +188,12 @@ def rename_code(source):
         def visit_arg(self, node):
             if node.arg in name_map:
                 node.arg = name_map[node.arg]
+            self.generic_visit(node)
             return node
         def visit_keyword(self, node):
             if node.arg is not None and node.arg in name_map:
                 node.arg = name_map[node.arg]
+            self.generic_visit(node)
             return node
 
     tree = Renamer().visit(tree)
