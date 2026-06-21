@@ -1163,9 +1163,25 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
                 _ka[_kwn[_i - _num_pos]] = _av
             else:
                 _pa.append(_av)
+        if _vm_debug:
+            import sys
+            _fn_name = getattr(_fn, '__name__', str(_fn))[:40]
+            # Debug: show how each arg was read
+            sys.stderr.write(f'[dbg KW REGS] rs1={_rs1}, _rr(rs1,1)={_rr(_rs1,1)} val={repr(_r_get(_rr(_rs1,1)))[:40]}\n')
+            sys.stderr.write(f'[dbg KW REGS] _rr(rs1,2)={_rr(_rs1,2)} val={repr(_r_get(_rr(_rs1,2)))[:40]}\n')
+            sys.stderr.write(f'[dbg KW REGS] _rr(rs1,3)={_rr(_rs1,3)} val={repr(_r_get(_rr(_rs1,3)))[:40]}\n')
+            sys.stderr.write(f'[dbg KW REGS] nr={_nr} val={repr(_nt)[:40]}\n')
+            sys.stderr.write(f'[dbg KW REGS] rs1_raw={_imm & 0xFF}, names_raw={(_imm >> 8) & 0xFF}\n')
+            _par = ', '.join(repr(x)[:40] for x in _pa)
+            _kar = ', '.join(f'{k}={repr(v)[:30]}' for k, v in _ka.items())
+            sys.stderr.write(f'[dbg KW DBG] {_fn_name}({_par}, {_kar})\n')
         try:
             _r_set(_rd, _fn(*_pa, **_ka))
         except Exception as _e:
+            if _vm_debug:
+                import sys
+                sys.stderr.write(f'[dbg KW ERR] {_e}\n')
+                sys.stderr.write(f'[dbg KW ERR] _pa[0] type={type(_pa[0]).__name__}, len={len(_pa[0]) if hasattr(_pa[0], "__len__") else "N/A"}, repr={repr(_pa[0])[:80]}\n')
             raise _e
 
     # Name delete (250-254)
@@ -1393,6 +1409,14 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
 
     # ─── Debug: log CALL (40) and MOVE (6) when env VM_DEBUG=1 ───
     _vm_debug = 'VM_DEBUG' in _vm_os.environ
+    _vm_critical_regs = set()  # track specific runtime registers for corruption detection
+    # When VM_CRITICAL_REGS is set, comma-separated list of runtime regs to watch
+    _vm_crit_env = _vm_os.environ.get('VM_CRITICAL_REGS', '')
+    if _vm_crit_env:
+        try:
+            _vm_critical_regs = set(int(x.strip()) for x in _vm_crit_env.split(',') if x.strip())
+        except ValueError:
+            _vm_critical_regs = set()
 
     # ─── Build dispatch table (indexed by opcode) ───
     _dt = [None] * 256
@@ -1613,14 +1637,25 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             _rs2_val = None
         _rd_modified = False
 
-        # ─── Debug: log key opcodes with register values ───
+        # ─── Debug: log ALL opcodes with register values ───
         if _vm_debug:
-            _rdr = repr(_rd_val)[:25] if _rd_val is not None else 'N'
-            _r1r = repr(_rs1_val)[:25] if _rs1_val is not None else 'N'
-            _r2r = repr(_rs2_val)[:25] if _rs2_val is not None else 'N'
-            _op_name = {2:'LDN',3:'STN',4:'LDF',5:'STF',6:'MOV',40:'CAL',60:'LDA',137:'UNP',248:'KW '}.get(_op, f'{_op:3d}')
-            if _op in (2, 3, 4, 5, 6, 40, 137, 248):
-                import sys
+            import sys
+            _rdr = repr(_rd_val)[:30] if _rd_val is not None else 'N'
+            _r1r = repr(_rs1_val)[:30] if _rs1_val is not None else 'N'
+            _r2r = repr(_rs2_val)[:30] if _rs2_val is not None else 'N'
+            _op_name = {1:'LDC',2:'LDN',3:'STN',4:'LDF',5:'STF',6:'MOV',7:'INV',8:'NOT',
+                        10:'ADD',11:'SUB',12:'MUL',13:'DIV',30:'JMP',31:'JMT',32:'JMF',
+                        33:'SUB',40:'CAL',42:'RET',43:'TUP',44:'LST',50:'SBS',
+                        54:'MKF',60:'LDA',61:'IMP',62:'FMT',63:'BST',70:'ITR',
+                        71:'FOR',72:'LEX',75:'LAP',110:'CVT',111:'LCC',112:'LSP',
+                        114:'TPL',117:'FWS',119:'LEN',125:'BIN',126:'CTN',127:'ISO',
+                        128:'LFC',134:'SFL',135:'SFS',136:'UPX',137:'UNP',138:'ENT',
+                        139:'SFN',161:'BSL',164:'MAP',165:'SET',166:'SLI',167:'CPY',
+                        190:'LDR',191:'MKC',192:'SND',193:'SDR',194:'YLD',195:'LDC',
+                        220:'MKY',221:'MMP',222:'MSQ',223:'MCL',
+                        240:'DAT',241:'LSA',242:'STA',245:'CFX',246:'CI1',247:'CI2',
+                        248:'KW ',250:'DLF',251:'DLG',252:'DLN',253:'LFD',254:'LFG'}.get(_op, f'{_op:3d}')
+            if _rd_modified or _op == 3 or _op in (2, 40, 137, 248):
                 print(f'[dbg {_cycle:4d}] {_op_name} rd={_rd:2d}({_rdr}) rs1={_rs1:2d}({_r1r}) rs2={_rs2:2d}({_r2r}) imm={_imm}', file=sys.stderr)
             if _op == 40 and _rs1_val is not None:
                 _fn_name = getattr(_rs1_val, '__name__', str(_rs1_val))[:35]
@@ -1628,7 +1663,8 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
                 for _ai in range(_imm & 0xFFFF):
                     _av = _r_get(_rr(_rs1, 1 + _ai))
                     _avr = repr(_av)[:35] if _av is not None else 'N'
-                    print(f'[dbg {_cycle:4d}]   => arg[{_ai}] = r{_rr(_rs1, 1 + _ai):2d} = {_avr}', file=sys.stderr)
+                    _ar = _rr(_rs1, 1 + _ai)
+                    print(f'[dbg {_cycle:4d}]   => arg[{_ai}] = r{_ar:2d} = {_avr}', file=sys.stderr)
             if _op == 137 and _rs1_val is not None:
                 _seq_len = len(_rs1_val) if hasattr(_rs1_val, '__len__') else -1
                 print(f'[dbg {_cycle:4d}]   => UNPACK seq(len={_seq_len})={repr(_rs1_val)[:60]}', file=sys.stderr)
