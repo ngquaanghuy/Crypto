@@ -793,20 +793,21 @@ int anti_debug_check_inline_hooks(void) {
 
         unsigned char buf[64];
         ssize_t bytes_read = pread(fd, buf, sizeof(buf), start_addr);
-        close(fd);
 
-        if (bytes_read < 12) continue;
+        if (bytes_read < 12) { close(fd); continue; }
 
         /* Common inline hook patterns to detect */
         for (int i = 0; i < bytes_read - 11; i++) {
             /* Pattern 1: mov rax, imm64; jmp rax (FF D0) - common x86_64 hook */
             if (buf[i] == 0x48 && buf[i+1] == 0xB8 && buf[i+10] == 0xFF && buf[i+11] == 0xD0) {
+                close(fd);
                 fclose(fp);
                 return 1;
             }
 
             /* Pattern 2: push + ret (common cross-platform hook) */
             if (buf[i] == 0xFF && (buf[i+1] == 0x35 || buf[i+1] == 0x25) && buf[i+6] == 0xC3) {
+                close(fd);
                 fclose(fp);
                 return 1;
             }
@@ -817,6 +818,7 @@ int anti_debug_check_inline_hooks(void) {
                 unsigned char tmp[2];
                 ssize_t next_bytes = pread(fd, tmp, 2, (off_t)next);
                 if (next_bytes == 2 && tmp[0] == 0xC3) {
+                    close(fd);
                     fclose(fp);
                     return 1;
                 }
@@ -824,10 +826,13 @@ int anti_debug_check_inline_hooks(void) {
 
             /* Pattern 4: jmp far (FF /5) - indirect far jump */
             if ((buf[i] & 0xFF) == 0xFF && (buf[i+1] & 0x38) == 0x20) {
+                close(fd);
                 fclose(fp);
                 return 1;
             }
         }
+
+        close(fd);
     }
     fclose(fp);
 #endif
