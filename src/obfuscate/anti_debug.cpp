@@ -1063,25 +1063,16 @@ int anti_debug_check_memory_integrity(void) {
             }
         }
 
-        /* Check for executable memory in unexpected locations */
-        if (strchr(perms, 'x')) {
-            /* Writable+Executable is always suspicious for security */
-            if (strchr(perms, 'w')) {
-                fclose(fp);
-                return 1;
-            }
-
-            /* Anonymous executable memory is also suspicious */
-            if (!pathname[0] || strstr(pathname, "[anon")) {
-                /* Only flag if not vdso/vvar/vsyscall (those are legitimate) */
-                if (!strstr(line, "[vdso]") && !strstr(line, "[vvar]") &&
-                    !strstr(line, "[vsyscall]")) {
-                    /* Check for suspicious sizes (> 1MB anonymous exec) */
-                    size_t size = end - start;
-                    if (size > 1024 * 1024) {
-                        fclose(fp);
-                        return 1;
-                    }
+        /* Check for anonymous executable memory with excessive size */
+        if (strchr(perms, 'x') && (!pathname[0] || strstr(pathname, "[anon"))) {
+            /* Only flag if not vdso/vvar/vsyscall (those are legitimate) */
+            if (!strstr(line, "[vdso]") && !strstr(line, "[vvar]") &&
+                !strstr(line, "[vsyscall]")) {
+                /* Large anonymous executable mapping (> 1MB) is suspicious */
+                size_t size = end - start;
+                if (size > 1024 * 1024) {
+                    fclose(fp);
+                    return 1;
                 }
             }
         }
