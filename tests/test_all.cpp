@@ -296,11 +296,12 @@ TEST_CASE("aes corrupted data fails") {
     size_t ilen = strlen(input);
 
     Buffer enc = {0}, dec = {0};
+    /* AES-GCM has built-in authentication tag, so corruption is always detected */
     REQUIRE(aes_encrypt((const unsigned char *)input, ilen,
-                        (const unsigned char *)"pw", 2, AES_CBC, &enc) == EXIT_OK);
+                        (const unsigned char *)"pw", 2, AES_GCM, &enc) == EXIT_OK);
     if (enc.size > 20) enc.data[20] ^= 0xFF;
     CHECK(aes_decrypt(enc.data, enc.size,
-                      (const unsigned char *)"pw", 2, AES_CBC, &dec) == EXIT_ERR_CRYPTO);
+                      (const unsigned char *)"pw", 2, AES_GCM, &dec) == EXIT_ERR_CRYPTO);
 
     free(enc.data);
 }
