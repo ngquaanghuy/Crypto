@@ -567,9 +567,15 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
 
     # Call / Return (40-44) — complex, use _r_get/_r_set directly
     def _h_call():
+        nonlocal _vm_t0
         _fn = _rs1_val
         _args = tuple(_r_get(_rr(_rs1, 1 + _i)) for _i in range(_imm & 0xFFFF))
         _r_set(_rd, _fn(*_args))
+        # Reset timer after native call — prevents false timing trigger from
+        # slow operations (RSA keygen, disk I/O, network, etc.) that run INSIDE
+        # the native function call, making the timing check only measure actual
+        # VM dispatch overhead (which is always sub-millisecond).
+        _vm_t0 = _vm_tm.time()
     def _h_call_name():
         _r_set(_rd, _names[_rd](*[_r_get(_rr(_rs1, _i)) for _i in range(_imm & 0xFFFF)]))
     def _h_return_op():
@@ -756,24 +762,41 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
 
     # Register Spilling (120-123) — complex, use _r_get/_r_set
     def _h_spill():
+        # Push paired (reg, val) for consistent stack format with SPILL_MANY.
+        _spill_stack.append(_rd)
         _spill_stack.append(_rd_val)
     def _h_restore():
         nonlocal _rd_val, _rd_modified
-        if _spill_stack:
+        if len(_spill_stack) >= 2:
+            # Pop paired (value, reg) — SPILL_MANY pushes reg first, then val
+            _val = _spill_stack.pop()
+            _reg = _spill_stack.pop()
+            _r_set(_reg, _val)
+            # Don't set _rd_modified = True — _r_set already wrote the value.
+            # Setting _rd_modified would cause the main loop to write _rd_val
+            # (which is stale) back to _rd via _r_set, corrupting _rd.
+        elif _spill_stack:  # legacy: single value without reg number
             _rd_val = _spill_stack.pop()
             _rd_modified = True
     def _h_spill_many():
         _mask = _imm & 0xFFFF
         for _b in range(16):
             if _mask & (1 << _b):
-                _reg = _rd + _b
+                # CRITICAL: Use _rr() to map through _reg_map instead of _rd + _b.
+                _reg = _rr(_rd, _b)
                 if _reg < 64:
+                    # Push register number BEFORE value for paired restore.
+                    # RESTORE_MANY will pop value first, then register number.
+                    _spill_stack.append(_reg)
                     _spill_stack.append(_r_get(_reg))
                     _r_set(_reg, None)
     def _h_restore_many():
         _cnt = _imm & 0xFF
-        for _ in range(min(_cnt, len(_spill_stack))):
-            _spill_stack.pop()
+        for _ in range(min(_cnt, len(_spill_stack) // 2)):
+            # Pop paired (value, reg) in reverse order
+            _val = _spill_stack.pop()
+            _reg = _spill_stack.pop()
+            _r_set(_reg, _val)
 
     # SMC (130-133) — complex, keep _r_get/_r_set
     def _h_patch_instr():
@@ -1186,6 +1209,7 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         else: _rd_val = None
         _rd_modified = True
     def _h_call_kw():
+        nonlocal _vm_t0
         _fn = _rs1_val; _nr = _rs2; _ac = _imm & 0xFFFF
         import sys as _dbg_kw
         if not callable(_fn):
@@ -1238,6 +1262,8 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             _dbg_kw.stderr.write(f'[dbg KW DBG] {_fn_name}({_par}, {_kar})\n')
         try:
             _r_set(_rd, _fn(*_pa, **_ka))
+            # Reset timer after native call
+            _vm_t0 = _vm_tm.time()
         except Exception as _e:
             if _vm_debug:
                 _dbg_kw.stderr.write(f'[dbg KW ERR] {_e}\n')
@@ -1674,9 +1700,10 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     while _ip < _n:
         _cycle += 1
 
-        # Anti-debug: timing check
+        # Anti-debug: timing check (threshold high enough to avoid false triggers
+        # from slow native calls like RSA key generation)
         if _cycle % _vm_timing_interval == 0:
-            if _vm_tm.time() - _vm_t0 > 0.25:
+            if _vm_tm.time() - _vm_t0 > 10.0:
                 _r_set(_rd, None)
             _vm_t0 = _vm_tm.time()
 

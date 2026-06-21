@@ -53,7 +53,15 @@ def convert(source, opaque=0):
         return r
 
     def free_reg(r):
-        free_regs.append(r)
+        # CRITICAL: Prevent duplicate entries in free_regs. If the same register
+        # is freed twice (e.g., fn_reg freed by CALL handler AND already present
+        # from previous instruction), alloc_reg() could return it twice, causing
+        # two different values to be stored in the same runtime register.
+        # This is the root cause of non-deterministic corruption where the same
+        # compiled b.py sometimes works and sometimes fails depending on
+        # _reg_map shuffle.
+        if r not in free_regs:
+            free_regs.append(r)
 
     def ci(v):
         k = repr(v)
