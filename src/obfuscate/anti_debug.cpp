@@ -835,15 +835,66 @@ int anti_debug_check_inline_hooks(void) {
         close(fd);
     }
     fclose(fp);
-#endif
+#elif defined(PLATFORM_WINDOWS)
+    /* Windows inline hook detection via function prologue scanning.
+     * Uses direct memory access with SEH for safety. */
+    static const struct {
+        const char *dll;
+        const char *funcs[20];
+    } hook_targets[] = {
+        {"kernel32.dll", {"OpenProcess", "ReadProcessMemory", "WriteProcessMemory",
+                          "CreateRemoteThread", "VirtualProtectEx", "VirtualAllocEx",
+                          "CreateProcessA", "WinExec", "LoadLibraryA", nullptr}},
+        {"ntdll.dll",   {"NtOpenProcess", "NtReadVirtualMemory", "NtWriteVirtualMemory",
+                          "NtCreateThreadEx", "NtProtectVirtualMemory",
+                          "NtResumeThread", "NtSuspendThread", nullptr}},
+        {nullptr, {nullptr}}
+    };
+    
+    for (int d = 0; hook_targets[d].dll; d++) {
+        HMODULE hMod = GetModuleHandleA(hook_targets[d].dll);
+        if (!hMod) continue;
+        
+        for (int f = 0; hook_targets[d].funcs[f]; f++) {
+            FARPROC addr = GetProcAddress(hMod, hook_targets[d].funcs[f]);
+            if (!addr) continue;
+            
+            unsigned char *p = (unsigned char *)addr;
+            __try {
+                /* Pattern 1: mov rax, imm64; jmp rax (12-byte trampoline) */
+                if (p[0] == 0x48 && p[1] == 0xB8 && p[10] == 0xFF && p[11] == 0xD0)
+                    return 1;
+                
+                /* Pattern 2: jmp [rip+offset] (FF 25 XX XX XX XX) - IAT thunk */
+                if (p[0] == 0xFF && p[1] == 0x25 && p[6] == 0x48) /* followed by standard prologue? */
+                    continue; /* Legitimate IAT thunk, not a hook */
+                
+                /* Pattern 3: push imm32; ret (68 XX XX XX XX C3) */
+                if (p[0] == 0x68 && p[5] == 0xC3)
+                    return 1;
+                
+                /* Pattern 4: jmp short (EB XX) at start - overwritten prologue */
+                if (p[0] == 0xEB && p[5] == 0xC3) /* jmp short + push imm32 + ret */
+                    return 1;
+                    
+                /* Pattern 5: 5-byte jmp rel32 (E9 XX XX XX XX) - Detours-style hook */
+                if (p[0] == 0xE9)
+                    return 1;
+            } __except(EXCEPTION_EXECUTE_HANDLER) {
+                continue;
+            }
+        }
+    }
+    return 1; /* If we can't read any functions, something is very wrong */
+#else
     return 0;
+#endif
 }
 
-/* ── PLT/GOT Hook Detection (Linux ELF) ─────────────────────────────────── */
-/* The Procedure Linkage Table (PLT) and Global Offset Table (GOT) are
- * common targets for function hooking. This checks for:
- * - GOT entries pointing outside expected library ranges
- * - PLT entries that have been modified from standard stub patterns */
+/* ── PLT/GOT / IAT Hook Detection ──────────────────────────────────────────── */
+/* Linux: PLT/GOT hook detection via /proc/self/maps memory scanning.
+ * Windows: IAT hook detection via scanning writable PE sections for
+ *   pointers that point outside legitimate module address ranges. */
 int anti_debug_check_plt_hooks(void) {
 #if defined(PLATFORM_LINUX)
     FILE *fp = fopen("/proc/self/maps", "r");
@@ -934,8 +985,56 @@ int anti_debug_check_plt_hooks(void) {
         free(buf);
     }
     fclose(fp);
-#endif
+#elif defined(PLATFORM_WINDOWS)
+    /* Windows IAT hook detection.
+     * Scans writable sections of loaded DLLs for pointers that
+     * point outside legitimate module ranges (potential IAT hooks). */
+    static const char *modules_to_check[] = {
+        "kernel32.dll", "ntdll.dll", "user32.dll", "ws2_32.dll", nullptr
+    };
+    
+    for (int mi = 0; modules_to_check[mi]; mi++) {
+        HMODULE hMod = GetModuleHandleA(modules_to_check[mi]);
+        if (!hMod) continue;
+        
+        /* Get PE headers */
+        IMAGE_DOS_HEADER *dos = (IMAGE_DOS_HEADER *)hMod;
+        IMAGE_NT_HEADERS *nt = (IMAGE_NT_HEADERS *)((BYTE *)hMod + dos->e_lfanew);
+        
+        /* Scan each section for writable content (potential IAT) */
+        IMAGE_SECTION_HEADER *sec = IMAGE_FIRST_SECTION(nt);
+        for (WORD si = 0; si < nt->FileHeader.NumberOfSections; si++) {
+            if (!(sec[si].Characteristics & IMAGE_SCN_MEM_WRITE))
+                continue;
+            
+            BYTE *secStart = (BYTE *)hMod + sec[si].VirtualAddress;
+            DWORD secSize = min(sec[si].SizeOfRawData, 4096u);
+            if (secSize < 8) continue;
+            
+            __try {
+                /* Sample scan first 4KB for suspicious pointers */
+                for (DWORD off = 0; off < secSize - sizeof(void *); off += sizeof(void *)) {
+                    void *ptr = *(void **)(secStart + off);
+                    if ((uintptr_t)ptr < 0x10000) continue;
+                    
+                    /* Check if pointer lands in a WX private region */
+                    MEMORY_BASIC_INFORMATION mbi;
+                    if (VirtualQuery(ptr, &mbi, sizeof(mbi))) {
+                        if (mbi.Protect == PAGE_EXECUTE_READWRITE &&
+                            mbi.Type == MEM_PRIVATE) {
+                            return 1;
+                        }
+                    }
+                }
+            } __except(EXCEPTION_EXECUTE_HANDLER) {
+                continue;
+            }
+        }
+    }
+    return 1; /* On Windows, IAT hooks are common; flag if any WX+private detected */
+#else
     return 0;
+#endif
 }
 
 /* ── Syscall Wrapper Verification ────────────────────────────────────────── */
@@ -1024,6 +1123,45 @@ int anti_debug_check_syscall_hooks(void) {
     close(fd);
     dlclose(libc_handle);
     return hooked;
+#elif defined(PLATFORM_WINDOWS)
+    /* Windows syscall hook detection via ntdll.dll function scanning.
+     * Checks critical ntdll functions for modified prologues. */
+    HMODULE hNtdll = GetModuleHandleA("ntdll.dll");
+    if (!hNtdll) return 0;
+    
+    static const char *nt_funcs[] = {
+        "NtOpenProcess", "NtReadVirtualMemory", "NtWriteVirtualMemory",
+        "NtCreateThreadEx", "NtProtectVirtualMemory", "NtAllocateVirtualMemory",
+        "NtFreeVirtualMemory", "NtResumeThread", "NtSuspendThread",
+        "NtClose", "NtCreateFile", "NtDeviceIoControlFile",
+        nullptr
+    };
+    
+    for (int fi = 0; nt_funcs[fi]; fi++) {
+        FARPROC addr = GetProcAddress(hNtdll, nt_funcs[fi]);
+        if (!addr) continue;
+        
+        unsigned char *p = (unsigned char *)addr;
+        __try {
+            /* Standard ntdll x64 prologue is mov [rsp+8],rbx or similar
+             * Hook patterns to detect: */
+            
+            /* mov rax, imm64; jmp rax (12-byte trampoline) */
+            if (p[0] == 0x48 && p[1] == 0xB8 && p[10] == 0xFF && p[11] == 0xD0)
+                return 1;
+            
+            /* 5-byte jmp rel32 (E9 XX XX XX XX) */
+            if (p[0] == 0xE9)
+                return 1;
+            
+            /* push imm32; ret (hook trampoline) */
+            if (p[0] == 0x68 && p[5] == 0xC3)
+                return 1;
+        } __except(EXCEPTION_EXECUTE_HANDLER) {
+            continue;
+        }
+    }
+    return 0;
 #else
     return 0;
 #endif
@@ -1085,6 +1223,51 @@ int anti_debug_check_memory_integrity(void) {
     /* Multiple WX regions in general could indicate hooking libraries */
     if (wx_regions > 10) return 1;
 
+#elif defined(PLATFORM_WINDOWS)
+    /* Windows memory integrity check via VirtualQuery.
+     * Enumerates all committed memory regions and counts
+     * WX (PAGE_EXECUTE_READWRITE) mappings. */
+    SYSTEM_INFO si;
+    GetSystemInfo(&si);
+    
+    BYTE *addr = (BYTE *)si.lpMinimumApplicationAddress;
+    BYTE *maxAddr = (BYTE *)si.lpMaximumApplicationAddress;
+    
+    int wx_regions = 0;
+    int private_wx = 0;
+    
+    while (addr < maxAddr) {
+        MEMORY_BASIC_INFORMATION mbi;
+        if (VirtualQuery(addr, &mbi, sizeof(mbi)) == 0) {
+            addr += 0x10000;  /* Skip unreadable region */
+            continue;
+        }
+        
+        if (mbi.State == MEM_COMMIT) {
+            DWORD prot = mbi.Protect & 0xFF;
+            
+            /* Check for WX regions (PAGE_EXECUTE_READWRITE or PAGE_EXECUTE_WRITECOPY) */
+            if (prot == PAGE_EXECUTE_READWRITE) {
+                wx_regions++;
+                
+                /* Private WX mappings are suspicious */
+                if (mbi.Type == MEM_PRIVATE) {
+                    private_wx++;
+                    /* Large private WX mapping > 1MB is definitely suspicious */
+                    if (mbi.RegionSize > 1024 * 1024)
+                        return 1;
+                }
+            }
+        }
+        
+        addr += mbi.RegionSize;
+    }
+    
+    /* Multiple private WX mappings suggest JIT hooking */
+    if (private_wx > 2) return 1;
+    
+    /* Multiple WX regions could indicate hooking libraries */
+    if (wx_regions > 10) return 1;
 #endif
     return 0;
 }
@@ -1120,8 +1303,8 @@ AntiDebugResult anti_debug_check_all(void) {
     if (check_sandbox())                 return ADBG_RESULT_SANDBOX_DETECTED;
     if (check_hooks())                   return ADBG_RESULT_HOOK_DETECTED;
 
-    /* Advanced hook detection (Linux) */
-#if defined(PLATFORM_LINUX)
+    /* Advanced hook detection */
+#if defined(PLATFORM_LINUX) || defined(PLATFORM_WINDOWS)
     if (anti_debug_check_inline_hooks())      return ADBG_RESULT_HOOK_DETECTED;
     if (anti_debug_check_plt_hooks())         return ADBG_RESULT_HOOK_DETECTED;
     if (anti_debug_check_syscall_hooks())     return ADBG_RESULT_HOOK_DETECTED;
@@ -1356,7 +1539,7 @@ char *anti_debug_generate_stub(int include_vm_check, int include_hook_check) {
         s += "            _SYS.stderr.write('error: suspicious memory regions detected\\n'); _SYS.exit(1)\n";
         s += "    except: pass\n";
 
-        /* ── Inline hook detection via function prologue scan ── */
+        /* ── Inline hook detection via function prologue scan (Linux) ── */
         s += "if _IS_LINUX:\n";
         s += "    try:\n";
         s += "        import ctypes as _CT\n";
@@ -1375,7 +1558,47 @@ char *anti_debug_generate_stub(int include_vm_check, int include_hook_check) {
         s += "            except: pass\n";
         s += "    except: pass\n";
 
-        /* ── Syscall hook detection via /proc syscall tracing ── */
+        /* ── Inline hook detection via function prologue scan (Windows) ── */
+        s += "if _IS_WINDOWS:\n";
+        s += "    try:\n";
+        s += "        import ctypes as _CT\n";
+        s += "        _K32 = _CT.windll.kernel32\n";
+        s += "        _NTDLL = _CT.WinDLL('ntdll.dll')\n";
+        s += "        for _FN in ('OpenProcess', 'ReadProcessMemory', 'WriteProcessMemory',\n";
+        s += "                    'CreateRemoteThread', 'VirtualProtectEx'):\n";
+        s += "            try:\n";
+        s += "                _ADDR = getattr(_K32, _FN)\n";
+        s += "                _PRO = b''\n";
+        s += "                for _I in range(12):\n";
+        s += "                    try:\n";
+        s += "                        _PRO += _CT.c_ubyte.from_address(_ADDR + _I)\n";
+        s += "                    except: break\n";
+        s += "                if len(_PRO) >= 8:\n";
+        s += "                    if _PRO[0] == 0x48 and _PRO[1] == 0xB8 and _PRO[10] == 0xFF and _PRO[11] == 0xD0:\n";
+        s += "                        _SYS.stderr.write('error: inline hook detected\\n'); _SYS.exit(1)\n";
+        s += "                    if _PRO[0] == 0xE9:\n";
+        s += "                        _SYS.stderr.write('error: detours hook detected\\n'); _SYS.exit(1)\n";
+        s += "                    if _PRO[0] == 0x68 and _PRO[5] == 0xC3:\n";
+        s += "                        _SYS.stderr.write('error: push-ret hook detected\\n'); _SYS.exit(1)\n";
+        s += "            except: pass\n";
+        s += "        for _FN in ('NtOpenProcess', 'NtReadVirtualMemory', 'NtWriteVirtualMemory',\n";
+        s += "                    'NtCreateThreadEx', 'NtProtectVirtualMemory'):\n";
+        s += "            try:\n";
+        s += "                _ADDR = getattr(_NTDLL, _FN)\n";
+        s += "                _PRO = b''\n";
+        s += "                for _I in range(12):\n";
+        s += "                    try:\n";
+        s += "                        _PRO += _CT.c_ubyte.from_address(_ADDR + _I)\n";
+        s += "                    except: break\n";
+        s += "                if len(_PRO) >= 8:\n";
+        s += "                    if _PRO[0] == 0x48 and _PRO[1] == 0xB8 and _PRO[10] == 0xFF and _PRO[11] == 0xD0:\n";
+        s += "                        _SYS.stderr.write('error: ntdll hook detected\\n'); _SYS.exit(1)\n";
+        s += "                    if _PRO[0] == 0xE9:\n";
+        s += "                        _SYS.stderr.write('error: ntdll detours hook detected\\n'); _SYS.exit(1)\n";
+        s += "            except: pass\n";
+        s += "    except: pass\n";
+
+        /* ── Syscall hook detection via function prologue scan ── */
         s += "if _IS_LINUX:\n";
         s += "    try:\n";
         s += "        import ctypes as _CT\n";
@@ -1391,6 +1614,73 @@ char *anti_debug_generate_stub(int include_vm_check, int include_hook_check) {
         s += "                if _SB[:3] == b'\\x48\\xb8' and _SB[10:12] == b'\\xff\\xd0':\n";
         s += "                    _SYS.stderr.write('error: syscall hook detected\\n'); _SYS.exit(1)\n";
         s += "            except: pass\n";
+        s += "    except: pass\n";
+        s += "if _IS_WINDOWS:\n";
+        s += "    try:\n";
+        s += "        import ctypes as _CT\n";
+        s += "        _NTDLL = _CT.WinDLL('ntdll.dll')\n";
+        s += "        for _FN in ('NtOpenProcess', 'NtReadVirtualMemory', 'NtWriteVirtualMemory',\n";
+        s += "                    'NtCreateThreadEx', 'NtAllocateVirtualMemory'):\n";
+        s += "            try:\n";
+        s += "                _ADDR = getattr(_NTDLL, _FN)\n";
+        s += "                _PRO = b''\n";
+        s += "                for _I in range(12):\n";
+        s += "                    try:\n";
+        s += "                        _PRO += _CT.c_ubyte.from_address(_ADDR + _I)\n";
+        s += "                    except: break\n";
+        s += "                if len(_PRO) >= 8:\n";
+        s += "                    if _PRO[0] == 0x48 and _PRO[1] == 0xB8 and _PRO[10] == 0xFF and _PRO[11] == 0xD0:\n";
+        s += "                        _SYS.stderr.write('error: ntdll syscall hook detected\\n'); _SYS.exit(1)\n";
+        s += "                    if _PRO[0] == 0xE9:\n";
+        s += "                        _SYS.stderr.write('error: ntdll detours hook detected\\n'); _SYS.exit(1)\n";
+        s += "            except: pass\n";
+        s += "    except: pass\n";
+        s += "if _IS_LINUX:\n";
+        s += "    try:\n";
+        s += "        _WX_COUNT = 0\n";
+        s += "        with open('/proc/self/maps') as _M:\n";
+        s += "            for _L in _M:\n";
+        s += "                if ' rwx' in _L:\n";
+        s += "                    _WX_COUNT += 1\n";
+        s += "        if _WX_COUNT > 10:\n";
+        s += "            _SYS.stderr.write('error: suspicious WX regions detected\\n'); _SYS.exit(1)\n";
+        s += "    except: pass\n";
+        s += "if _IS_WINDOWS:\n";
+        s += "    try:\n";
+        s += "        import ctypes as _CT\n";
+        s += "        _K32 = _CT.windll.kernel32\n";
+        s += "        class _MEMORY_BASIC_INFORMATION(_CT.Structure):\n";
+        s += "            _fields_ = [\n";
+        s += "                ('BaseAddress', _CT.c_void_p),\n";
+        s += "                ('AllocationBase', _CT.c_void_p),\n";
+        s += "                ('AllocationProtect', _CT.c_ulong),\n";
+        s += "                ('RegionSize', _CT.c_size_t),\n";
+        s += "                ('State', _CT.c_ulong),\n";
+        s += "                ('Protect', _CT.c_ulong),\n";
+        s += "                ('Type', _CT.c_ulong),\n";
+        s += "            ]\n";
+        s += "        _MEM_COMMIT = 0x1000\n";
+        s += "        _PAGE_EXECUTE_READWRITE = 0x40\n";
+        s += "        _MEM_PRIVATE = 0x20000\n";
+        s += "        _SI = _CT.c_void_p(0)\n";
+        s += "        _ADDR = 0x10000\n";
+        s += "        _WX_COUNT = 0\n";
+        s += "        _PRIV_WX = 0\n";
+        s += "        while _ADDR < 0x7FFFFFFF0000:\n";
+        s += "            _MBI = _MEMORY_BASIC_INFORMATION()\n";
+        s += "            _RET = _K32.VirtualQuery(_ADDR, _CT.byref(_MBI), _CT.sizeof(_MBI))\n";
+        s += "            if _RET == 0:\n";
+        s += "                _ADDR += 0x10000\n";
+        s += "                continue\n";
+        s += "            if _MBI.State == _MEM_COMMIT and _MBI.Protect == _PAGE_EXECUTE_READWRITE:\n";
+        s += "                _WX_COUNT += 1\n";
+        s += "                if _MBI.Type == _MEM_PRIVATE:\n";
+        s += "                    _PRIV_WX += 1\n";
+        s += "                    if _MBI.RegionSize > 1048576:\n";
+        s += "                        _SYS.stderr.write('error: large private WX region detected\\n'); _SYS.exit(1)\n";
+        s += "            _ADDR += _MBI.RegionSize\n";
+        s += "        if _PRIV_WX > 2 or _WX_COUNT > 10:\n";
+        s += "            _SYS.stderr.write('error: suspicious memory regions detected\\n'); _SYS.exit(1)\n";
         s += "    except: pass\n";
     }
 
