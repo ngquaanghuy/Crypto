@@ -121,19 +121,150 @@ char *junk_generate_statement(const JunkConfig *cfg) {
         int sz = rand_range(2, 64);
         int guard = rand_range(0, 999);
         int vx = rand_range(1, 100);
-        snprintf(buf, sizeof(buf), side_effect_pool[idx],
-                 v1.c_str(), size,
-                 v2.c_str(), v2.c_str(), v1.c_str(),
-                 v3.c_str(), v2.c_str());
+        /* Each side_effect template may have different format specifier positions;
+           use switch to pass exactly the right number and types of arguments. */
+        switch (idx) {
+            case 0:
+                /* %s = [None ... range(%d)]  %s = %s.pop() if %s else None */
+                snprintf(buf, sizeof(buf), side_effect_pool[0],
+                         v1.c_str(), size, v2.c_str(), v2.c_str(), v1.c_str());
+                break;
+            case 1:
+                /* %s = list(range(%d))  import random as %s  %s.shuffle(%s)  %s = %s.pop() */
+                snprintf(buf, sizeof(buf), side_effect_pool[1],
+                         v1.c_str(), size, v2.c_str(), v2.c_str(), v1.c_str(),
+                         v3.c_str(), v2.c_str());
+                break;
+            case 2:
+                /* %s = {str(_): _ for _ in range(%d)}  %s = %s.get('0', None) */
+                snprintf(buf, sizeof(buf), side_effect_pool[2],
+                         v1.c_str(), size, v2.c_str(), v1.c_str());
+                break;
+            case 3:
+                /* %s = bytearray(%d)  for _i ... len(%s) ... %s[_i] ...  %s = bytes(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[3],
+                         v1.c_str(), size, v1.c_str(), v1.c_str(),
+                         v2.c_str(), v1.c_str());
+                break;
+            case 4:
+                /* %s = [x*x for x in range(%d) if x%%2==0]  %s = sum(%s) - sum(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[4],
+                         v1.c_str(), size, v2.c_str(), v2.c_str(), v1.c_str());
+                break;
+            case 5:
+                /* %s = (lambda _x: ...)(%d)  %s = len(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[5],
+                         v1.c_str(), size, v2.c_str(), v2.c_str());
+                break;
+            case 6:
+                /* %s = frozenset(range(%d))  %s = %s.union(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[6],
+                         v1.c_str(), size, v2.c_str(), v1.c_str(), v3.c_str());
+                break;
+            case 7:
+                /* %s = memoryview(bytearray(range(%d))).tolist()  %s = sum(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[7],
+                         v1.c_str(), size, v2.c_str(), v2.c_str());
+                break;
+            case 8:
+                /* %s = tuple(reversed(range(%d)))  %s = %s.index(%d) */
+                snprintf(buf, sizeof(buf), side_effect_pool[8],
+                         v1.c_str(), size, v2.c_str(), v1.c_str(), guard);
+                break;
+            case 9:
+                /* %s = [... range(%d) ...]  %s = len(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[9],
+                         v1.c_str(), size, v2.c_str(), v2.c_str());
+                break;
+            case 10:
+                /* %s = [[x,y] ... range(%d) ...]  %s = len(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[10],
+                         v1.c_str(), size, v2.c_str(), v2.c_str());
+                break;
+            case 11:
+                /* %s = [x*x ... range(%d)]  %s = list(filter(..., %d, %s))  %s = len(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[11],
+                         v1.c_str(), size, v2.c_str(), vx, v1.c_str(),
+                         v3.c_str(), v3.c_str());
+                break;
+            case 12:
+                /* %s = map(str, range(%d))  %s = list(%s)  %s = len(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[12],
+                         v1.c_str(), size, v2.c_str(), v1.c_str(),
+                         v3.c_str(), v3.c_str());
+                break;
+            case 13:
+                /* %s = zip(range(%d), range(%d))  %s = dict(%s)  %s = list(%s.keys()) */
+                snprintf(buf, sizeof(buf), side_effect_pool[13],
+                         v1.c_str(), sz, size, v2.c_str(), v1.c_str(),
+                         v3.c_str(), v1.c_str());
+                break;
+            case 14:
+                /* %s = enumerate(range(%d))  %s = [%d+1 for _,%s in %s]  %s = len(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[14],
+                         v1.c_str(), size, v2.c_str(), guard, v3.c_str(), v1.c_str(),
+                         v2.c_str(), v2.c_str());
+                break;
+            case 15:
+                /* %s = bytes(%d).hex()  %s = bytes.fromhex(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[15],
+                         v1.c_str(), size, v2.c_str(), v1.c_str());
+                break;
+            case 16:
+                /* %s = bytearray()  %s.extend(...%d)  %s = bytes(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[16],
+                         v1.c_str(), v2.c_str(), size, v3.c_str(), v1.c_str());
+                break;
+            case 17:
+                /* %s = (lambda _x: ...)(%d)  %s = %s %% %d */
+                snprintf(buf, sizeof(buf), side_effect_pool[17],
+                         v1.c_str(), size, v2.c_str(), v3.c_str(), guard);
+                break;
+            case 18:
+                /* %s = [%d*i for i in range(%d)]  %s = sum(%s) - sum(%s) + sum(%s) */
+                snprintf(buf, sizeof(buf), side_effect_pool[18],
+                         v1.c_str(), vx, size, v2.c_str(), v2.c_str(),
+                         v1.c_str(), v3.c_str(), v3.c_str());
+                break;
+            case 19:
+                /* %s = list(%d for _ in range(%d))  %s = %s.count(%d) */
+                snprintf(buf, sizeof(buf), side_effect_pool[19],
+                         v1.c_str(), vx, size, v2.c_str(), v1.c_str(), guard);
+                break;
+            default:
+                buf[0] = '\0';
+                break;
+        }
     } else if ((sel >> 1) & 1) {
         int idx = rand_range(0, TRY_POOL_COUNT - 1);
         int sub_sz = rand_range(2, 32);
-        snprintf(buf, sizeof(buf), try_except_pool[idx],
-                 v1.c_str(), v2.c_str(),
-                 v2.c_str(), v2.c_str(), sub_sz, v3.c_str(), v2.c_str(),
-                 v3.c_str(),
-                 v1.c_str(), size, v2.c_str(),
-                 v3.c_str(), v1.c_str(), size / 2, v3.c_str());
+        /* Each try/except template has different format specifiers */
+        switch (idx) {
+            case 0:
+                /* try: %s  except: %s = None */
+                snprintf(buf, sizeof(buf), try_except_pool[0],
+                         v1.c_str(), v2.c_str());
+                break;
+            case 1:
+                /* try: %s = [%s for _ in range(%d)]  %s = %s.pop(0)  except: %s = None */
+                snprintf(buf, sizeof(buf), try_except_pool[1],
+                         v1.c_str(), v2.c_str(), sub_sz,
+                         v3.c_str(), v1.c_str(), v2.c_str());
+                break;
+            case 2:
+                /* try: %s = (lambda _x: _x // _x)(%d)  except: %s = 0 */
+                snprintf(buf, sizeof(buf), try_except_pool[2],
+                         v1.c_str(), size, v2.c_str());
+                break;
+            case 3:
+                /* try: %s = %s[%d]  except: %s = None */
+                snprintf(buf, sizeof(buf), try_except_pool[3],
+                         v1.c_str(), v2.c_str(), sub_sz, v3.c_str());
+                break;
+            default:
+                buf[0] = '\0';
+                break;
+        }
     } else {
         int idx = rand_range(0, SIMPLE_POOL_COUNT - 1);
         snprintf(buf, sizeof(buf), simple_junk_pool[idx], v1.c_str());
@@ -162,25 +293,38 @@ char *junk_generate_ifelse_block(const JunkConfig *cfg) {
     int val = rand_range(0, 10000);
 
     char buf[2048];
-    snprintf(buf, sizeof(buf), if_else_pool[idx],
-             v1.c_str(), val,
-             v2.c_str(), sz1, sz2,
-             v3.c_str(), sz1, sz2,
-             v4.c_str(), v2.c_str(),
-             /* template 2 */
-             v5.c_str(), val, v1.c_str(), val,
-             v2.c_str(), attr1.c_str(), v1.c_str(), sz1,
-             v3.c_str(), v2.c_str(),
-             v4.c_str(), attr1.c_str(), v1.c_str(), sz2,
-             v5.c_str(), v4.c_str(),
-             v4.c_str(), v4.c_str(),
-             /* template 3 */
-             v1.c_str(), val,
-             v2.c_str(), sz1,
-             v3.c_str(), v2.c_str(),
-             v4.c_str(), sz2,
-             v5.c_str(), v4.c_str(),
-             v5.c_str(), v5.c_str());
+
+    /* Each template has a different number of format specifiers;
+       pass only the exact arguments each template needs. */
+    switch (idx) {
+        case 0:
+            /* if %s >= %d:  %s = [x for x in range(%d, %d)]  %s = [x*x ... %d, %d)]  %s = %s + %s */
+            snprintf(buf, sizeof(buf), if_else_pool[0],
+                     v1.c_str(), val,
+                     v2.c_str(), sz1, sz2,
+                     v3.c_str(), sz1, sz2,
+                     v4.c_str(), v2.c_str(), v3.c_str());
+            break;
+        case 1:
+            /* if hasattr(%s, '%s'):  %s = %s.%s(%d)  %s = %s  else:  %s = %s.%s(%d)  %s = %s + %s  %s = %s */
+            snprintf(buf, sizeof(buf), if_else_pool[1],
+                     v1.c_str(), attr1.c_str(),
+                     v2.c_str(), v1.c_str(), attr2.c_str(), sz1,
+                     v3.c_str(), v2.c_str(),
+                     v4.c_str(), v1.c_str(), attr1.c_str(), sz2,
+                     v5.c_str(), v4.c_str(), v3.c_str(),
+                     v4.c_str(), v5.c_str());
+            break;
+        case 2:
+            /* if %s > %d:  %s = list(filter(..., %d, range(%d)))  %s = [x for x in range(%d)]  %s = %s + %s  %s = %s */
+            snprintf(buf, sizeof(buf), if_else_pool[2],
+                     v1.c_str(), val,
+                     v2.c_str(), sz1, sz2,
+                     v3.c_str(), sz2,
+                     v4.c_str(), v2.c_str(), v3.c_str(),
+                     v5.c_str(), v4.c_str());
+            break;
+    }
     return strdup(buf);
 }
 
