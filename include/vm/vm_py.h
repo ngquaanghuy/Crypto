@@ -38,7 +38,16 @@ def convert(source, opaque=0):
     def alloc_reg():
         nonlocal next_reg
         if free_regs:
-            return free_regs.pop()
+            # CRITICAL: Never reuse a freed register that's still live on reg_stack.
+            # Doing so would overwrite the register's value (e.g., a function arg)
+            # when a later LOAD_CONST/LOAD_FAST loads a new value into it.
+            # This is the root cause of the CALL_KW bug where the names tuple
+            # ('nonce',) overwrote the AES key because alloc_reg() returned
+            # the same register that was still holding the key on the stack.
+            for _i, _r in enumerate(free_regs):
+                if _r not in reg_stack:
+                    return free_regs.pop(_i)
+            # All freed registers are on the stack, allocate a fresh one
         r = next_reg
         next_reg += 1
         return r
@@ -68,8 +77,10 @@ def convert(source, opaque=0):
 
     # Map specialized Python 3.14 opcodes to generic equivalents
     SPECIAL_MAP = {}
+    # Exclude opcodes with their own specific handlers (CALL_KW, CALL_FUNCTION_EX, CALL_INTRINSIC_1/2)
+    _call_exclude = frozenset(('CALL_KW', 'CALL_FUNCTION_EX', 'CALL_INTRINSIC_1', 'CALL_INTRINSIC_2'))
     for _n in dir(dis):
-        if _n.startswith('CALL_'):
+        if _n.startswith('CALL_') and _n not in _call_exclude:
             _op = getattr(dis.opmap, _n, None)
             if _op is not None:
                 SPECIAL_MAP[_n] = 'CALL'
@@ -1150,20 +1161,27 @@ def convert(source, opaque=0):
                         _saved[_src] = _tmp
                         if _src in reg_stack:
                             reg_stack[reg_stack.index(_src)] = _tmp
-            # Save names_idx if it's a MOVE target (already popped from reg_stack)
-            if names_idx and names_idx in _move_targets and names_idx not in _saved:
+            # Save names_idx if it falls in the arg range [fn_reg+1, fn_reg+argc].
+            # CRITICAL: CALL_KW reads args via _rr(rs1, 1+_i) which maps to raw registers
+            # fn_reg+1..fn_reg+argc. If names_idx overlaps with this range, _rr() and _nr
+            # will point to the same runtime register, causing the names tuple to be read
+            # as an arg value. Check against the full range (not just _move_targets) because
+            # no MOVE is generated when an arg is already at its target position.
+            _names_range = set(fn_reg + 1 + _i for _i in range(argc))
+            if names_idx and names_idx in _names_range and names_idx not in _saved:
                 _tmp = alloc_reg()
-                if _tmp in _move_targets:
+                while _tmp in _move_targets or _tmp == names_idx:
                     free_regs.append(_tmp)
                     _tmp = next_reg
                     next_reg += 1
                 vm_code.extend(struct.pack('<BBBBi', 6, _tmp, names_idx, 0, 0))
+                _saved[names_idx] = _tmp
                 names_idx = _tmp
             _live = set(reg_stack)
             for _tgt, _src in _moves:
                 if _tgt in _live and _tgt not in _saved:
                     _tmp = alloc_reg()
-                    if _tmp in _move_targets:
+                    while _tmp in _move_targets or _tmp == names_idx:
                         free_regs.append(_tmp)
                         _tmp = next_reg
                         next_reg += 1
