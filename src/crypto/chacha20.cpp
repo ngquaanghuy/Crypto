@@ -9,7 +9,7 @@
 #include <openssl/crypto.h>
 
 #define SALT_SIZE     16
-#define CHACHA_NONCE_SIZE 12
+#define CHACHA_NONCE_SIZE 16 /* OpenSSL EVP_chacha20 uses 4-byte counter + 12-byte nonce = 16-byte IV */
 #define KEY_DERIV_ITER 100000
 #define HMAC_SIZE      32
 
