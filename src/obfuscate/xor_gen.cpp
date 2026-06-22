@@ -288,15 +288,15 @@ char *xorgen_generate_python_stub(const unsigned char *plaintext,
     py += "def _DEC(data, key):\n";
     py += "    salt = data[:16]\n";
     py += "    nonce = data[16:28]\n";
-    py += "    ct = data[28:-16]\n";
-    py += "    tag = data[-16:]\n";
+    py += "    ct = data[28:-32]\n";
+    py += "    tag = data[-32:]\n";
     py += "    prk = _M.new(salt, key, _H.sha256).digest()\n";
     py += "    t1 = _M.new(prk, b'\\x01', _H.sha256).digest()\n";
     py += "    ek = t1\n";
     py += "    hk_input = bytearray(t1)\n";
     py += "    hk_input.append(2)\n";
     py += "    hk = _M.new(prk, bytes(hk_input), _H.sha256).digest()\n";
-    py += "    expected = _M.new(hk, salt+nonce+ct, _H.sha256).digest()[:16]\n";
+    py += "    expected = _M.new(hk, salt+nonce+ct, _H.sha256).digest()[:32]\n";
     py += "    if not _M.compare_digest(tag, expected):\n";
     py += "        raise ValueError('integrity check failed')\n";
     py += "    result = bytearray()\n";

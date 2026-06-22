@@ -169,7 +169,7 @@ char *junk_generate_section(const JunkConfig *cfg, int count);
 #define OBFUSCATE_NONCE_SIZE        12
 #define OBFUSCATE_CHACHA20_KEY_SIZE 32
 #define OBFUSCATE_HMAC_KEY_SIZE     32
-#define OBFUSCATE_TAG_SIZE          16
+#define OBFUSCATE_TAG_SIZE          32 /* HMAC-SHA256 produces 32 bytes */
 
 ExitCode xorgen_derive_keys(const unsigned char *master, size_t master_len,
                             const unsigned char *salt, size_t salt_len,
