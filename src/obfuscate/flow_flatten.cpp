@@ -148,45 +148,26 @@ static const char *opaque_false_pool[] = {
 };
 
 /* ── Dynamic polynomial-based opaque predicate generator ── */
-/* Generates complex-looking but constant-true predicates using polynomial math.
- * Uses bitwise operations and integer arithmetic that evaluate to constants. */
+/* Generates complex-looking but constant-true predicates using simple math.
+ * Uses expressions that are mathematically guaranteed to evaluate to True. */
 static std::string gen_poly_opaque_true(void) {
     unsigned char r[16];
     RAND_bytes(r, sizeof(r));
 
-    int style = r[0] % 6;
-    int a = (int)r[1] % 256;
-    int b = (int)r[2] % 256;
-    int c = (int)r[3] % 256;
-    int d = (int)r[4] % 256;
+    int style = r[0] % 5;
 
     switch (style) {
         case 0:
-            return std::format(
-                "(lambda _:[_ for _ in range(256) if (_*_ + {}) & (_ | 1) != (_^2 + _ + 1) & 1] == [])(0)",
-                a, a);
+            return "(lambda _:[x for x in range(256) if x != x] == [])(0)";
         case 1:
-            return std::format(
-                "(lambda _:(((_<<{})|(_>>{}))^((_+{})<<{})^(_|{}))==((_>>{})|((_+{})&{})))(42)",
-                a % 4 + 1, 8 - (a % 4), b % 8 + 1, b % 8 + 1, a % 4 + 1,
-                b % 8 + 1, b % 8 + 1, 8 - (a % 4), a % 4 + 1, 7);
+            return "(lambda _:_ is _)(0)";
         case 2:
-            return std::format(
-                "(lambda _:[_ for _ in range({}) if (_^(_+{})^(_+{}))!=((_*3)+{})] == [])(0)",
-                c % 20 + 10, c % 20 + 10, c % 20 + 10, c % 20 + 10);
+            return "(lambda _:_ == _)(0)";
         case 3:
-            return std::format(
-                "(lambda _:((({}*_)|{})|{})=={})(0)",
-                0x9e3779b1 % 200 + 50, a % 16, b % 8, a + b);
+            return "(lambda _:[].count(_) == 0)(0)";
         case 4:
-            return std::format(
-                "(lambda _:(_{0}_{1}_{2}_{3}_{4}{5})==_)(0)",
-                a % 10, (a+1) % 10, (a+2) % 10, (a+3) % 10, (a+4) % 10, a % 10);
-        case 5:
         default:
-            return std::format(
-                "(lambda _:((_{0})|{1})=={0})(1)",
-                a % 10 + 5, b % 16);
+            return "(lambda _:None is None)(0)";
     }
 }
 
@@ -211,27 +192,13 @@ static std::string gen_poly_opaque_false(void) {
 
 /* ── Generate opaque predicates (enhanced with dynamic generation) ── */
 char *flowflatten_opaque_predicate(void) {
-    unsigned char idx_buf;
-    RAND_bytes(&idx_buf, 1);
-    int pool_size = sizeof(opaque_true_pool) / sizeof(opaque_true_pool[0]);
-    int idx = idx_buf % pool_size;
-    if (idx_buf % 3 == 0) {
-        std::string dyn = gen_poly_opaque_true();
-        return strdup(dyn.c_str());
-    }
-    return strdup(opaque_true_pool[idx]);
+    std::string dyn = gen_poly_opaque_true();
+    return strdup(dyn.c_str());
 }
 
 char *flowflatten_opaque_false_predicate(void) {
-    unsigned char idx_buf;
-    RAND_bytes(&idx_buf, 1);
-    int pool_size = sizeof(opaque_false_pool) / sizeof(opaque_false_pool[0]);
-    int idx = idx_buf % pool_size;
-    if (idx_buf % 3 == 0) {
-        std::string dyn = gen_poly_opaque_false();
-        return strdup(dyn.c_str());
-    }
-    return strdup(opaque_false_pool[idx]);
+    std::string dyn = gen_poly_opaque_false();
+    return strdup(dyn.c_str());
 }
 
 /* ── Generate a random name with variable length ── */
