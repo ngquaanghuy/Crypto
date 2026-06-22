@@ -249,7 +249,7 @@ ExitCode vm_compile_source_ex(const char *source, size_t source_len,
 
     vm_program_init(prog);
 
-    // Generate random constant encryption key
+    // Random constant encryption key - stored in blob, protected by VM blob encryption
     for (int i = 0; i < VM_CONST_KEY_SIZE; i++)
         prog->const_key[i] = (uint8_t)(rand() & 0xFF);
     prog->poly_seed = (cfg->seed >= 0) ? cfg->seed : (int)rand();
@@ -708,68 +708,15 @@ ExitCode vm_deserialize(const unsigned char *data, size_t size,
     return EXIT_OK;
 }
 
-// ─── Encrypt blob ───────────────────────────────────────────
+/* ─── VM Serialize (done) ─────────────────────────────── */
+/* Note: vm_encrypt_blob is deprecated - VM blob encryption
+ * now happens in protect.cpp using proper key derivation.
+ * Keeping this stub for API compatibility only. */
 int vm_encrypt_blob(const unsigned char *plaintext, int plaintext_len,
                            unsigned char **ciphertext, int *ciphertext_len) {
-    unsigned char key[32] = "hardened_vm_key_2026_super_se"; 
-    unsigned char iv[16];
-    if (RAND_bytes(iv, sizeof(iv)) != 1) return -1;
-
-    unsigned char op_key[32];
-    if (RAND_bytes(op_key, 32) != 1) return -1;
-
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    if (!ctx) return -1;
-
-    if (EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv) != 1) {
-        EVP_CIPHER_CTX_free(ctx);
-        return -1;
-    }
-
-    int len;
-    int total_plaintext_len = 32 + plaintext_len;
-    unsigned char *full_plaintext = (unsigned char *)malloc(total_plaintext_len);
-    if (!full_plaintext) {
-        EVP_CIPHER_CTX_free(ctx);
-        return -1;
-    }
-    memcpy(full_plaintext, op_key, 32);
-    memcpy(full_plaintext + 32, plaintext, plaintext_len);
-
-    int total_len = total_plaintext_len + 16 + 32;
-    unsigned char *out = (unsigned char *)malloc(total_len);
-    if (!out) {
-        free(full_plaintext);
-        EVP_CIPHER_CTX_free(ctx);
-        return -1;
-    }
-
-    memcpy(out, iv, 16);
-
-    if (EVP_EncryptUpdate(ctx, out + 16, &len, full_plaintext, total_plaintext_len) != 1) {
-        free(full_plaintext);
-        free(out);
-        EVP_CIPHER_CTX_free(ctx);
-        return -1;
-    }
-    int ciphertext_len_actual = len;
-
-    if (EVP_EncryptFinal_ex(ctx, out + 16 + len, &len) != 1) {
-        free(full_plaintext);
-        free(out);
-        EVP_CIPHER_CTX_free(ctx);
-        return -1;
-    }
-    ciphertext_len_actual += len;
-
-    unsigned int hmac_len;
-    HMAC(EVP_sha256(), key, 32, out, 16 + ciphertext_len_actual,
-         out + 16 + ciphertext_len_actual, &hmac_len);
-
-    *ciphertext = out;
-    *ciphertext_len = 16 + ciphertext_len_actual + 32;
-
-    free(full_plaintext);
-    EVP_CIPHER_CTX_free(ctx);
-    return 0;
+    (void)plaintext;
+    (void)plaintext_len;
+    (void)ciphertext;
+    (void)ciphertext_len;
+    return -1; /* Deprecated: returns error */
 }

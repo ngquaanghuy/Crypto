@@ -135,10 +135,10 @@ char *obfuscate_apply_technique(const char *technique,
         flowflatten_plan_free(&plan);
         if (!result) return strdup(source);
 
-        /* Append: execute the flattened source after the original */
-        std::string full = std::string(result) + "\n\n# Original source:\n" + source;
+        /* Obfuscated source only - original source NOT leaked */
+        char *obfuscated = strdup(result);
         free(result);
-        return strdup(full.c_str());
+        return obfuscated;
     }
 
     if (strcmp(technique, "aflow") == 0) {
@@ -148,9 +148,10 @@ char *obfuscate_apply_technique(const char *technique,
         char *result = adv_flowflatten_wrap_source(source, block_count, density);
         if (!result) return strdup(source);
 
-        std::string full = std::string(result) + "\n\n# Original source:\n" + source;
+        /* Obfuscated source only - original source NOT leaked */
+        char *obfuscated = strdup(result);
         free(result);
-        return strdup(full.c_str());
+        return obfuscated;
     }
 
     if (strcmp(technique, "junk") == 0) {
