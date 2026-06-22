@@ -1515,12 +1515,14 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         except ValueError:
             _vm_trace_reg = -1
 
-    # Security: refuse to run if any debug/analyze env vars are detected
+    # Security: refuse to run if debug env vars that leak VM internals are detected
     _vm_sec_envs = (
+        # VM-specific debug (these directly leak VM internals)
         'VM_DEBUG', 'VM_CRITICAL_REGS', 'VM_TRACE_REG', 'VM_TRACE_ALL',
-        'PYTHONDEBUG', 'PYTHONTRACEMAKES', 'LIBC_FATAL_STDERR_',
-        'GLIB_DEBUG', 'G_DEBUG', 'QT_DEBUG', 'NODE_DEBUG',
-        'HTTP_DEBUG', 'DEBUG', 'VERBOSE', 'LD_DEBUG', 'LD_PROFILE'
+        # Python debug that exposes internals
+        'PYTHONTRACEMAKES', 'PYTHONDUMPREFS', 'PYTHONMALLOCSTATS',
+        # System loader debug (can reveal loaded libraries/code)
+        'LD_DEBUG', 'LD_AUDIT',
     )
     for _ev in _vm_sec_envs:
         if _ev in _vm_os.environ:
