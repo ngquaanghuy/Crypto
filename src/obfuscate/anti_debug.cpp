@@ -844,7 +844,6 @@ int anti_debug_check_inline_hooks(void) {
     if (image_count == 0) return 0;
 
     task_t self_task = mach_task_self();
-    unsigned char buf[64];
 
     for (uint32_t i = 0; i < image_count; i++) {
         const mach_header *header = _dyld_get_image_header(i);
@@ -863,43 +862,49 @@ int anti_debug_check_inline_hooks(void) {
         }
 
         uint64_t text_start = (uint64_t)header + slide;
-        uint64_t text_size = 16384;
+        uint64_t text_size = 4096; /* Read first page of text segment */
 
-        vm_size_t bytes_read = 0;
-        kern_return_t kr = mach_vm_read(self_task, text_start, text_size, (vm_offset_t *)buf, &bytes_read);
+        vm_offset_t data_ptr;
+        mach_msg_type_number_t bytes_read = 0;
+        kern_return_t kr = mach_vm_read(self_task, text_start, text_size, &data_ptr, &bytes_read);
 
         if (kr != KERN_SUCCESS || bytes_read < 16) continue;
 
-        for (size_t j = 0; j < bytes_read - 15; j++) {
+        unsigned char *buf = (unsigned char *)data_ptr;
+        for (mach_msg_type_number_t j = 0; j < bytes_read - 15; j++) {
             /* Pattern 1: mov rax, imm64; jmp rax (12 bytes) */
             if (buf[j] == 0x48 && buf[j+1] == 0xB8 && buf[j+10] == 0xFF && buf[j+11] == 0xD0) {
+                vm_deallocate(self_task, data_ptr, bytes_read);
                 return 1;
             }
             /* Pattern 2: push + ret */
             if (buf[j] == 0xFF && (buf[j+1] == 0x35 || buf[j+1] == 0x25) && buf[j+6] == 0xC3) {
+                vm_deallocate(self_task, data_ptr, bytes_read);
                 return 1;
             }
             /* Pattern 3: push imm32; ret */
             if (buf[j] == 0x68 && buf[j+5] == 0xC3) {
-                unsigned char after_ret;
-                vm_size_t extra_read = 0;
-                if (mach_vm_read(self_task, text_start + j + 6, 1, (vm_offset_t *)&after_ret, &extra_read) == KERN_SUCCESS) {
-                    if (after_ret == 0xC3) return 1;
-                }
+                vm_deallocate(self_task, data_ptr, bytes_read);
+                return 1;
             }
             /* Pattern 4: jmp far */
             if ((buf[j] & 0xFF) == 0xFF && (buf[j+1] & 0x38) == 0x20) {
+                vm_deallocate(self_task, data_ptr, bytes_read);
                 return 1;
             }
             /* Pattern 5: 5-byte jmp rel32 */
             if (buf[j] == 0xE9) {
+                vm_deallocate(self_task, data_ptr, bytes_read);
                 return 1;
             }
             /* Pattern 6: mov rsi, rdi; jmp - common Swift hook */
             if (buf[j] == 0x48 && buf[j+1] == 0x89 && buf[j+2] == 0xFE && buf[j+3] == 0xFF && buf[j+4] == 0xE0) {
+                vm_deallocate(self_task, data_ptr, bytes_read);
                 return 1;
             }
         }
+
+        vm_deallocate(self_task, data_ptr, bytes_read);
     }
     return 0;
 #elif defined(PLATFORM_WINDOWS)
@@ -952,7 +957,7 @@ int anti_debug_check_inline_hooks(void) {
             }
         }
     }
-    return 1; /* If we can't read any functions, something is very wrong */
+    return 0; /* No hooks detected */
 #else
     return 0;
 #endif
@@ -1104,6 +1109,7 @@ int anti_debug_check_plt_hooks(void) {
         vm_region_basic_info_data_64_t info;
         mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
         uint64_t region_addr = addr;
+        kern_return_t kr;
 
         for (uint64_t scan_addr = addr; scan_addr < addr + size; scan_addr += 4096) {
             mach_port_t object_name;
@@ -1569,7 +1575,7 @@ AntiDebugResult anti_debug_check_all(void) {
     if (check_hooks())                   return ADBG_RESULT_HOOK_DETECTED;
 
     /* Advanced hook detection */
-#if defined(PLATFORM_LINUX) || defined(PLATFORM_WINDOWS)
+#if defined(PLATFORM_LINUX) || defined(PLATFORM_WINDOWS) || defined(PLATFORM_MACOS)
     if (anti_debug_check_inline_hooks())      return ADBG_RESULT_HOOK_DETECTED;
     if (anti_debug_check_plt_hooks())         return ADBG_RESULT_HOOK_DETECTED;
     if (anti_debug_check_syscall_hooks())     return ADBG_RESULT_HOOK_DETECTED;
@@ -1652,21 +1658,24 @@ char *anti_debug_generate_stub(int include_vm_check, int include_hook_check) {
     s += "                        _SYS.stderr.write('error: debugger detected\\n'); _SYS.exit(1)\n";
     s += "    except: pass\n";
     
-    /* MacOS sysctl check via ctypes */
+    /* MacOS sysctl check via ctypes — uses raw buffer for cross-version compatibility */
     s += "if _IS_MACOS:\n";
     s += "    try:\n";
     s += "        import ctypes as _CT\n";
     s += "        _LIBC = _CT.CDLL(None)\n";
-    s += "        # KERN_PROC=14, KERN_PROC_PID=1\n";
-    s += "        class KInfoProc(_CT.Structure):\n";
-    s += "            _fields_ = [('kp_proc', _CT.c_int * 12)]\n";
-    s += "        _INFO = KInfoProc()\n";
-    s += "        _SIZE = _CT.c_size_t(_CT.sizeof(_INFO))\n";
+    s += "        # sysctl CTL_KERN(1) KERN_PROC(14) KERN_PROC_PID(1) pid\n";
     s += "        _MIB = (_CT.c_int * 4)(1, 14, 1, _SYS.getpid())\n";
-    s += "        if _LIBC.sysctl(_MIB, 4, _CT.byref(_INFO), _CT.byref(_SIZE), None, 0) == 0:\n";
+    s += "        _BUF = (_CT.c_char * 1024)()\n";
+    s += "        _SIZE = _CT.c_size_t(1024)\n";
+    s += "        if _LIBC.sysctl(_MIB, 4, _CT.byref(_BUF), _CT.byref(_SIZE), None, 0) == 0:\n";
+    s += "            _RAW = bytes(_BUF)\n";
     s += "            P_TRACED = 0x800\n";
-    s += "            if _INFO.kp_proc[0] & P_TRACED:\n";
-    s += "                _SYS.stderr.write('error: debugger detected\\n'); _SYS.exit(1)\n";
+    s += "            # Check multiple possible p_flag offsets (macOS version-dependent)\n";
+    s += "            for _OFF in (64, 68, 72, 76, 80):\n";
+    s += "                if _OFF + 4 <= _SIZE.value:\n";
+    s += "                    _FLAG = int.from_bytes(_RAW[_OFF:_OFF+4], 'little')\n";
+    s += "                    if _FLAG & P_TRACED:\n";
+    s += "                        _SYS.stderr.write('error: debugger detected\\n'); _SYS.exit(1)\n";
     s += "    except: pass\n";
 
     /* Breakpoint hook removal */
