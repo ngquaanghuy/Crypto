@@ -279,9 +279,18 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     _hook_import = __import__
 
     # ─── Anti-Debug Layer 1: Trace & Module Detection ───
-    if _hook_getattr(sys, 'gettrace', None) is not None: sys.exit(1)
-    if any(_hook_getattr(sys.modules, x, None) is not None for x in ['pdb', 'pydevd', 'pydevconsole', 'IPython.terminal', 'pydevd_frame_evaluator']):
-        sys.exit(1)
+    if _hook_getattr(sys, 'gettrace', None) is not None:
+        if _hook_getattr(sys, 'gettrace')() is not None:
+            sys.exit(1)
+    _mods = sys.modules
+    for _dm in ['pdb', 'pydevd', 'pydevconsole', 'IPython.terminal', 'pydevd_frame_evaluator']:
+        if _dm in _mods:
+            sys.exit(1)
+    # Also scan module names for debugger patterns
+    for _dm_name in _hook_list(_mods.keys()):
+        _dm_lower = _dm_name.lower()
+        if 'pdb' in _dm_lower or 'pydev' in _dm_lower or 'debug' in _dm_lower:
+            sys.exit(1)
 
     # ─── Anti-Debug Layer 2: ptrace Detection (Linux) ───
     if _vm_os.path.exists('/proc/self/status'):

@@ -465,6 +465,7 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
         is_first = 0;
 
         if (aid == 0) {
+            // AES-ECB C++ format: [salt(16)] [ciphertext(N)] — no nonce, no tag, no HMAC
             sb_printf(buf, "    {} {} == 0:\n", kw, n_A);
             if (!has_early_crypto_import)
                 sb_printf(buf, "        try:\n"
@@ -472,13 +473,8 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                      "        except ImportError:\n"
                      "            {}.stderr.write(\"error: cryptography not installed\\n\"); {}.exit(1)\n",
                      n_c, n_a, n_d, n_s, n_s);
-            sb_printf(buf, "        {} = {}[:16]; {} = {}[-32:]; {} = {}[16:-32]\n", n_0, n_r, n_2, n_r, n_1, n_r);
-            sb_printf(buf, "        {} = {}.pbkdf2_hmac('sha256', {}.encode(), {}, 100000, dklen=64)\n", n_3, n_h, n_k, n_0);
-            sb_printf(buf, "        {} = {}[:32]; {} = {}[32:64]\n", n_4, n_3, n_6, n_3);
-            sb_printf(buf, "        {} = {}.new({}, {}, digestmod='sha256').digest()\n", n_7, n_m, n_6, n_1);
-            sb_printf(buf, "        if not {}.compare_digest({}, {}):\n"
-                 "            {}.stderr.write(\"error: integrity check failed\\n\"); {}.exit(1)\n",
-                 n_m, n_2, n_7, n_s, n_s);
+            sb_printf(buf, "        {} = {}[:16]; {} = {}[16:]\n", n_0, n_r, n_1, n_r);
+            sb_printf(buf, "        {} = {}.pbkdf2_hmac('sha256', {}.encode(), {}, 100000, dklen=32)\n", n_4, n_h, n_k, n_0);
             sb_printf(buf, "        {} = {}({}.AES({}), {}.ECB())\n", n_8, n_c, n_a, n_4, n_d);
             sb_printf(buf, "        {} = {}.decryptor()\n"
                  "        {} = {}.update({}) + {}.finalize()\n", n_9, n_8, n_9, n_9, n_1, n_9);
@@ -488,6 +484,7 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                  "        {} = {}[:-{}]\n",
                  n_t, n_9, n_t, n_t, n_t, n_9, n_t, n_s, n_s, n_9, n_9, n_t);
         } else if (aid == 1) {
+            // AES-CBC C++ format: [salt(16)] [nonce(16)] [ciphertext(N)] — no HMAC
             sb_printf(buf, "    {} {} == 1:\n", kw, n_A);
             if (!has_early_crypto_import)
                 sb_printf(buf, "        try:\n"
@@ -495,13 +492,8 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                      "        except ImportError:\n"
                      "            {}.stderr.write(\"error: cryptography not installed\\n\"); {}.exit(1)\n",
                      n_c, n_a, n_d, n_s, n_s);
-            sb_printf(buf, "        {} = {}[:16]; {} = {}[-32:]; {} = {}[16:-32]\n", n_0, n_r, n_2, n_r, n_1, n_r);
-            sb_printf(buf, "        {} = {}.pbkdf2_hmac('sha256', {}.encode(), {}, 100000, dklen=80)\n", n_3, n_h, n_k, n_0);
-            sb_printf(buf, "        {} = {}[:32]; {} = {}[32:48]; {} = {}[48:80]\n", n_4, n_3, n_5, n_3, n_6, n_3);
-            sb_printf(buf, "        {} = {}.new({}, {}, digestmod='sha256').digest()\n", n_7, n_m, n_6, n_1);
-            sb_printf(buf, "        if not {}.compare_digest({}, {}):\n"
-                 "            {}.stderr.write(\"error: integrity check failed\\n\"); {}.exit(1)\n",
-                 n_m, n_2, n_7, n_s, n_s);
+            sb_printf(buf, "        {} = {}[:16]; {} = {}[16:32]; {} = {}[32:]\n", n_0, n_r, n_5, n_r, n_1, n_r);
+            sb_printf(buf, "        {} = {}.pbkdf2_hmac('sha256', {}.encode(), {}, 100000, dklen=32)\n", n_4, n_h, n_k, n_0);
             sb_printf(buf, "        {} = {}({}.AES({}), {}.CBC({}))\n", n_8, n_c, n_a, n_4, n_d, n_5);
             sb_printf(buf, "        {} = {}.decryptor()\n"
                  "        {} = {}.update({}) + {}.finalize()\n", n_9, n_8, n_9, n_9, n_1, n_9);
@@ -511,6 +503,7 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                  "        {} = {}[:-{}]\n",
                  n_t, n_9, n_t, n_t, n_t, n_9, n_t, n_s, n_s, n_9, n_9, n_t);
         } else if (aid == 2) {
+            // AES-CTR C++ format: [salt(16)] [nonce(16)] [ciphertext(N)] — no HMAC
             sb_printf(buf, "    {} {} == 2:\n", kw, n_A);
             if (!has_early_crypto_import)
                 sb_printf(buf, "        try:\n"
@@ -518,16 +511,13 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                      "        except ImportError:\n"
                      "            {}.stderr.write(\"error: cryptography not installed\\n\"); {}.exit(1)\n",
                      n_c, n_a, n_d, n_s, n_s);
-            sb_printf(buf, "        {} = {}[:16]; {} = {}[-32:]; {} = {}[16:-32]\n", n_0, n_r, n_2, n_r, n_1, n_r);
-            sb_printf(buf, "        {} = {}.pbkdf2_hmac('sha256', {}.encode(), {}, 100000, dklen=80)\n", n_3, n_h, n_k, n_0);
-            sb_printf(buf, "        {} = {}[:32]; {} = {}[32:48]; {} = {}[48:80]\n", n_4, n_3, n_5, n_3, n_6, n_3);
-            sb_printf(buf, "        {} = {}.new({}, {}, digestmod='sha256').digest()\n", n_7, n_m, n_6, n_1);
-            sb_printf(buf, "        if not {}.compare_digest({}, {}):\n"
-                 "            {}.stderr.write(\"error: integrity check failed\\n\"); {}.exit(1)\n",
-                 n_m, n_2, n_7, n_s, n_s);
+            sb_printf(buf, "        {} = {}[:16]; {} = {}[16:32]; {} = {}[32:]\n", n_0, n_r, n_5, n_r, n_1, n_r);
+            sb_printf(buf, "        {} = {}.pbkdf2_hmac('sha256', {}.encode(), {}, 100000, dklen=32)\n", n_4, n_h, n_k, n_0);
             sb_printf(buf, "        {} = {}({}.AES({}), {}.CTR({}))\n", n_8, n_c, n_a, n_4, n_d, n_5);
             sb_printf(buf, "        {} = {}.decryptor().update({})\n", n_9, n_8, n_1);
         } else if (aid == 3) {
+            // AES-GCM C++ format: [salt(16)] [nonce(12)] [ciphertext(N)] [tag(16)] — no separate HMAC
+            // GCM tag provides built-in authentication — no extra HMAC needed
             sb_printf(buf, "    {} {} == 3:\n", kw, n_A);
             if (!has_early_crypto_import)
                 sb_printf(buf, "        try:\n"
@@ -537,14 +527,11 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                      n_ae, n_s, n_s);
             else
                 sb_printf(buf, "        from cryptography.hazmat.primitives.ciphers.aead import AESGCM as {}\n", n_ae);
-            sb_printf(buf, "        {} = {}[:16]; {} = {}[-32:]; {} = {}[16:-32]\n", n_0, n_r, n_2, n_r, n_9, n_r);
-            sb_printf(buf, "        {} = {}[:-16]; {} = {}[-16:]\n", n_1, n_9, n_t, n_9);
-            sb_printf(buf, "        {} = {}.pbkdf2_hmac('sha256', {}.encode(), {}, 100000, dklen=76)\n", n_3, n_h, n_k, n_0);
-            sb_printf(buf, "        {} = {}[:32]; {} = {}[32:44]; {} = {}[44:76]\n", n_4, n_3, n_5, n_3, n_6, n_3);
-            sb_printf(buf, "        {} = {}.new({}, {}, digestmod='sha256').digest()\n", n_7, n_m, n_6, n_9);
-            sb_printf(buf, "        if not {}.compare_digest({}, {}):\n"
-                 "            {}.stderr.write(\"error: integrity check failed\\n\"); {}.exit(1)\n",
-                 n_m, n_2, n_7, n_s, n_s);
+            // Extract salt, nonce, ciphertext, tag from correct positions
+            sb_printf(buf, "        {} = {}[:16]; {} = {}[16:28]; {} = {}[28:-16]; {} = {}[-16:]\n", n_0, n_r, n_5, n_r, n_1, n_r, n_t, n_r);
+            // Derive only AES key (32 bytes) — nonce is read from payload, not PBKDF2
+            sb_printf(buf, "        {} = {}.pbkdf2_hmac('sha256', {}.encode(), {}, 100000, dklen=32)\n", n_4, n_h, n_k, n_0);
+            // AES-GCM AEAD decrypt: decrypt(nonce, ciphertext + tag, aad)
             sb_printf(buf, "        {} = {}({}).decrypt({}, {} + {}, None)\n", n_9, n_ae, n_4, n_5, n_1, n_t);
         } else if (aid == 4) {
             sb_printf(buf, "    {} {} == 4:\n", kw, n_A);
@@ -554,15 +541,21 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                      "        except ImportError:\n"
                      "            {}.stderr.write(\"error: cryptography not installed\\n\"); {}.exit(1)\n",
                      n_c, n_a, n_d, n_s, n_s);
+            // ChaCha20 C++ output: [salt(16)] [nonce(16)] [ciphertext] [HMAC(32)]
+            // HMAC = HMAC-SHA256(chacha_key, salt + nonce + ciphertext)
+            // chacha_key = PBKDF2(user_key, salt, 100000, 32)
+            // nonce = random 16 bytes stored in payload (NOT derived from PBKDF2!)
             sb_printf(buf, "        {} = {}[:16]; {} = {}[-32:]; {} = {}[16:-32]\n", n_0, n_r, n_2, n_r, n_1, n_r);
-            sb_printf(buf, "        {} = {}.pbkdf2_hmac('sha256', {}.encode(), {}, 100000, dklen=80)\n", n_3, n_h, n_k, n_0);
-            sb_printf(buf, "        {} = {}[:32]; {} = {}[32:48]; {} = {}[48:80]\n", n_4, n_3, n_5, n_3, n_6, n_3);
-            sb_printf(buf, "        {} = {}.new({}, {}, digestmod='sha256').digest()\n", n_7, n_m, n_6, n_1);
+            sb_printf(buf, "        {} = {}[:16]; {} = {}[16:]\n", n_5, n_1, n_t, n_1);  // nonce, ciphertext
+            // Derive only chacha_key (32 bytes) — matches C++ PBKDF2(dklen=32)
+            sb_printf(buf, "        {} = {}.pbkdf2_hmac('sha256', {}.encode(), {}, 100000, dklen=32)\n", n_4, n_h, n_k, n_0);
+            // HMAC over salt + nonce + ciphertext using chacha_key — matches C++
+            sb_printf(buf, "        {} = {}.new({}, {}[:-32], digestmod='sha256').digest()\n", n_7, n_m, n_4, n_r);
             sb_printf(buf, "        if not {}.compare_digest({}, {}):\n"
                  "            {}.stderr.write(\"error: integrity check failed\\n\"); {}.exit(1)\n",
                  n_m, n_2, n_7, n_s, n_s);
             sb_printf(buf, "        {} = {}({}.ChaCha20({}, {}), mode=None)\n", n_8, n_c, n_a, n_4, n_5);
-            sb_printf(buf, "        {} = {}.decryptor().update({})\n", n_9, n_8, n_1);
+            sb_printf(buf, "        {} = {}.decryptor().update({})\n", n_9, n_8, n_t);
         } else if (aid == 5) {
             sb_printf(buf, "    {} {} == 5:\n", kw, n_A);
             sb_printf(buf, "        {} = {}[:16]; {} = {}[-32:]; {} = {}[16:-32]\n", n_0, n_r, n_2, n_r, n_1, n_r);
