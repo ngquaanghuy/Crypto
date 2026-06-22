@@ -453,9 +453,15 @@ int cli_run(int argc, char **argv) {
 
     {
         if (algo_needs_key(algo) && (!key || key[0] == '\0')) {
-            fprintf(stderr, "error: no key available for %s\n", algo_name(algo));
-            if (key_needs_free) free((char *)key);
-            return EXIT_ERR_ARGS;
+            if (mode == MODE_PROTECT) {
+                key = generate_key(32);
+                if (!key) { fprintf(stderr, "error: failed to generate key\n"); return EXIT_ERR_CRYPTO; }
+                key_needs_free = 1;
+            } else {
+                fprintf(stderr, "error: no key available for %s\n", algo_name(algo));
+                if (key_needs_free) free((char *)key);
+                return EXIT_ERR_ARGS;
+            }
         }
     }
 
