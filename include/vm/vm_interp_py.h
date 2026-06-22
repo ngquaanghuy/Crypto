@@ -228,9 +228,59 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     import time as _vm_tm
     import os as _vm_os
 
+    # ─── Anti-Hook: Cache builtins at startup before any hook can replace them ───
+    _hook_getattr = getattr
+    _hook_setattr = setattr
+    _hook_hasattr = hasattr
+    _hook_isinstance = isinstance
+    _hook_issubclass = issubclass
+    _hook_type = type
+    _hook_callable = callable
+    _hook_len = len
+    _hook_iter = iter
+    _hook_next = next
+    _hook_str = str
+    _hook_repr = repr
+    _hook_dir = dir
+    _hook_hash = hash
+    _hook_id = id
+    _hook_ord = ord
+    _hook_chr = chr
+    _hook_bytes = bytes
+    _hook_bytearray = bytearray
+    _hook_list = list
+    _hook_dict = dict
+    _hook_tuple = tuple
+    _hook_set = set
+    _hook_frozenset = frozenset
+    _hook_range = range
+    _hook_enumerate = enumerate
+    _hook_zip = zip
+    _hook_map = map
+    _hook_filter = filter
+    _hook_sum = sum
+    _hook_all = all
+    _hook_any = any
+    _hook_sorted = sorted
+    _hook_reversed = reversed
+    _hook_min = min
+    _hook_max = max
+    _hook_abs = abs
+    _hook_hex = hex
+    _hook_bin = bin
+    _hook_oct = oct
+    _hook_int = int
+    _hook_float = float
+    _hook_bool = bool
+    _hook_complex = complex
+    _hook_slice = slice
+    _hookobject_getattribute = object.__getattribute__
+    _hook_super = super
+    _hook_import = __import__
+
     # ─── Anti-Debug Layer 1: Trace & Module Detection ───
-    if sys.gettrace() is not None: sys.exit(1)
-    if any(x in sys.modules for x in ['pdb', 'pydevd', 'pydevconsole', 'IPython.terminal', 'pydevd_frame_evaluator']):
+    if _hook_getattr(sys, 'gettrace', None) is not None: sys.exit(1)
+    if any(_hook_getattr(sys.modules, x, None) is not None for x in ['pdb', 'pydevd', 'pydevconsole', 'IPython.terminal', 'pydevd_frame_evaluator']):
         sys.exit(1)
 
     # ─── Anti-Debug Layer 2: ptrace Detection (Linux) ───
@@ -622,11 +672,11 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     # Attribute / Import (60-63)
     def _h_load_attr():
         nonlocal _rd_val, _rd_modified
-        _rd_val = getattr(_rs1_val, _names[_imm])
+        _rd_val = _hook_getattr(_rs1_val, _names[_imm])
         _rd_modified = True
     def _h_import_name():
         nonlocal _rd_val, _rd_modified
-        _rd_val = __import__(_names[_imm])
+        _rd_val = _hook_import(_names[_imm])
         _rd_modified = True
     def _h_format_simple():
         nonlocal _rd_val, _rd_modified
@@ -1115,12 +1165,12 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     def _h_match_mapping():
         nonlocal _rd_val, _rd_modified
         _sj = _rs1_val
-        _rd_val = isinstance(_sj, dict) or hasattr(_sj, 'keys')
+        _rd_val = _hook_isinstance(_sj, dict) or _hook_hasattr(_sj, 'keys')
         _rd_modified = True
     def _h_match_sequence():
         nonlocal _rd_val, _rd_modified
         _sj = _rs1_val; _ml = _imm & 0xFFFF
-        _rd_val = isinstance(_sj, (list, tuple)) and len(_sj) >= _ml
+        _rd_val = _hook_isinstance(_sj, (list, tuple)) and _hook_len(_sj) >= _ml
         _rd_modified = True
     def _h_match_class():
         nonlocal _rd_val, _rd_modified
@@ -1148,14 +1198,14 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         nonlocal _rd_val, _rd_modified
         _attr = _names[_imm] if _imm < len(_names) else None
         try:
-            _rd_val = super(_rs1_val, _rs2_val).__getattribute__(_attr) if _attr else None
+            _rd_val = _hookobject_getattribute(_rs2_val, _attr) if _attr else None
         except Exception:
-            _rd_val = getattr(_rs2_val, _attr) if _attr else None
+            _rd_val = _hook_getattr(_rs2_val, _attr) if _attr else None
         _rd_modified = True
     def _h_store_attr():
         _val = _rd_val; _obj = _rs1_val; _attr = _names[_imm] if _imm < len(_names) else None
         if _obj is not None and _attr is not None:
-            setattr(_obj, _attr, _val)
+            _hook_setattr(_obj, _attr, _val)
 
     # Call variants (245-248) — complex, use _r_get/_r_set
     def _h_call_function_ex():
@@ -1187,7 +1237,7 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         elif _ix == 5: _rd_val = repr(_v)
         elif _ix == 6: _rd_val = ascii(_v)
         elif _ix == 7: _rd_val = bool(_v)
-        elif _ix == 8: _rd_val = _v.__order__() if hasattr(_v, '__order__') else _v
+        elif _ix == 8: _rd_val = _v.__order__() if _hook_hasattr(_v, '__order__') else _v
         else: _rd_val = _v
         _rd_modified = True
     def _h_call_intrinsic_2():
@@ -1196,8 +1246,8 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         if _ix == 0: _rd_val = None
         elif _ix == 1: _rd_val = _v1 == _v2
         elif _ix == 2: _rd_val = _v1 != _v2
-        elif _ix == 3: _rd_val = isinstance(_v1, _v2) if isinstance(_v2, type) else False
-        elif _ix == 4: _rd_val = issubclass(_v1, _v2) if isinstance(_v1, type) and isinstance(_v2, type) else False
+        elif _ix == 3: _rd_val = _hook_isinstance(_v1, _v2) if _hook_isinstance(_v2, type) else False
+        elif _ix == 4: _rd_val = _hook_issubclass(_v1, _v2) if _hook_isinstance(_v1, type) and _hook_isinstance(_v2, type) else False
         elif _ix == 5:
             try: _rd_val = _v2 in _v1
             except Exception: _rd_val = False
@@ -1211,10 +1261,9 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     def _h_call_kw():
         nonlocal _vm_t0
         _fn = _rs1_val; _nr = _rs2; _ac = _imm & 0xFFFF
-        import sys as _dbg_kw
         if not callable(_fn):
-            _dbg_kw.stderr.write(f'[KW FATAL] _fn={repr(_fn)[:60]} type={type(_fn).__name__} rs1={_rs1} nr={_nr}\n')
-            _dbg_kw.stderr.write(f'[KW FATAL] reg_map={_reg_map}\n')
+            sys.stderr.write(f'[KW FATAL] _fn={repr(_fn)[:60]} type={_hook_type(_fn).__name__} rs1={_rs1} nr={_nr}\n')
+            sys.stderr.write(f'[KW FATAL] reg_map={_reg_map}\n')
             # Show write history for the function register
             _hst = _vm_reg_history[_rs1]
             _op_name_h = {1:'LDC',2:'LDN',3:'STN',4:'LDF',5:'STF',6:'MOV',7:'INV',8:'NOT',
@@ -1230,7 +1279,7 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
                         220:'MKY',221:'MMP',222:'MSQ',223:'MCL',
                         240:'DAT',241:'LSA',242:'STA',245:'CFX',246:'CI1',247:'CI2',
                         248:'KW ',250:'DLF',251:'DLG',252:'DLN',253:'LFD',254:'LFG'}.get(_hst[4], f'{_hst[4]:3d}')
-            _dbg_kw.stderr.write(f'[KW FATAL] r{_rs1} last_write: cycle={_hst[0]} op={_op_name_h} rd={_hst[1]} rs1={_hst[2]} rs2={_hst[3]}\n')
+            sys.stderr.write(f'[KW FATAL] r{_rs1} last_write: cycle={_hst[0]} op={_op_name_h} rd={_hst[1]} rs1={_hst[2]} rs2={_hst[3]}\n')
             # Also show history for argument registers
             for _hi in range(_ac):
                 _raw = _reg_map.index(_rs1)
@@ -1238,11 +1287,11 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
                 if 0 <= _arg_r < 64:
                     _ah = _vm_reg_history[_arg_r]
                     _an = {1:'LDC',2:'LDN',3:'STN',4:'LDF',5:'STF',6:'MOV'}.get(_ah[4], f'{_ah[4]:3d}')
-                    _dbg_kw.stderr.write(f'[KW FATAL] r{_arg_r}(arg{_hi}) last_write: cycle={_ah[0]} op={_an} rd={_ah[1]} rs1={_ah[2]} rs2={_ah[3]}\n')
-            _dbg_kw.stderr.flush()
+                    sys.stderr.write(f'[KW FATAL] r{_arg_r}(arg{_hi}) last_write: cycle={_ah[0]} op={_an} rd={_ah[1]} rs1={_ah[2]} rs2={_ah[3]}\n')
+            sys.stderr.flush()
         _nt = _r_get(_nr) if _nr < 64 else None
-        _kwn = _nt if isinstance(_nt, tuple) else ()
-        _num_kw = len(_kwn)
+        _kwn = _nt if _hook_isinstance(_nt, tuple) else ()
+        _num_kw = _hook_len(_kwn)
         _num_pos = _ac - _num_kw
         _pa = []; _ka = {}
         for _i in range(_ac):
@@ -1252,22 +1301,22 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
             else:
                 _pa.append(_av)
         if _vm_debug:
-            _fn_name = getattr(_fn, '__name__', str(_fn))[:40]
-            _dbg_kw.stderr.write(f'[dbg KW REGS] rs1={_rs1}, _rr(rs1,1)={_rr(_rs1,1)} val={repr(_r_get(_rr(_rs1,1)))[:40]}\n')
-            _dbg_kw.stderr.write(f'[dbg KW REGS] _rr(rs1,2)={_rr(_rs1,2)} val={repr(_r_get(_rr(_rs1,2)))[:40]}\n')
-            _dbg_kw.stderr.write(f'[dbg KW REGS] _rr(rs1,3)={_rr(_rs1,3)} val={repr(_r_get(_rr(_rs1,3)))[:40]}\n')
-            _dbg_kw.stderr.write(f'[dbg KW REGS] nr={_nr} val={repr(_nt)[:40]}\n')
+            _fn_name = _hook_getattr(_fn, '__name__', str(_fn))[:40]
+            sys.stderr.write(f'[dbg KW REGS] rs1={_rs1}, _rr(rs1,1)={_rr(_rs1,1)} val={repr(_r_get(_rr(_rs1,1)))[:40]}\n')
+            sys.stderr.write(f'[dbg KW REGS] _rr(rs1,2)={_rr(_rs1,2)} val={repr(_r_get(_rr(_rs1,2)))[:40]}\n')
+            sys.stderr.write(f'[dbg KW REGS] _rr(rs1,3)={_rr(_rs1,3)} val={repr(_r_get(_rr(_rs1,3)))[:40]}\n')
+            sys.stderr.write(f'[dbg KW DBG] nr={_nr} val={repr(_nt)[:40]}\n')
             _par = ', '.join(repr(x)[:40] for x in _pa)
             _kar = ', '.join(f'{k}={repr(v)[:30]}' for k, v in _ka.items())
-            _dbg_kw.stderr.write(f'[dbg KW DBG] {_fn_name}({_par}, {_kar})\n')
+            sys.stderr.write(f'[dbg KW DBG] {_fn_name}({_par}, {_kar})\n')
         try:
             _r_set(_rd, _fn(*_pa, **_ka))
             # Reset timer after native call
             _vm_t0 = _vm_tm.time()
         except Exception as _e:
             if _vm_debug:
-                _dbg_kw.stderr.write(f'[dbg KW ERR] {_e}\n')
-                _dbg_kw.stderr.write(f'[dbg KW ERR] _pa[0] type={type(_pa[0]).__name__}, len={len(_pa[0]) if hasattr(_pa[0], "__len__") else "N/A"}, repr={repr(_pa[0])[:80]}\n')
+                sys.stderr.write(f'[dbg KW ERR] {_e}\n')
+                sys.stderr.write(f'[dbg KW ERR] _pa[0] type={_hook_type(_pa[0]).__name__}, len={_hook_len(_pa[0]) if _hook_hasattr(_pa[0], "__len__") else "N/A"}, repr={repr(_pa[0])[:80]}\n')
             raise _e
 
     # Name delete (250-254)
@@ -1515,7 +1564,7 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         except ValueError:
             _vm_trace_reg = -1
 
-    # Security: refuse to run if debug env vars that leak VM internals are detected
+# Security: refuse to run if debug env vars that leak VM internals are detected
     _vm_sec_envs = (
         # VM-specific debug (these directly leak VM internals)
         'VM_DEBUG', 'VM_CRITICAL_REGS', 'VM_TRACE_REG', 'VM_TRACE_ALL',
@@ -1526,8 +1575,17 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     )
     for _ev in _vm_sec_envs:
         if _ev in _vm_os.environ:
-            import sys
             sys.exit(1)
+
+    # ─── Anti-Hook Integrity Check ───
+    # Verify cached builtins weren't replaced after import
+    _hook_check_getattr = getattr
+    _hook_check_setattr = setattr
+    _hook_check_import = __import__
+    if (_hook_check_getattr is not _hook_getattr or
+        _hook_check_setattr is not _hook_setattr or
+        _hook_check_import is not _hook_import):
+        sys.exit(1)
 
     # ─── Build dispatch table (indexed by opcode) ───
     _dt = [None] * 256
