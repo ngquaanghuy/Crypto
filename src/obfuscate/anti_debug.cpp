@@ -19,7 +19,9 @@
     #include <sys/sysctl.h>
     #include <sys/ptrace.h>
     #include <mach/mach.h>
+    #include <mach/mach_vm.h>
     #include <mach-o/dyld.h>
+    #include <dlfcn.h>
 #elif defined(__linux__)
     #define PLATFORM_LINUX 1
     #include <sys/types.h>
@@ -835,6 +837,71 @@ int anti_debug_check_inline_hooks(void) {
         close(fd);
     }
     fclose(fp);
+#elif defined(PLATFORM_MACOS)
+    /* macOS inline hook detection via dyld and mach_vm APIs.
+     * Scans loaded dylibs for hook patterns in function prologues. */
+    uint32_t image_count = _dyld_image_count();
+    if (image_count == 0) return 0;
+
+    task_t self_task = mach_task_self();
+    unsigned char buf[64];
+
+    for (uint32_t i = 0; i < image_count; i++) {
+        const mach_header *header = _dyld_get_image_header(i);
+        if (!header) continue;
+
+        const char *name = _dyld_get_image_name(i);
+        if (!name) continue;
+
+        /* Skip dyld itself */
+        if (strstr(name, "/dyld") || strstr(name, "/libdyld.dylib"))
+            continue;
+
+        intptr_t slide = _dyld_get_image_vmaddr_slide(i);
+        if (slide == 0 && header != _dyld_get_image_header(0)) {
+            if (i > 0) continue;
+        }
+
+        uint64_t text_start = (uint64_t)header + slide;
+        uint64_t text_size = 16384;
+
+        vm_size_t bytes_read = 0;
+        kern_return_t kr = mach_vm_read(self_task, text_start, text_size, (vm_offset_t *)buf, &bytes_read);
+
+        if (kr != KERN_SUCCESS || bytes_read < 16) continue;
+
+        for (size_t j = 0; j < bytes_read - 15; j++) {
+            /* Pattern 1: mov rax, imm64; jmp rax (12 bytes) */
+            if (buf[j] == 0x48 && buf[j+1] == 0xB8 && buf[j+10] == 0xFF && buf[j+11] == 0xD0) {
+                return 1;
+            }
+            /* Pattern 2: push + ret */
+            if (buf[j] == 0xFF && (buf[j+1] == 0x35 || buf[j+1] == 0x25) && buf[j+6] == 0xC3) {
+                return 1;
+            }
+            /* Pattern 3: push imm32; ret */
+            if (buf[j] == 0x68 && buf[j+5] == 0xC3) {
+                unsigned char after_ret;
+                vm_size_t extra_read = 0;
+                if (mach_vm_read(self_task, text_start + j + 6, 1, (vm_offset_t *)&after_ret, &extra_read) == KERN_SUCCESS) {
+                    if (after_ret == 0xC3) return 1;
+                }
+            }
+            /* Pattern 4: jmp far */
+            if ((buf[j] & 0xFF) == 0xFF && (buf[j+1] & 0x38) == 0x20) {
+                return 1;
+            }
+            /* Pattern 5: 5-byte jmp rel32 */
+            if (buf[j] == 0xE9) {
+                return 1;
+            }
+            /* Pattern 6: mov rsi, rdi; jmp - common Swift hook */
+            if (buf[j] == 0x48 && buf[j+1] == 0x89 && buf[j+2] == 0xFE && buf[j+3] == 0xFF && buf[j+4] == 0xE0) {
+                return 1;
+            }
+        }
+    }
+    return 0;
 #elif defined(PLATFORM_WINDOWS)
     /* Windows inline hook detection via function prologue scanning.
      * Uses direct memory access with SEH for safety. */
@@ -985,6 +1052,83 @@ int anti_debug_check_plt_hooks(void) {
         free(buf);
     }
     fclose(fp);
+#elif defined(PLATFORM_MACOS)
+    /* macOS: Check for hooked dylibs via dyld image verify.
+     * Looks for suspicious library injections and modified segment permissions. */
+    uint32_t image_count = _dyld_image_count();
+    if (image_count == 0) return 0;
+
+    task_t self_task = mach_task_self();
+
+    /* Collect all dylib load addresses for pointer validation */
+    struct DylibInfo {
+        uint64_t addr;
+        uint64_t size;
+        const char *name;
+    };
+    std::vector<DylibInfo> dylibs;
+
+    for (uint32_t i = 0; i < image_count; i++) {
+        const mach_header *header = _dyld_get_image_header(i);
+        if (!header) continue;
+
+        DylibInfo info;
+        info.name = _dyld_get_image_name(i);
+        info.addr = (uint64_t)header + _dyld_get_image_vmaddr_slide(i);
+
+        /* Get size from dyld - approximate via first 16KB scan */
+        info.size = 16 * 1024;
+
+        if (info.name) dylibs.push_back(info);
+    }
+
+    /* Check for suspicious dylibs (hooks often inject new dylibs) */
+    for (uint32_t i = 0; i < image_count; i++) {
+        const char *name = _dyld_get_image_name(i);
+        if (!name) continue;
+
+        /* Suspicious patterns: /tmp, /var/folders, unexpected paths */
+        if (strstr(name, "/tmp/") || strstr(name, "/var/folders/") ||
+            strstr(name, ".hook") || strstr(name, "_hook") ||
+            strstr(name, "injected") || strstr(name, "Injected") ||
+            strstr(name, "frida") || strstr(name, "Frida")) {
+            return 1;
+        }
+    }
+
+    /* Check for suspicious WX memory regions via vm_region */
+    for (uint32_t i = 0; i < dylibs.size(); i++) {
+        uint64_t addr = dylibs[i].addr;
+        uint64_t size = dylibs[i].size;
+
+        vm_region_basic_info_data_64_t info;
+        mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
+        uint64_t region_addr = addr;
+
+        for (uint64_t scan_addr = addr; scan_addr < addr + size; scan_addr += 4096) {
+            mach_port_t object_name;
+            kr = vm_region_64(self_task, &region_addr, &size, VM_REGION_BASIC_INFO_64,
+                             (vm_region_info_t)&info, &count, &object_name);
+
+            if (kr == KERN_SUCCESS) {
+                /* Check for WX (writable + executable) private memory */
+                if (info.protection & VM_PROT_WRITE && info.protection & VM_PROT_EXECUTE) {
+                    if (info.shared == 0) { /* Private mapping */
+                        /* Check if it's not from a known dylib */
+                        int found = 0;
+                        for (const auto& d : dylibs) {
+                            if (scan_addr >= d.addr && scan_addr < d.addr + d.size) {
+                                found = 1;
+                                break;
+                            }
+                        }
+                        if (!found) return 1;
+                    }
+                }
+            }
+        }
+    }
+    return 0;
 #elif defined(PLATFORM_WINDOWS)
     /* Windows IAT hook detection.
      * Scans writable sections of loaded DLLs for pointers that
@@ -1123,6 +1267,84 @@ int anti_debug_check_syscall_hooks(void) {
     close(fd);
     dlclose(libc_handle);
     return hooked;
+#elif defined(PLATFORM_MACOS)
+    /* macOS syscall hook detection via libSystem.B.dylib function scanning.
+     * Uses dlopen/dlsym for symbol resolution and mach_vm_read for safe memory reading. */
+    void *libc_handle = dlopen("libSystem.B.dylib", RTLD_NOLOAD);
+    if (!libc_handle) {
+        /* Try libSystem.dylib as fallback */
+        libc_handle = dlopen("libSystem.dylib", RTLD_NOLOAD);
+    }
+    if (!libc_handle) return 0;
+
+    task_t self_task = mach_task_self();
+
+    /* Critical functions that are common hook targets on macOS */
+    const char *critical_funcs[] = {
+        "open", "open_nocancel", "read", "read_nocancel", "write", "write_nocancel",
+        "close", "close_nocancel", "socket", "connect", "accept",
+        "execve", "exit", "_exit",
+        "mmap", "mprotect", "munmap",
+        "ptrace", "stat", "lstat", "fstat",
+        nullptr
+    };
+
+    int hooked = 0;
+
+    for (int fi = 0; critical_funcs[fi] && !hooked; fi++) {
+        void *func_addr = dlsym(libc_handle, critical_funcs[fi]);
+        if (!func_addr) continue;
+
+        /* Read first 16 bytes of each function using mach_vm_read */
+        unsigned char buf[16];
+        vm_size_t bytes_read = 0;
+        kern_return_t kr = mach_vm_read(self_task, (uint64_t)func_addr, 16, (vm_offset_t *)buf, &bytes_read);
+
+        if (kr != KERN_SUCCESS || bytes_read < 8) continue;
+
+        for (int j = 0; j < bytes_read - 7; j++) {
+            /* mov rax, imm64; jmp rax - 12 bytes hook pattern */
+            if (buf[j] == 0x48 && buf[j+1] == 0xB8 &&
+                buf[j+10] == 0xFF && buf[j+11] == 0xD0) {
+                hooked = 1;
+                break;
+            }
+
+            /* Standard macOS x86_64 prologue: push rbp; mov rbp, rsp */
+            if (buf[j] == 0x55 && buf[j+1] == 0x48 && buf[j+2] == 0x89 &&
+                buf[j+3] == 0xE5) {
+                break;
+            }
+
+            /* Alternative prologue with nop */
+            if (buf[j] == 0x55 && buf[j+1] == 0x48 && buf[j+2] == 0x89 &&
+                buf[j+3] == 0xE5 && buf[j+4] == 0x90) {
+                break;
+            }
+
+            /* Standard x86 prologue */
+            if (buf[j] == 0x55 && buf[j+1] == 0x89 && buf[j+2] == 0xE5) {
+                break;
+            }
+
+            /* Check for suspicious patterns at end of buffer */
+            if (j == bytes_read - 8) {
+                int all_nops = 1;
+                for (int k = 0; k < bytes_read; k++) {
+                    if (buf[k] != 0x90 && buf[k] != 0xCC) {
+                        all_nops = 0;
+                        break;
+                    }
+                }
+                if (!all_nops) {
+                    hooked = 1;
+                }
+            }
+        }
+    }
+
+    dlclose(libc_handle);
+    return hooked;
 #elif defined(PLATFORM_WINDOWS)
     /* Windows syscall hook detection via ntdll.dll function scanning.
      * Checks critical ntdll functions for modified prologues. */
@@ -1222,6 +1444,49 @@ int anti_debug_check_memory_integrity(void) {
 
     /* Multiple WX regions in general could indicate hooking libraries */
     if (wx_regions > 10) return 1;
+
+#elif defined(PLATFORM_MACOS)
+    /* macOS memory integrity check via mach_vm_region.
+     * Enumerates VM regions and checks for suspicious WX mappings. */
+    task_t self_task = mach_task_self();
+    uint64_t addr = 0;
+    int wx_regions = 0;
+    int private_wx_count = 0;
+
+    kern_return_t kr;
+    vm_size_t size = 0;
+
+    while (1) {
+        mach_port_t object_name;
+        vm_region_basic_info_data_64_t info;
+        mach_msg_type_number_t count = VM_REGION_BASIC_INFO_COUNT_64;
+
+        kr = vm_region_64(self_task, &addr, &size, VM_REGION_BASIC_INFO_64,
+                         (vm_region_info_t)&info, &count, &object_name);
+
+        if (kr != KERN_SUCCESS) {
+            if (addr >= (uint64_t)0x7FFFFFFF0000) break;
+            addr += 4096;
+            continue;
+        }
+
+        /* Check for WX regions */
+        if (info.protection & VM_PROT_WRITE && info.protection & VM_PROT_EXECUTE) {
+            wx_regions++;
+
+            /* Private WX mappings are suspicious (injected code) */
+            if (info.shared == 0) {
+                private_wx_count++;
+            }
+        }
+
+        addr += size;
+        if (addr >= (uint64_t)0x7FFFFFFF0000) break;
+    }
+
+    /* Suspicious if multiple private WX regions found */
+    if (private_wx_count > 2) return 1;
+    if (wx_regions > 15) return 1;
 
 #elif defined(PLATFORM_WINDOWS)
     /* Windows memory integrity check via VirtualQuery.
