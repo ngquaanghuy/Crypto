@@ -14,15 +14,22 @@
 
 static char *generate_key(int len) {
     static const char cs[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    static const int cs_len = (int)(sizeof(cs) - 1);
+    // Rejection sampling: largest multiple of cs_len that fits in a byte
+    // 256 / 62 = 4, so 62 * 4 = 248. Reject bytes >= 248 for uniform distribution.
+    static const int max_valid = (256 / cs_len) * cs_len;
+
     char *key = (char *)malloc((size_t)len + 1);
     if (!key) return NULL;
-    unsigned char *buf = (unsigned char *)malloc((size_t)len);
-    if (!buf) { free(key); return NULL; }
-    if (RAND_bytes(buf, len) != 1) { free(buf); free(key); return NULL; }
-    for (int i = 0; i < len; i++)
-        key[i] = cs[buf[i] % (sizeof(cs) - 1)];
+
+    unsigned char byte;
+    for (int i = 0; i < len; i++) {
+        do {
+            if (RAND_bytes(&byte, 1) != 1) { free(key); return NULL; }
+        } while (byte >= max_valid);
+        key[i] = cs[byte % cs_len];
+    }
     key[len] = '\0';
-    free(buf);
     return key;
 }
 
