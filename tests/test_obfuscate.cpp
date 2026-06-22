@@ -810,8 +810,8 @@ TEST_CASE("obfuscate_config_default sets reasonable defaults") {
     CHECK_EQ(cfg.use_junk, 1);
     CHECK_EQ(cfg.use_xorgenc, 1);
     CHECK_EQ(cfg.use_antidebug, 1);
-    CHECK_EQ(cfg.num_junk_statements, 10);
-    CHECK_EQ(cfg.flowflatten_blocks, 4);
+    CHECK_EQ(cfg.num_junk_statements, 30);
+    CHECK_EQ(cfg.flowflatten_blocks, 10);
 }
 
 TEST_CASE("obfuscate_apply_technique handles unknown technique") {
