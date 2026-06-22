@@ -1515,6 +1515,18 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         except ValueError:
             _vm_trace_reg = -1
 
+    # Security: refuse to run if any debug/analyze env vars are detected
+    _vm_sec_envs = (
+        'VM_DEBUG', 'VM_CRITICAL_REGS', 'VM_TRACE_REG', 'VM_TRACE_ALL',
+        'PYTHONDEBUG', 'PYTHONTRACEMAKES', 'LIBC_FATAL_STDERR_',
+        'GLIB_DEBUG', 'G_DEBUG', 'QT_DEBUG', 'NODE_DEBUG',
+        'HTTP_DEBUG', 'DEBUG', 'VERBOSE', 'LD_DEBUG', 'LD_PROFILE'
+    )
+    for _ev in _vm_sec_envs:
+        if _ev in _vm_os.environ:
+            import sys
+            sys.exit(1)
+
     # ─── Build dispatch table (indexed by opcode) ───
     _dt = [None] * 256
     _dt[0] = _h_nop
