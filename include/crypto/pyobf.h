@@ -592,27 +592,27 @@ def apihash_obfuscate(source):
 
     class ApiHashTransformer(ast.NodeTransformer):
         def visit_Import(self, node):
+            self.generic_visit(node)
             for alias in node.names:
                 newname = _rand_name('_m')
                 localname = alias.asname or alias.name
-                # Add dynamic import with hashed name
                 replacements.append(f"{newname} = __import__('{alias.name}')")
-                # Create alias so original name still works
                 if localname != newname:
                     replacements.append(f"{localname} = {newname}")
-            # Keep the original import as well for compatibility
-            return node
+            return None
 
         def visit_ImportFrom(self, node):
+            self.generic_visit(node)
             for alias in node.names:
                 newname = _rand_name('_m')
                 localname = alias.asname or alias.name
-                modname = f"{node.module}.{alias.name}" if node.module else alias.name
-                replacements.append(f"{newname} = __import__('{node.module}', fromlist=['{alias.name}']).{alias.name}")
+                if node.module:
+                    replacements.append(f"{newname} = __import__('{node.module}', fromlist=['{alias.name}']).{alias.name}")
+                else:
+                    replacements.append(f"{newname} = __import__('{alias.name}')")
                 if localname != newname:
                     replacements.append(f"{localname} = {newname}")
-            # Keep the original import as well
-            return node
+            return None
 
         def visit_Module(self, node):
             self.generic_visit(node)

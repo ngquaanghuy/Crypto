@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cstdint>
 #include <string>
+#include <format>
 #include <vector>
 #include <algorithm>
 #include <openssl/rand.h>
@@ -350,6 +351,132 @@ char *junk_generate_function(const JunkConfig *cfg) {
     return strdup(result.c_str());
 }
 
+/* ── MBA-style junk (Mixed Boolean-Arithmetic) ── */
+/* Converts simple expressions into complex boolean-arithmetic combinations */
+/* These look like computation but don't affect actual program logic */
+static std::string gen_mba_junk(void) {
+    unsigned char r[8];
+    RAND_bytes(r, sizeof(r));
+
+    int style = r[0] % 5;
+    int v = (int)r[1] % 100 + 10;
+    int m1 = (int)r[2] % 50 + 5;
+    int m2 = (int)r[3] % 50 + 5;
+
+    switch (style) {
+        case 0: /* Identity: (a | b) ^ (a & b) == a ^ b */
+            return std::format("_j{} = (({}|{})^({}&{})) ^ ({}|{}) ^ ({}&{})\n",
+                r[4] % 10 + 1, v, m1, v, m1, v, m2, v, m2);
+        case 1: /* Abs trick: (x > 0) - (x < 0) == sign(x) but we use it for junk */
+            return std::format("_j{} = (1 if {} > 0 else 0) - (1 if {} < 0 else 0) + abs({})\n",
+                r[5] % 20 + 1, v, v, v);
+        case 2: /* Bit magic: x ^ x == 0, x ^ 0 == x, (x ^ y) ^ x == y */
+            return std::format("_j{} = (({} | {}) ^ ({} & {}) ^ {}) ^ {}\n",
+                r[6] % 15 + 1, v, m1, v, m1, m2, v);
+        case 3: /* Modulo chain: (x % a) % b == x % min(a,b) for small x */
+            return std::format("_j{} = ({} * {}) % {} % {} % {}\n",
+                r[7] % 25 + 1, v, m1, m1, m2, m1 + m2);
+        case 4: /* Shift identity: (x << 1) >> 1 == x for positive x, with overflow check */
+        default:
+            return std::format("_j{} = (({} << {}) & 0xFF) >> {} & 0xFF\n",
+                v % 30 + 1, v, m1 % 4, m1 % 4);
+    }
+}
+
+/* ── Opaque jump junk ── */
+/* Creates code that looks like it has control flow dependencies but always executes */
+static std::string gen_opaque_jump_junk(void) {
+    unsigned char r[8];
+    RAND_bytes(r, sizeof(r));
+
+    int style = r[0] % 4;
+    int v = (int)r[1] % 100 + 10;
+    int m1 = (int)r[5] % 50 + 5;
+    int m2 = (int)r[6] % 50 + 5;
+
+    switch (style) {
+        case 0: /* While-based opaque */
+            return std::format(
+                "_j{} = {}\n"
+                "while _j{} > 0:\n"
+                "    if {} ^ ({} & 0xFF) == 0:\n"
+                "        _j{} = _j{} - 1\n"
+                "    else:\n"
+                "        break\n",
+                r[2] % 20 + 1, v,
+                r[2] % 20 + 1,
+                v, v,
+                r[2] % 20 + 1,
+                r[2] % 20 + 1);
+        case 1: /* Recursion-based opaque */
+            return std::format(
+                "_j{} = [0]\n"
+                "def _f(_n):\n"
+                "    if _n > 0:\n"
+                "        _j{}.append(_j{}[-1] + 1)\n"
+                "        return _f(_n - 1)\n"
+                "    return _j{}[-1]\n"
+                "_ = _f({})\n",
+                r[3] % 15 + 1,
+                r[3] % 15 + 1, r[3] % 15 + 1,
+                r[3] % 15 + 1,
+                v % 10 + 1);
+        case 2: /* Try-except opaque */
+            return std::format(
+                "try:\n"
+                "    _j{} = {}\n"
+                "    _j{} = [_j{} for _ in range({})]\n"
+                "    _j{} = _j{}[_j{} // {}]\n"
+                "except (IndexError, ZeroDivisionError):\n"
+                "    _j{} = None\n",
+                r[4] % 25 + 1, v,
+                r[4] % 25 + 1, r[4] % 25 + 1, v % 10 + 2,
+                r[4] % 25 + 1, r[4] % 25 + 1, r[4] % 25 + 1, v % 5 + 1,
+                r[4] % 25 + 1);
+        case 3: /* Lambda chain opaque */
+        default:
+            return std::format(
+                "_j{} = (lambda _x: (_x + {}) * {} - {})(0)\n"
+                "_j{} = list(filter(lambda _y: _y > 0, range(-{}, {})))\n"
+                "_j{} = sum(_j{}) if _j{} else 0\n",
+                r[5] % 18 + 1, v, m1, m2,
+                r[5] % 18 + 1, v, v * 2,
+                r[5] % 18 + 1, r[5] % 18 + 1, v % 2);
+    }
+}
+
+/* ── Encode/decode junk ── */
+/* Looks like encoding operations but result is never used */
+static std::string gen_codec_junk(void) {
+    unsigned char r[8];
+    RAND_bytes(r, sizeof(r));
+
+    int style = r[0] % 4;
+    int key = (int)r[1] % 26 + 1;
+    char var = 'a' + (r[2] % 26);
+
+    switch (style) {
+        case 0: /* Rot13-like */
+            return std::format(
+                "_j{} = ''.join(chr((ord(c) - ord('a') + {}) % 26 + ord('a')) "
+                "if c.isalpha() else c for c in '{}')\n",
+                r[3] % 20 + 1, key, var);
+        case 1: /* Base64 roundtrip */
+            return std::format(
+                "_j{} = bytes.fromhex('{:02x}'.format(_)) if isinstance(_, int) else None\n",
+                r[4] % 15 + 1, key * 0x9B % 256);
+        case 2: /* XOR chain */
+            return std::format(
+                "_j{} = ''.join(chr(ord(c) ^ {}) for c in '{}')\n",
+                r[5] % 22 + 1, key, var);
+        case 3: /* Shift cipher */
+        default:
+            return std::format(
+                "_j{} = ''.join(chr((ord(c) - {} - 97) % 26 + 97) for c in '{}' if c.isalpha())\n",
+                r[6] % 18 + 1, key, var);
+    }
+}
+
 /* ── Generate full junk section ── */
 char *junk_generate_section(const JunkConfig *cfg, int count) {
     if (!cfg || count < 1) return nullptr;
@@ -367,7 +494,18 @@ char *junk_generate_section(const JunkConfig *cfg, int count) {
     for (int i = 0; i < count; i++) {
         unsigned char sel;
         RAND_bytes(&sel, 1);
-        if (cfg->include_both_branches && (sel & 1) && if_else_count > 0) {
+
+        /* Use new sophisticated junk types with 40% probability */
+        if ((sel % 5) == 0 && cfg->include_side_effects) {
+            /* MBA-style junk */
+            result += gen_mba_junk();
+        } else if ((sel % 5) == 1 && cfg->include_side_effects) {
+            /* Opaque jump junk */
+            result += gen_opaque_jump_junk();
+        } else if ((sel % 5) == 2 && cfg->include_side_effects) {
+            /* Codec junk */
+            result += gen_codec_junk();
+        } else if (cfg->include_both_branches && (sel & 1) && if_else_count > 0) {
             char *block = junk_generate_ifelse_block(cfg);
             if (block) { result += block; result += "\n"; free(block); }
             if_else_count--;

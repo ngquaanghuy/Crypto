@@ -196,6 +196,14 @@ char *rename_generate_python(const char *input_source,
     py += "        return node\n";
     py += "    def visit_Attribute(self, node):\n";
     py += "        self.generic_visit(node)\n";
+    py += "        # Rename attribute access if:\n";
+    py += "        # 1. It's accessed on a Name node that's been renamed (e.g., self.obj -> self.mangled)\n";
+    py += "        # 2. The attr itself is in the name_map (e.g., obj.attr -> obj.mangled_attr)\n";
+    py += "        if isinstance(node.value, ast.Name) and node.value.id in self.name_map:\n";
+    py += "            # Check if the base variable is a known renamed one (self, cls, etc.)\n";
+    py += "            base = node.value.id\n";
+    py += "            if node.attr in self.name_map:\n";
+    py += "                node.attr = self.name_map[node.attr]\n";
     py += "        return node\n";
     py += "    def visit_Import(self, node):\n";
     py += "        for a in node.names:\n";
