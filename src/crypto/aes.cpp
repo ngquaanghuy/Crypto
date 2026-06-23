@@ -26,6 +26,14 @@ ExitCode aes_encrypt(const unsigned char *plaintext, size_t plaintext_len,
         return EXIT_ERR_ARGS;
     }
 
+    // Security warning for ECB mode: identical blocks produce identical ciphertext
+    // This exposes patterns in repetitive data (e.g., source code with "def", "import")
+    if (mode == AES_ECB && plaintext_len > 1024) {
+        fprintf(stderr, "warning: AES-ECB mode does not hide data patterns.\n");
+        fprintf(stderr, "warning: identical plaintext blocks produce identical ciphertext blocks.\n");
+        fprintf(stderr, "warning: for source code protection, consider using aes-cbc, aes-ctr, or aes-gcm.\n");
+    }
+
     unsigned char salt[SALT_SIZE];
     if (RAND_bytes(salt, SALT_SIZE) != 1)
         return EXIT_ERR_CRYPTO;

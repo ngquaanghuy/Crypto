@@ -1838,6 +1838,13 @@ ExitCode protect_file(const char *input, const char *output,
         return EXIT_ERR_ARGS;
     }
 
+    // Security warning for ECB mode
+    if (algo == ALGO_AES_ECB) {
+        fprintf(stderr, "warning: AES-ECB mode exposes patterns in ciphertext.\n");
+        fprintf(stderr, "warning: identical blocks encrypt to identical output.\n");
+        fprintf(stderr, "warning: for source protection, consider aes-cbc, aes-ctr, or aes-gcm.\n");
+    }
+
     srand((unsigned)(time(NULL) ^ (uintptr_t)sa_id ^ (uintptr_t)input ^ (uintptr_t)output));
     int xor_byte = rand_range(1, 254);
 
