@@ -105,6 +105,8 @@ if(CRYPTO_BUILD_TESTS)
         tests/test_all.cpp
         tests/test_vm.cpp
         tests/test_obfuscate.cpp
+        tests/test_security_regression.cpp
+        tests/test_integration.cpp
     src/utils/file_util.cpp
     src/utils/compress.cpp
         src/encode/base64.cpp
@@ -114,6 +116,7 @@ if(CRYPTO_BUILD_TESTS)
         src/encode/hexcode.cpp
         src/encode/xorcode.cpp
         src/crypto/aes.cpp
+        src/crypto/cipher.cpp
         src/crypto/chacha20.cpp
         src/crypto/chacha20_poly1305.cpp
         src/crypto/xchacha20_poly1305.cpp
