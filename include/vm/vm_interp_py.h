@@ -19,11 +19,14 @@ def _vm_decode_vl(_c, _p, _k, _m, _rm):
     _tag = _c[_p] ^ _k[_p % 32]
     _cls = (_tag >> 6) & 0x3
     if _cls == 0:
+        if _p + 2 > len(_c): return 0, 0, 0, 0, 0, 1, 0
         _op = _m[_tag & 0x0F]
-        _rd = _rm[(_c[_p+1] >> 4) & 0x0F] if _c[_p+1] < 64 else 0
-        _rs1 = _rm[_c[_p+1] & 0x0F] if (_c[_p+1] & 0x0F) < 64 else 0
+        _b1 = _c[_p+1] ^ _k[(_p+1) % 32]
+        _rd = _rm[(_b1 >> 4) & 0x0F] if ((_b1 >> 4) & 0x0F) < 64 else 0
+        _rs1 = _rm[_b1 & 0x0F] if (_b1 & 0x0F) < 64 else 0
         return _op, _rd, _rs1, 0, 0, 2, 0
     elif _cls == 1:
+        if _p + 4 > len(_c): return 0, 0, 0, 0, 0, 1, 0
         _op = _m[_tag & 0x1F]
         _b1 = _c[_p+1] ^ _k[(_p+1) % 32]
         _rd = _rm[(_b1 >> 4) & 0x0F] if ((_b1 >> 4) & 0x0F) < 64 else 0
@@ -35,6 +38,7 @@ def _vm_decode_vl(_c, _p, _k, _m, _rm):
             _imm = _imm | (-1 << 16)
         return _op, _rd, _rs1, 0, _imm, 4, 0
     elif _cls == 2:
+        if _p + 9 > len(_c): return 0, 0, 0, 0, 0, 1, 0
         _b1 = _c[_p+1] ^ _k[(_p+1) % 32]
         _b2 = _c[_p+2] ^ _k[(_p+2) % 32]
         _b3 = _c[_p+3] ^ _k[(_p+3) % 32]
@@ -56,17 +60,21 @@ def _vm_decode_vl(_c, _p, _k, _m, _rm):
         _nb = _tag & 0x0F
         if _nb == 0:
             _nb = 1
+        _ilen = 2 + _nb * 8
+        if _p + _ilen > len(_c): return 0, 0, 0, 0, 0, 1, 0
         _op = _m[(_c[_p+1] ^ _k[(_p+1) % 32]) & 0xFF]
-        _rd = _rm[(_c[_p+2] ^ _k[(_p+2) % 32]) & 0x3F] if ((_c[_p+2] ^ _k[(_p+2) % 32]) & 0x3F) < 64 else 0
-        _rs1 = _rm[(_c[_p+3] ^ _k[(_p+3) % 32]) & 0x3F] if ((_c[_p+3] ^ _k[(_p+3) % 32]) & 0x3F) < 64 else 0
-        _rs2_m = _rm[(_c[_p+4] ^ _k[(_p+4) % 32]) & 0x3F] if ((_c[_p+4] ^ _k[(_p+4) % 32]) & 0x3F) < 64 else 0
-        _rs2_u = (_c[_p+4] ^ _k[(_p+4) % 32]) & 0x3F
+        _b2 = _c[_p+2] ^ _k[(_p+2) % 32]
+        _rd = _rm[_b2 & 0x3F] if (_b2 & 0x3F) < 64 else 0
+        _b3 = _c[_p+3] ^ _k[(_p+3) % 32]
+        _rs1 = _rm[_b3 & 0x3F] if (_b3 & 0x3F) < 64 else 0
+        _b4 = _c[_p+4] ^ _k[(_p+4) % 32]
+        _rs2_m = _rm[_b4 & 0x3F] if (_b4 & 0x3F) < 64 else 0
+        _rs2_u = _b4 & 0x3F
         _i0 = _c[_p+5] ^ _k[(_p+5) % 32]
         _i1 = _c[_p+6] ^ _k[(_p+6) % 32]
         _i2 = _c[_p+7] ^ _k[(_p+7) % 32]
         _i3 = _c[_p+8] ^ _k[(_p+8) % 32]
         _imm = _i0 | (_i1 << 8) | (_i2 << 16) | (_i3 << 24)
-        _ilen = 2 + _nb * 8
         _count_ops = frozenset((43, 44, 63, 114, 125, 136, 137, 164, 165))
         _rs2 = _rs2_u if _op in _count_ops else _rs2_m
         return _op, _rd, _rs1, _rs2, _imm, _ilen, _rs2_u
