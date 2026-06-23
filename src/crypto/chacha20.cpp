@@ -49,7 +49,11 @@ ExitCode chacha20_encrypt(const unsigned char *plaintext, size_t plaintext_len,
     if (RAND_bytes(nonce, CHACHA_NONCE_SIZE) != 1)
         return EXIT_ERR_CRYPTO;
 
-    /* Allocate: salt(16) + nonce(12) + ciphertext + HMAC(32) */
+    // Output format: salt(16) + nonce(16) + ciphertext + HMAC(32)
+    // Note: OpenSSL EVP_chacha20 uses 16-byte IV where:
+    //   - bytes 0-3: block counter (set to 0 by OpenSSL)
+    //   - bytes 4-15: 12-byte nonce (random)
+    // This matches libsodium's 12-byte nonce convention.
     size_t out_max = SALT_SIZE + CHACHA_NONCE_SIZE + plaintext_len + HMAC_SIZE;
     unsigned char *out_data = (unsigned char *)malloc(out_max);
     if (!out_data) return EXIT_ERR_CRYPTO;
@@ -101,6 +105,7 @@ ExitCode chacha20_decrypt(const unsigned char *ciphertext, size_t ciphertext_len
     if (ciphertext_len < min_len) return EXIT_ERR_CRYPTO;
 
     const unsigned char *salt     = ciphertext;
+    // Nonce extraction: first SALT_SIZE bytes = salt, next 16 bytes = OpenSSL nonce (counter + 12-byte nonce)
     const unsigned char *nonce    = ciphertext + SALT_SIZE;
     size_t ct_len = ciphertext_len - SALT_SIZE - CHACHA_NONCE_SIZE - HMAC_SIZE;
     const unsigned char *ct       = ciphertext + SALT_SIZE + CHACHA_NONCE_SIZE;
