@@ -2355,55 +2355,24 @@ ExitCode protect_file(const char *input, const char *output,
     char anti_buf[4096];
     // ── build anti-analysis buffer ──
     size_t anti_pos = 0;
-    if (use_debug) {
-        size_t sl = strlen(ANTI_DEBUG_CODE);
+    bool anti_truncated = false;
+    auto try_copy_anti = [&](const char *code, const char *name) {
+        size_t sl = strlen(code);
         if (anti_pos + sl < sizeof(anti_buf)) {
-            memcpy(anti_buf + anti_pos, ANTI_DEBUG_CODE, sl);
+            memcpy(anti_buf + anti_pos, code, sl);
             anti_pos += sl;
+        } else {
+            fprintf(stderr, "warning: anti_buf overflow, truncating %s (%zu bytes)\n", name, sl);
+            anti_truncated = true;
         }
-    }
-    if (use_hook) {
-        size_t sl = strlen(ANTI_HOOK_CODE);
-        if (anti_pos + sl < sizeof(anti_buf)) {
-            memcpy(anti_buf + anti_pos, ANTI_HOOK_CODE, sl);
-            anti_pos += sl;
-        }
-    }
-    if (use_frida) {
-        size_t sl = strlen(ANTI_FRIDA_CODE);
-        if (anti_pos + sl < sizeof(anti_buf)) {
-            memcpy(anti_buf + anti_pos, ANTI_FRIDA_CODE, sl);
-            anti_pos += sl;
-        }
-    }
-    if (use_inline) {
-        size_t sl = strlen(ANTI_INLINE_HOOK_CODE);
-        if (anti_pos + sl < sizeof(anti_buf)) {
-            memcpy(anti_buf + anti_pos, ANTI_INLINE_HOOK_CODE, sl);
-            anti_pos += sl;
-        }
-    }
-    if (use_plt) {
-        size_t sl = strlen(ANTI_PLT_HOOK_CODE);
-        if (anti_pos + sl < sizeof(anti_buf)) {
-            memcpy(anti_buf + anti_pos, ANTI_PLT_HOOK_CODE, sl);
-            anti_pos += sl;
-        }
-    }
-    if (use_syscall) {
-        size_t sl = strlen(ANTI_SYSCALL_HOOK_CODE);
-        if (anti_pos + sl < sizeof(anti_buf)) {
-            memcpy(anti_buf + anti_pos, ANTI_SYSCALL_HOOK_CODE, sl);
-            anti_pos += sl;
-        }
-    }
-    if (use_mem_integrity) {
-        size_t sl = strlen(ANTI_MEM_INTEGRITY_CODE);
-        if (anti_pos + sl < sizeof(anti_buf)) {
-            memcpy(anti_buf + anti_pos, ANTI_MEM_INTEGRITY_CODE, sl);
-            anti_pos += sl;
-        }
-    }
+    };
+    if (use_debug) try_copy_anti(ANTI_DEBUG_CODE, "anti_debug");
+    if (use_hook) try_copy_anti(ANTI_HOOK_CODE, "anti_hook");
+    if (use_frida) try_copy_anti(ANTI_FRIDA_CODE, "anti_frida");
+    if (use_inline) try_copy_anti(ANTI_INLINE_HOOK_CODE, "anti_inline");
+    if (use_plt) try_copy_anti(ANTI_PLT_HOOK_CODE, "anti_plt");
+    if (use_syscall) try_copy_anti(ANTI_SYSCALL_HOOK_CODE, "anti_syscall");
+    if (use_mem_integrity) try_copy_anti(ANTI_MEM_INTEGRITY_CODE, "anti_mem_integrity");
     anti_buf[anti_pos] = '\0';
     const char *anti_code = anti_buf;
     size_t anti_len = anti_pos;
