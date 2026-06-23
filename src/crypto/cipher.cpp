@@ -71,7 +71,8 @@ ExitCode encrypt_data(const unsigned char *pt, size_t ptsz,
         case ALGO_XCHACHA20_POLY1305:
             return xchacha20_poly1305_encrypt(pt, ptsz, key, key_len, out);
         case ALGO_XOR:
-            return xor_transform(pt, ptsz, key, key_len, out);
+            // Use authenticated XOR to prevent ciphertext manipulation
+            return xor_transform_auth(pt, ptsz, key, key_len, out);
         case ALGO_BASE64:
             return base64_encode(pt, ptsz, out);
         case ALGO_BASE32:
@@ -108,7 +109,8 @@ ExitCode decrypt_data(const unsigned char *ct, size_t ctsz,
         case ALGO_XCHACHA20_POLY1305:
             return xchacha20_poly1305_decrypt(ct, ctsz, key, key_len, out);
         case ALGO_XOR:
-            return xor_transform(ct, ctsz, key, key_len, out);
+            // Use authenticated XOR to verify HMAC before decryption
+            return xor_decrypt_auth(ct, ctsz, key, key_len, out);
         case ALGO_BASE64:
             return base64_decode(ct, ctsz, out);
         case ALGO_BASE32:

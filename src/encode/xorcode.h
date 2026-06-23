@@ -11,6 +11,14 @@ ExitCode xor_transform(const unsigned char *in, size_t in_size,
                         const unsigned char *key, size_t key_size,
                         Buffer *out);
 
+// Authenticated XOR with HMAC (recommended for production use)
+ExitCode xor_transform_auth(const unsigned char *in, size_t in_size,
+                            const unsigned char *key, size_t key_size,
+                            Buffer *out);
+ExitCode xor_decrypt_auth(const unsigned char *in, size_t in_size,
+                           const unsigned char *key, size_t key_size,
+                           Buffer *out);
+
 ExitCode rolling_xor_encrypt(const unsigned char *in, size_t in_size,
                                  const unsigned char *key, size_t key_size,
                                  Buffer *out);
