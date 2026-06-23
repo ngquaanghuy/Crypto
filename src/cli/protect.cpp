@@ -2082,6 +2082,7 @@ ExitCode protect_file(const char *input, const char *output,
             free(obf_buf.data);
             free(exec_buf.data);
             free(vm_buf_src.data);
+            free(vm_buf.data);
             vm_program_free(&vm_prog);
             file_buffer_free(&buf);
             return EXIT_ERR_CRYPTO;
@@ -2093,6 +2094,12 @@ ExitCode protect_file(const char *input, const char *output,
         unsigned char op_key[32] = {0};
         size_t vm_blob_size = 32 + vm_buf.size;
         unsigned char *vm_blob = (unsigned char *)malloc(vm_blob_size);
+        if (!vm_blob) {
+            free(vm_buf.data); vm_program_free(&vm_prog);
+            file_buffer_free(&buf); free(obf_buf.data);
+            free(exec_buf.data); free(vm_buf_src.data);
+            return EXIT_ERR_CRYPTO;
+        }
         memcpy(vm_blob, op_key, 32);
         memcpy(vm_blob + 32, vm_buf.data, vm_buf.size);
 
@@ -2112,6 +2119,16 @@ ExitCode protect_file(const char *input, const char *output,
         }
 
         unsigned char *encrypted_vm_data = (unsigned char *)malloc(vm_blob_size);
+        if (!encrypted_vm_data) {
+            /* vm_blob still holds the uncompressed data */
+            int prev_errno = errno;
+            free(vm_blob);
+            errno = prev_errno;
+            free(vm_buf.data); vm_program_free(&vm_prog);
+            file_buffer_free(&buf); free(obf_buf.data);
+            free(exec_buf.data); free(vm_buf_src.data);
+            return EXIT_ERR_CRYPTO;
+        }
         for (size_t i = 0; i < vm_blob_size; i++) {
             encrypted_vm_data[i] = vm_blob[i] ^ vkey[i % 32] ^ vnonce[i % 16];
         }
@@ -2122,6 +2139,15 @@ ExitCode protect_file(const char *input, const char *output,
 
         size_t final_vm_size = vm_blob_size + 32;
         unsigned char *final_vm_data = (unsigned char *)malloc(final_vm_size);
+        if (!final_vm_data) {
+            int prev_errno = errno;
+            free(vm_blob); free(encrypted_vm_data);
+            errno = prev_errno;
+            free(vm_buf.data); vm_program_free(&vm_prog);
+            file_buffer_free(&buf); free(obf_buf.data);
+            free(exec_buf.data); free(vm_buf_src.data);
+            return EXIT_ERR_CRYPTO;
+        }
         memcpy(final_vm_data, encrypted_vm_data, vm_blob_size);
         memcpy(final_vm_data + vm_blob_size, computed_hmac, 32);
 
@@ -2130,10 +2156,23 @@ ExitCode protect_file(const char *input, const char *output,
         vm_buf.size = final_vm_size;
         
         vm_xor_key_hex = (char *)malloc(65);
+        if (!vm_xor_key_hex) {
+            free(vm_buf.data); vm_program_free(&vm_prog);
+            file_buffer_free(&buf); free(obf_buf.data);
+            free(exec_buf.data); free(vm_buf_src.data);
+            return EXIT_ERR_CRYPTO;
+        }
         for (int i = 0; i < 32; i++) sprintf(vm_xor_key_hex + i * 2, "%02x", vkey[i]);
         vm_xor_key_hex[64] = '\0';
-        
+
         vm_nonce_hex = (char *)malloc(33);
+        if (!vm_nonce_hex) {
+            free(vm_xor_key_hex);
+            free(vm_buf.data); vm_program_free(&vm_prog);
+            file_buffer_free(&buf); free(obf_buf.data);
+            free(exec_buf.data); free(vm_buf_src.data);
+            return EXIT_ERR_CRYPTO;
+        }
         for (int i = 0; i < 16; i++) sprintf(vm_nonce_hex + i * 2, "%02x", vnonce[i]);
         vm_nonce_hex[32] = '\0';
         
@@ -2244,12 +2283,12 @@ ExitCode protect_file(const char *input, const char *output,
             break;
     }
     free(pt);
-    if (ret != EXIT_OK) { file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data); return ret; }
+    if (ret != EXIT_OK) { file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data); free(vm_buf.data); return ret; }
 
     Buffer b64 = {0};
     ret = base64_encode(enc.data, enc.size, &b64);
     free(enc.data);
-    if (ret != EXIT_OK) { file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data); return ret; }
+    if (ret != EXIT_OK) { file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data); free(vm_buf.data); return ret; }
 
     std::string algo_id_s = std::to_string(sa_id);
     const char *algo_id = algo_id_s.c_str();
