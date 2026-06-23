@@ -139,7 +139,14 @@ static ExitCode apply_xor_bit_rotation_obfuscation(const char *src, size_t src_l
     return EXIT_OK;
 }
 
-// Return a random int in [lo, hi]
+// CSPRNG wrapper using OpenSSL RAND_bytes for security-sensitive randomness
+static int rand_csprng_range(int lo, int hi) {
+    unsigned char b;
+    RAND_bytes(&b, 1);
+    return lo + (b % ((unsigned int)hi - lo + 1));
+}
+
+// Return a random int in [lo, hi] (insecure, for non-security uses only)
 static int rand_range(int lo, int hi) {
     return lo + rand() % (hi - lo + 1);
 }
@@ -1853,7 +1860,9 @@ ExitCode protect_file(const char *input, const char *output,
     }
 
     srand((unsigned)(time(NULL) ^ (uintptr_t)sa_id ^ (uintptr_t)input ^ (uintptr_t)output));
-    int xor_byte = rand_range(1, 254);
+
+    // Use CSPRNG for xor_byte — it affects env_hash_byte and multi-key security
+    int xor_byte = rand_csprng_range(1, 254);
 
     // Declare multi-layer key data early for VM key obfuscation scope
     MultiLayerKey ml_key_data;
