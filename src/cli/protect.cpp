@@ -32,7 +32,7 @@
 #include <vector>
 #include <memory>
 #include <span>
-#include <algorithm>
+#include <cerrno>
 
 
 #define HEADER_SIZE 4
@@ -2415,19 +2415,44 @@ ExitCode protect_file(const char *input, const char *output,
     printf("[protect] %s (%s) %zu bytes -> %s (%zu bytes)\n",
            input, algo_name(algo), buf.size, output, stub_buf.size);
 
-    FILE *f = fopen(output, "w");
+    // Write to temp file then atomic rename to avoid partial write corruption
+    std::string tmp_path = std::string(output) + ".tmp.XXXXXX";
+    int tmp_fd = mkstemp(tmp_path.data());
+    if (tmp_fd < 0) {
+        fprintf(stderr, "error: cannot create temp file for '%s': %s\n", output, strerror(errno));
+        free(stub_buf.data); file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data);
+        return EXIT_ERR_FILE;
+    }
+    FILE *f = fdopen(tmp_fd, "w");
     if (!f) {
-        fprintf(stderr, "error: cannot write '%s'\n", output);
+        close(tmp_fd);
+        unlink(tmp_path.c_str());
+        fprintf(stderr, "error: cannot open temp file for '%s'\n", output);
         free(stub_buf.data); file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data);
         return EXIT_ERR_FILE;
     }
     size_t written = fwrite(stub_buf.data, 1, stub_buf.size, f);
+    if (fflush(f) != 0 || ferror(f)) {
+        fclose(f);
+        unlink(tmp_path.c_str());
+        fprintf(stderr, "error: failed to write '%s'\n", tmp_path.c_str());
+        free(stub_buf.data); file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data);
+        return EXIT_ERR_FILE;
+    }
     fclose(f);
 
     free(stub_buf.data); file_buffer_free(&buf); free(obf_buf.data); free(exec_buf.data); free(vm_buf_src.data);
 
     if (written != stub_buf.size) {
-        fprintf(stderr, "error: failed to write '%s'\n", output);
+        unlink(tmp_path.c_str());
+        fprintf(stderr, "error: incomplete write to '%s'\n", output);
+        return EXIT_ERR_FILE;
+    }
+
+    // Atomic rename
+    if (rename(tmp_path.c_str(), output) != 0) {
+        unlink(tmp_path.c_str());
+        fprintf(stderr, "error: cannot rename temp file to '%s': %s\n", output, strerror(errno));
         return EXIT_ERR_FILE;
     }
     return EXIT_OK;
