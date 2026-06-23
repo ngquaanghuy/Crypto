@@ -8,6 +8,10 @@
 #include <vector>
 #include <algorithm>
 
+#include <signal.h>
+#include <setjmp.h>
+#include <errno.h>
+
 /* ── Platform Detection ───────────────────────────────────────────────── */
 #if defined(_WIN32) || defined(_WIN64)
     #define PLATFORM_WINDOWS 1
@@ -34,6 +38,59 @@
     #include <cerrno>
     #include <dlfcn.h>
 #endif
+
+/* ── Safe memory read with SIGSEGV protection ─────────────────────────── */
+/* Race condition: between reading /proc/self/maps and pread(/proc/self/mem),
+ * the mapped region could be unmapped by another thread, causing SIGSEGV.
+ * This helper catches SIGSEGV and returns -1 on failure. */
+
+/* Global state for signal handler (required because C signal handlers
+ * can't use non-static class members or lambdas) */
+static sigjmp_buf g_safe_read_jump;
+static volatile sig_atomic_t g_safe_read_jump_set = 0;
+
+static void safe_read_sigsegv_handler(int) {
+    if (g_safe_read_jump_set) siglongjmp(g_safe_read_jump, 1);
+}
+
+static ssize_t safe_pread(int fd, void *buf, size_t count, off_t offset) {
+    struct sigaction sa, old_sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = safe_read_sigsegv_handler;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+
+    sigaction(SIGSEGV, &sa, &old_sa);
+
+    ssize_t result = -1;
+    if (sigsetjmp(g_safe_read_jump, 1) == 0) {
+        g_safe_read_jump_set = 1;
+        result = pread(fd, buf, count, offset);
+        g_safe_read_jump_set = 0;
+    } else {
+        /* SIGSEGV caught - memory region became unmapped */
+        g_safe_read_jump_set = 0;
+        errno = EFAULT;
+        result = -1;
+    }
+
+    sigaction(SIGSEGV, &old_sa, nullptr);
+    return result;
+}
+
+/* Validate address is in user-space range (prevent kernel reads) */
+static int is_valid_user_address(unsigned long addr) {
+    /* On x86_64: canonical form addresses are < 0x800000000000 */
+    /* Allow NULL page exclusion */
+    if (addr == 0 || addr == (unsigned long)-1) return 0;
+#if defined(__x86_64__) || defined(_WIN64)
+    if (addr >= 0x800000000000UL) return 0;  /* kernel space */
+    if (addr < 0x10000) return 0;            /* NULL region */
+#else
+    if (addr == 0) return 0;
+#endif
+    return 1;
+}
 
 
 /* ── Helper: read first line from /proc/self/<file> ── */
@@ -787,14 +844,15 @@ int anti_debug_check_inline_hooks(void) {
 
         /* Extract start address */
         unsigned long start_addr = strtoul(line, nullptr, 16);
-        if (!start_addr) continue;
+        if (!start_addr || !is_valid_user_address(start_addr)) continue;
 
         /* Read first 64 bytes of each executable mapping for hook patterns */
         int fd = open("/proc/self/mem", O_RDONLY);
         if (fd < 0) continue;
 
         unsigned char buf[64];
-        ssize_t bytes_read = pread(fd, buf, sizeof(buf), start_addr);
+        /* Use safe_pread to catch SIGSEGV from race condition */
+        ssize_t bytes_read = safe_pread(fd, buf, sizeof(buf), start_addr);
 
         if (bytes_read < 12) { close(fd); continue; }
 
@@ -818,7 +876,8 @@ int anti_debug_check_inline_hooks(void) {
             if (buf[i] == 0x68 && buf[i+5] == 0xC3) {
                 unsigned char *next = (unsigned char *)((unsigned long)start_addr + i + 5 + 1);
                 unsigned char tmp[2];
-                ssize_t next_bytes = pread(fd, tmp, 2, (off_t)next);
+                /* Use safe_pread for the additional read */
+                ssize_t next_bytes = safe_pread(fd, tmp, 2, (off_t)next);
                 if (next_bytes == 2 && tmp[0] == 0xC3) {
                     close(fd);
                     fclose(fp);
@@ -998,6 +1057,7 @@ int anti_debug_check_plt_hooks(void) {
 
         size_t seg_size = end - start;
         if (seg_size < 8 || seg_size > 16*1024*1024) continue;
+        if (!is_valid_user_address(start)) continue;
 
         /* Map the segment and scan for GOT/PLT indicators */
         int fd = open("/proc/self/mem", O_RDONLY);
@@ -1007,7 +1067,8 @@ int anti_debug_check_plt_hooks(void) {
         unsigned char *buf = (unsigned char *)malloc(4096);
         if (!buf) { close(fd); continue; }
 
-        ssize_t n = pread(fd, buf, 4096, start);
+        /* Use safe_pread to catch SIGSEGV from race condition */
+        ssize_t n = safe_pread(fd, buf, 4096, start);
         close(fd);
 
         if (n > 0) {
@@ -1216,9 +1277,13 @@ int anti_debug_check_syscall_hooks(void) {
         void *func_addr = dlsym(libc_handle, critical_funcs[fi]);
         if (!func_addr) continue;
 
+        /* Validate address is in user space */
+        if (!is_valid_user_address((unsigned long)func_addr)) continue;
+
         /* Read first 16 bytes of each function (typical function prologue) */
         unsigned char buf[16];
-        ssize_t n = pread(fd, buf, sizeof(buf), (off_t)func_addr);
+        /* Use safe_pread to catch SIGSEGV from race condition */
+        ssize_t n = safe_pread(fd, buf, sizeof(buf), (off_t)func_addr);
 
         if (n < 8) continue;
 
