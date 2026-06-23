@@ -86,9 +86,10 @@ static ExitCode compile_through_python(const char *source, size_t source_len,
         return EXIT_ERR_CRYPTO;
     }
 
-    int fd_s = open(script_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-    int fd_i = open(in_path,     O_WRONLY | O_CREAT | O_TRUNC, 0600);
-    int fd_o = open(out_path,    O_RDWR   | O_CREAT | O_TRUNC, 0600);
+    /* Secure file creation with O_EXCL|O_NOFOLLOW to prevent race/symlink attacks */
+    int fd_s = open(script_path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+    int fd_i = open(in_path,     O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+    int fd_o = open(out_path,    O_RDWR   | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
     if (fd_s < 0 || fd_i < 0 || fd_o < 0) {
         if (fd_s >= 0) close(fd_s);
         if (fd_i >= 0) close(fd_i);
@@ -120,7 +121,9 @@ static ExitCode compile_through_python(const char *source, size_t source_len,
     if (pid == 0) {
         int fd_in = open(in_path, O_RDONLY);
         if (fd_in >= 0) { dup2(fd_in, STDIN_FILENO); close(fd_in); }
-        int fd_out = open(out_path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+        /* Output file was already created by parent with O_EXCL, so child just reopens
+         * Use O_NOFOLLOW|O_TRUNC to prevent symlink attacks and truncate existing content */
+        int fd_out = open(out_path, O_WRONLY | O_NOFOLLOW | O_TRUNC, 0644);
         if (fd_out >= 0) { dup2(fd_out, STDOUT_FILENO); close(fd_out); }
         const char *argv[16];
         int ai = 0;

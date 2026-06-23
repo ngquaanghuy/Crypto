@@ -1568,8 +1568,13 @@ static ExitCode obfuscate_source(const char *src, size_t src_len,
     in_path  = tmpdir_path(tmpdir, "in.py");
     if (!obf_path || !in_path) goto obf_cleanup;
 
-    obf_fd = open(obf_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-    in_fd  = open(in_path,  O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    /* Secure file creation:
+     * - O_EXCL: fail if file exists (prevents TOCTOU race)
+     * - O_NOFOLLOW: fail if path is a symlink (prevents symlink attack)
+     * - 0600: only owner can read/write (protection during creation)
+     */
+    obf_fd = open(obf_path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+    in_fd  = open(in_path,  O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
     if (obf_fd < 0 || in_fd < 0) goto obf_cleanup;
 
     {
@@ -1637,9 +1642,10 @@ static ExitCode vm_split_source(const char *src, size_t src_len,
         return EXIT_ERR_CRYPTO;
     }
 
-    int fd_s = open(split_path, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-    int fd_i = open(in_path,    O_WRONLY | O_CREAT | O_TRUNC, 0600);
-    int fd_o = open(out_path,   O_RDWR   | O_CREAT | O_TRUNC, 0600);
+    /* Secure file creation with O_EXCL|O_NOFOLLOW to prevent race/symlink attacks */
+    int fd_s = open(split_path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+    int fd_i = open(in_path,    O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+    int fd_o = open(out_path,   O_RDWR   | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
     if (fd_s < 0 || fd_i < 0 || fd_o < 0) {
         if (fd_s >= 0) close(fd_s);
         if (fd_i >= 0) close(fd_i);
@@ -1738,7 +1744,8 @@ static ExitCode vm_split_source_clean(const char *src, size_t src_len,
     char *obf_tmpl = tmpdir_path(tmpdir, "nop.py");
     if (!obf_tmpl) { tmpdir_destroy(tmpdir); return EXIT_ERR_CRYPTO; }
 
-    int obf_fd = open(obf_tmpl, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+    /* Secure file creation with O_EXCL|O_NOFOLLOW */
+    int obf_fd = open(obf_tmpl, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
     if (obf_fd < 0) { free(obf_tmpl); tmpdir_destroy(tmpdir); return EXIT_ERR_CRYPTO; }
 
     const char *nop_script = "#!/usr/bin/env python3\nimport sys\nsys.stdout.write(sys.stdin.read())\n";
@@ -1927,7 +1934,8 @@ ExitCode protect_file(const char *input, const char *output,
             if (!obf_tmpdir) { file_buffer_free(&buf); return EXIT_ERR_CRYPTO; }
             char *obf_tmpl = tmpdir_path(obf_tmpdir, "obf.py");
             if (!obf_tmpl) { tmpdir_destroy(obf_tmpdir); file_buffer_free(&buf); return EXIT_ERR_CRYPTO; }
-            int obf_fd = open(obf_tmpl, O_WRONLY | O_CREAT | O_TRUNC, 0600);
+            /* Secure file creation with O_EXCL|O_NOFOLLOW */
+            int obf_fd = open(obf_tmpl, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
             if (obf_fd < 0) { free(obf_tmpl); tmpdir_destroy(obf_tmpdir); file_buffer_free(&buf); return EXIT_ERR_CRYPTO; }
             size_t slen = strlen(PYOBF_SCRIPT);
             if (write(obf_fd, PYOBF_SCRIPT, slen) != (ssize_t)slen) {

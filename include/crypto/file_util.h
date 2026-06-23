@@ -10,6 +10,9 @@ extern "C" {
 /* ─── File I/O ────────────────────────────────────────────── */
 ExitCode    file_read(const char *path, FileBuffer *buf);
 ExitCode    file_write(const char *path, const unsigned char *data, size_t size);
+/* Secure file write: prevents race conditions (O_EXCL) and symlink attacks (O_NOFOLLOW).
+ * Use for files that will be executed. */
+ExitCode    file_write_secure(const char *path, const unsigned char *data, size_t size);
 void        file_buffer_free(FileBuffer *buf);
 
 /* ─── Temp directory helpers ─────────────────────────────── */

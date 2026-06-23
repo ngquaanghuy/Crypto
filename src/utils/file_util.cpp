@@ -4,6 +4,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <errno.h>
+#include <sys/types.h>
 
 ExitCode file_read(const char *path, FileBuffer *buf) {
     buf->data = NULL;
@@ -59,6 +63,53 @@ ExitCode file_write(const char *path, const unsigned char *data, size_t size) {
     if (nwritten != size) {
         fprintf(stderr, "error: failed to write '%s'\n", path);
         return EXIT_ERR_FILE;
+    }
+
+    return EXIT_OK;
+}
+
+/* Secure file write: prevents race conditions and symlink attacks
+ *
+ * Security measures:
+ * 1. O_EXCL: ensures file doesn't already exist (no TOCTOU race)
+ * 2. O_NOFOLLOW: prevents symlink attacks
+ * 3. 0xxx permissions: only owner can access
+ * 4. Ownership check: verify file is owned by current user
+ *
+ * Use this for files that will be executed. */
+ExitCode file_write_secure(const char *path, const unsigned char *data, size_t size) {
+    /* Use open() with secure flags */
+    int fd = open(path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+    if (fd < 0) {
+        if (errno == EEXIST) {
+            fprintf(stderr, "error: path already exists (potential symlink attack): %s\n", path);
+        } else if (errno == ELOOP) {
+            fprintf(stderr, "error: symlink in path: %s\n", path);
+        } else {
+            fprintf(stderr, "error: cannot create '%s'\n", path);
+        }
+        return EXIT_ERR_FILE;
+    }
+
+    ssize_t written = write(fd, data, size);
+    int save_errno = errno;
+    close(fd);
+
+    if (written != (ssize_t)size) {
+        fprintf(stderr, "error: failed to write '%s'\n", path);
+        unlink(path);
+        return EXIT_ERR_FILE;
+    }
+
+    /* Verify ownership - file should be owned by current user
+     * This prevents an attacker from creating a symlink before us */
+    struct stat st;
+    if (stat(path, &st) == 0) {
+        if (st.st_uid != getuid()) {
+            fprintf(stderr, "error: file ownership mismatch: %s\n", path);
+            unlink(path);
+            return EXIT_ERR_FILE;
+        }
     }
 
     return EXIT_OK;
