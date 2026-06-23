@@ -304,14 +304,29 @@ int anti_debug_check_seccomp(void) {
 
 
 /* ── prctl PTRACE protection check ── */
-/* Uses readonly PR_GET_DUMPABLE to avoid side effects */
+/* The correct approach: save original state, restore after test.
+ * Aptracable process returns -1 for PR_SET_DUMPABLE(0).
+ * Side effect: must restore original dumpable state. */
 int anti_debug_check_prctl(void) {
 #if defined(PLATFORM_LINUX)
-    /* Readonly check: if PR_GET_DUMPABLE fails, process state may be restricted */
-    if (prctl(PR_GET_DUMPABLE) == -1) return 1;
-    /* Try PR_SET_DUMPABLE(0) — should succeed if not traced */
-    if (prctl(PR_SET_DUMPABLE, 0) == -1) return 1;
-    prctl(PR_SET_DUMPABLE, 1);
+    /* Save original dumpable state before any modification */
+    int orig_dumpable = prctl(PR_GET_DUMPABLE);
+    /* If we can't read it (should not happen normally), bail out */
+    if (orig_dumpable == -1) return 1;
+
+    /* Try PR_SET_DUMPABLE(0) — should succeed if not traced
+     * On traced process, this fails and we detect debugger */
+    if (prctl(PR_SET_DUMPABLE, 0) == -1) {
+        /* Debugger detected - restore original state before returning */
+        /* (Don't bother checking if orig_dumpable was 0 or 1, just restore it) */
+        if (orig_dumpable == 1) prctl(PR_SET_DUMPABLE, 1);
+        return 1;
+    }
+
+    /* Successfully set to non-dumpable - no debugger detected.
+     * Restore original dumpable state. */
+    if (orig_dumpable == 1) prctl(PR_SET_DUMPABLE, 1);
+
     return 0;
 #else
     (void)0;
