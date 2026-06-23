@@ -23,7 +23,13 @@ static ExitCode dispatch_encode(const unsigned char *data, size_t size,
         case ALGO_BASE85:  return base85_encode(data, size, out);
         case ALGO_ASCII85: return ascii85_encode(data, size, out);
         case ALGO_HEX:     return hex_encode(data, size, out);
-        case ALGO_XOR:     return xor_transform(data, size, key, key_size, out);
+        case ALGO_XOR:
+            /* Use authenticated XOR (PBKDF2 + HMAC) to prevent tampering */
+            if (!key || key_size == 0) {
+                fprintf(stderr, "error: XOR encoding requires a non-empty key\n");
+                return EXIT_ERR_ARGS;
+            }
+            return xor_transform_auth(data, size, key, key_size, out);
         default:
             out->data = (unsigned char *)malloc(size);
             if (!out->data) return EXIT_ERR_CRYPTO;
@@ -42,7 +48,13 @@ static ExitCode dispatch_decode(const unsigned char *data, size_t size,
         case ALGO_BASE85:  return base85_decode(data, size, out);
         case ALGO_ASCII85: return ascii85_decode(data, size, out);
         case ALGO_HEX:     return hex_decode(data, size, out);
-        case ALGO_XOR:     return xor_transform(data, size, key, key_size, out);
+        case ALGO_XOR:
+            /* Use authenticated XOR (PBKDF2 + HMAC) to verify integrity */
+            if (!key || key_size == 0) {
+                fprintf(stderr, "error: XOR decoding requires a non-empty key\n");
+                return EXIT_ERR_ARGS;
+            }
+            return xor_decrypt_auth(data, size, key, key_size, out);
         default:
             out->data = (unsigned char *)malloc(size);
             if (!out->data) return EXIT_ERR_CRYPTO;
