@@ -23,7 +23,8 @@
       "Bash(echo \"Exit: $?\")",
       "Bash(cmake --build build --target test_crypto -j4)",
       "Bash(./build/test_crypto)",
-      "Bash(./build/test_crypto --test-case=\"*runtime*\")"
+      "Bash(./build/test_crypto --test-case=\"*runtime*\")",
+      "Bash(/home/ngquanghuy/Crypto/build/crypto protect *)"
     ]
   }
 }

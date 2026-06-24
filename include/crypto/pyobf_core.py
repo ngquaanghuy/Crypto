@@ -131,6 +131,7 @@ def rename_code(source):
         'hash','divmod','pow','round','iter','next','slice','object',
         'super','copyright','credits','license',
         '__name__','__main__','__file__','__doc__','__builtins__',
+        'state',  # Python async generator internal state variable
     }
 
     name_map = {}
@@ -143,41 +144,51 @@ def rename_code(source):
         return source
 
     class Renamer(ast.NodeTransformer):
+        def __init__(self):
+            # Track if we're inside top-level of a class body to avoid
+            # renaming method names within classes.
+            self._in_class = 0
+
+        def visit_ClassDef(self, node):
+            self._in_class += 1
+            if node.name in name_map:
+                node.name = name_map[node.name]
+            self.generic_visit(node)
+            self._in_class -= 1
+            return node
+
         def visit_Name(self, node):
             if node.id in name_map:
                 node.id = name_map[node.id]
             return node
+
         def visit_Attribute(self, node):
-            # Only rename attributes on self/cls to avoid corrupting
-            # library method calls (e.g. chacha.encrypt, file.read).
-            # The class method definition itself is renamed via visit_FunctionDef,
-            # so self.encrypt → self._renamed is correct, but
-            # obj.encrypt → obj._renamed breaks if obj is a library type.
-            if node.attr in name_map and isinstance(node.value, ast.Name) \
-                    and node.value.id in ('self', 'cls'):
-                node.attr = name_map[node.attr]
+            # NEVER rename attributes — self.value / node.value / obj.attr
+            # access sites may not all be visible from the class definition.
+            # Renaming only self.attr would create inconsistency with
+            # instance.attr (not renamed) and break the code.
             self.generic_visit(node)
             return node
+
         def visit_FunctionDef(self, node):
-            if node.name in name_map:
+            # Rename function names only outside class bodies (standalone functions)
+            if node.name in name_map and self._in_class == 0:
                 node.name = name_map[node.name]
             self.generic_visit(node)
             return node
+
         def visit_AsyncFunctionDef(self, node):
-            if node.name in name_map:
+            if node.name in name_map and self._in_class == 0:
                 node.name = name_map[node.name]
             self.generic_visit(node)
             return node
-        def visit_ClassDef(self, node):
-            if node.name in name_map:
-                node.name = name_map[node.name]
-            self.generic_visit(node)
-            return node
+
         def visit_arg(self, node):
             if node.arg in name_map:
                 node.arg = name_map[node.arg]
             self.generic_visit(node)
             return node
+
         def visit_keyword(self, node):
             if node.arg is not None and node.arg in name_map:
                 node.arg = name_map[node.arg]
@@ -471,8 +482,16 @@ def mutate_expressions(source):
         return source
 
     class Mutator(ast.NodeTransformer):
+        def _is_int_const(self, node):
+            return isinstance(node, ast.Constant) and isinstance(node.value, int)
+
+        def _both_int(self, node):
+            return self._is_int_const(node.left) and self._is_int_const(node.right)
+
         def visit_BinOp(self, node):
             self.generic_visit(node)
+            if not self._both_int(node):
+                return node
             if isinstance(node.op, ast.Add) and random.random() < 0.3:
                 return ast.BinOp(
                     left=ast.BinOp(left=node.left, op=ast.BitXor(), right=node.right),
@@ -503,8 +522,19 @@ def mba_obfuscate(source):
         return source
 
     class MBAT(ast.NodeTransformer):
+        def _is_int_const(self, node):
+            return isinstance(node, ast.Constant) and isinstance(node.value, int)
+
+        def _both_int(self, node):
+            return self._is_int_const(node.left) and self._is_int_const(node.right)
+
         def visit_BinOp(self, node):
             self.generic_visit(node)
+            # Only apply MBA to operations with integer constant operands.
+            # XOR on floats is unsupported in Python, so we skip MBA when
+            # operands could be floats (variables, function calls, etc).
+            if not self._both_int(node):
+                return node
             if isinstance(node.op, ast.Add) and random.random() < 0.3:
                 return ast.BinOp(
                     left=ast.BinOp(left=node.left, op=ast.BitXor(), right=node.right),
@@ -617,90 +647,13 @@ def apihash_obfuscate(source):
     return ast.unparse(tree)
 
 
+# funcenc DISABLED - Python's exec() fundamentally cannot preserve function scope chains.
+# When a function body is encrypted and decrypted via exec(compile(...), globals()),
+# enclosing locals/nonlocals are NOT visible to the executed code.
+# This is a Python language limitation, not a code bug. So funcenc is disabled.
 def funcenc_obfuscate(source):
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return source
-
-    key = bytes([random.randint(1, 255) for _ in range(32)])
-    key_b64 = base64.b64encode(key).decode('ascii')
-    stubs = []
-
-    class FuncEncryptor(ast.NodeTransformer):
-        def __init__(self):
-            self.count = 0
-
-        def visit_FunctionDef(self, node):
-            self.generic_visit(node)
-            if len(node.body) < 2 or node.name.startswith('__'):
-                return node
-
-            orig_name = node.name
-            func_src = ast.unparse(node)
-            func_bytes = func_src.encode('utf-8')
-            encrypted = bytes(func_bytes[i] ^ key[i % 32] for i in range(len(func_bytes)))
-            b64_data = base64.b64encode(encrypted).decode('ascii')
-            dec_name = _rand_name('_dec')
-            args_name = dec_name + '_a'
-            kwargs_name = dec_name + '_kw'
-            # Stub decrypts function, defines it, then calls it with forwarded args
-            stub_lines = [
-                f"def {dec_name}(*{args_name}, **{kwargs_name}):",
-                f"    _k = base64.b64decode('{key_b64}')",
-                f"    _d = base64.b64decode('{b64_data}')",
-                f"    _s = bytes(_d[i] ^ _k[i % len(_k)] for i in range(len(_d)))",
-                f"    _src = _s.decode('utf-8')",
-                f"    exec(compile(_src, '<funcenc>', 'exec'), globals())",
-                f"    return {orig_name}(*{args_name}, **{kwargs_name})",
-            ]
-            stubs.append('\n'.join(stub_lines))
-            # Replace function body with: return _decXYZ(arg1, arg2, ...) forwarding original args
-            try:
-                # Build forward call with original function's parameter names
-                fwd_args = []
-                # Positional-only args (Python 3.8+)
-                for arg in node.args.posonlyargs:
-                    fwd_args.append(ast.Name(id=arg.arg, ctx=ast.Load()))
-                # Regular positional args (including self)
-                for arg in node.args.args:
-                    fwd_args.append(ast.Name(id=arg.arg, ctx=ast.Load()))
-                # *vararg
-                if node.args.vararg:
-                    fwd_args.append(ast.Starred(
-                        value=ast.Name(id=node.args.vararg.arg, ctx=ast.Load()),
-                        ctx=ast.Load()
-                    ))
-                # keyword-only args
-                fwd_kwargs = []
-                for arg in node.args.kwonlyargs:
-                    fwd_kwargs.append(ast.keyword(
-                        arg=arg.arg,
-                        value=ast.Name(id=arg.arg, ctx=ast.Load())
-                    ))
-                # **kwarg
-                if node.args.kwarg:
-                    fwd_kwargs.append(ast.keyword(
-                        arg=None,
-                        value=ast.Name(id=node.args.kwarg.arg, ctx=ast.Load())
-                    ))
-                call_node = ast.Call(
-                    func=ast.Name(id=dec_name, ctx=ast.Load()),
-                    args=fwd_args,
-                    keywords=fwd_kwargs
-                )
-                node.body = [ast.Return(value=call_node)]
-            except Exception:
-                # Fallback: keep original body
-                pass
-            self.count += 1
-            return node
-
-    tree = FuncEncryptor().visit(tree)
-    ast.fix_missing_locations(tree)
-    if stubs:
-        return '\n'.join(stubs) + '\nimport base64\n' + ast.unparse(tree)
-    return ast.unparse(tree)
+    """DISABLED: funcenc breaks closures, nonlocal, and global scoping in Python."""
+    return source  # No-op
 
 
 if __name__ == '__main__':

@@ -1,7 +1,13 @@
 # Build outputs
 test_crypto
 test_openssl
-
+CLAUDE.md
+.cache
+.claude
+build_asan
+build_release
+build_test
+plan.txt
 # CMake generated files
 CMakeCache.txt
 CMakeFiles/
