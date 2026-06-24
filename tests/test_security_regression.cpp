@@ -753,3 +753,143 @@ TEST_CASE("concurrent_encoding_different_algorithms") {
 
     CHECK(success_count.load() >= 2);  // At least some should succeed
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// XOR ENCODER/DECODER ROUNDTRIP TESTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("xor_encoder_decoder_roundtrip") {
+    // Test XOR encode/decode via dispatch functions (encoder.cpp)
+    const unsigned char pt[] = "test_data_for_xor_roundtrip";
+    const unsigned char key[16] = {
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10
+    };
+
+    Buffer enc = {0};
+    Buffer dec = {0};
+
+    // Encode via XOR transform
+    ExitCode ret = xor_transform_auth(pt, sizeof(pt) - 1, key, 16, &enc);
+    CHECK_MESSAGE(ret == EXIT_OK, "XOR encode should succeed");
+    REQUIRE(enc.size > sizeof(pt) - 1);  // Output includes salt + HMAC
+
+    // Decode (decrypt_auth strips salt+HMAC)
+    ret = xor_decrypt_auth(enc.data, enc.size, key, 16, &dec);
+    CHECK_MESSAGE(ret == EXIT_OK, "XOR decode should succeed");
+
+    // Verify roundtrip
+    CHECK(dec.size == sizeof(pt) - 1);
+    CHECK(memcmp(dec.data, pt, dec.size) == 0);
+
+    free(enc.data);
+    free(dec.data);
+}
+
+TEST_CASE("xor_encoder_requires_key") {
+    // XOR encoder should fail without valid key
+    const unsigned char data[] = "test";
+    Buffer out = {0};
+
+    // NULL key should fail
+    ExitCode ret = xor_transform_auth(data, sizeof(data) - 1, nullptr, 16, &out);
+    CHECK(ret == EXIT_ERR_ARGS);
+
+    // Empty key should fail
+    unsigned char empty_key[16] = {0};
+    ret = xor_transform_auth(data, sizeof(data) - 1, empty_key, 0, &out);
+    CHECK(ret == EXIT_ERR_ARGS);
+}
+
+TEST_CASE("xor_decoder_requires_key") {
+    // XOR decoder should fail without valid key
+    const unsigned char key[16] = {0x01};
+    unsigned char data[50] = {0};
+
+    Buffer enc = {0};
+    REQUIRE(xor_transform_auth(data, 10, key, 16, &enc) == EXIT_OK);
+
+    Buffer dec = {0};
+
+    // NULL key should fail
+    ExitCode ret = xor_decrypt_auth(enc.data, enc.size, nullptr, 16, &dec);
+    CHECK(ret == EXIT_ERR_ARGS);
+
+    // Empty key should fail
+    unsigned char empty_key[16] = {0};
+    ret = xor_decrypt_auth(enc.data, enc.size, empty_key, 0, &dec);
+    CHECK(ret == EXIT_ERR_ARGS);
+
+    free(enc.data);
+}
+
+TEST_CASE("xor_decoder_corrupted_data") {
+    // XOR decoder should fail on corrupted data (HMAC verification)
+    const unsigned char pt[] = "test_data";
+    const unsigned char key[16] = {0x01};
+
+    Buffer enc = {0};
+    REQUIRE(xor_transform_auth(pt, sizeof(pt) - 1, key, 16, &enc) == EXIT_OK);
+
+    // Corrupt the ciphertext (not salt or HMAC)
+    if (enc.size > 20) {
+        enc.data[16 + 5] ^= 0xFF;  // Corrupt a byte in the ciphertext
+    }
+
+    Buffer dec = {0};
+    ExitCode ret = xor_decrypt_auth(enc.data, enc.size, key, 16, &dec);
+    // HMAC verification should detect tampering
+    CHECK(ret != EXIT_OK);
+
+    free(enc.data);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ECB MODE TESTS (security concern - deterministic encryption)
+// ═══════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("ecb_roundtrip_works") {
+    // ECB should work for encrypt/decrypt roundtrip
+    const unsigned char pt[] = "test_plaintext_for_ecb";
+    const unsigned char key[32] = {0x01};
+
+    Buffer enc = {0}, dec = {0};
+    CHECK(encrypt_data(pt, sizeof(pt) - 1, ALGO_AES_ECB, key, 32, &enc) == EXIT_OK);
+    REQUIRE(enc.size > 0);
+
+    CHECK(decrypt_data(enc.data, enc.size, ALGO_AES_ECB, key, 32, &dec) == EXIT_OK);
+    CHECK(dec.size == sizeof(pt) - 1);
+    CHECK(memcmp(dec.data, pt, dec.size) == 0);
+
+    free(enc.data);
+    free(dec.data);
+}
+
+TEST_CASE("cbc_randomization_property") {
+    // CBC produces different ciphertexts (due to random IV)
+    const unsigned char pt[] = "test_plaintext";
+    const unsigned char key[32] = {0x01};
+
+    // CBC should produce different CT each time (due to random IV)
+    Buffer cbc1 = {0}, cbc2 = {0};
+    CHECK(encrypt_data(pt, sizeof(pt) - 1, ALGO_AES_CBC, key, 32, &cbc1) == EXIT_OK);
+    CHECK(encrypt_data(pt, sizeof(pt) - 1, ALGO_AES_CBC, key, 32, &cbc2) == EXIT_OK);
+    REQUIRE(cbc1.size > 0);
+    REQUIRE(cbc2.size > 0);
+    bool cbc_randomized = (memcmp(cbc1.data, cbc2.data, cbc1.size) != 0);
+    CHECK_MESSAGE(cbc_randomized, "CBC should be randomized with different IVs");
+
+    // Both should decrypt to same plaintext
+    Buffer d1 = {0}, d2 = {0};
+    CHECK(decrypt_data(cbc1.data, cbc1.size, ALGO_AES_CBC, key, 32, &d1) == EXIT_OK);
+    CHECK(decrypt_data(cbc2.data, cbc2.size, ALGO_AES_CBC, key, 32, &d2) == EXIT_OK);
+    CHECK(d1.size == sizeof(pt) - 1);
+    CHECK(d2.size == sizeof(pt) - 1);
+    CHECK(memcmp(d1.data, pt, d1.size) == 0);
+    CHECK(memcmp(d2.data, pt, d2.size) == 0);
+
+    free(cbc1.data);
+    free(cbc2.data);
+    free(d1.data);
+    free(d2.data);
+}
