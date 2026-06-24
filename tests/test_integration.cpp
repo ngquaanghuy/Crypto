@@ -206,8 +206,9 @@ TEST_CASE("invalid_python_integration") {
     for (const char* src : invalid_sources) {
         VmProgram prog;
         vm_program_init(&prog);
-        // Should handle gracefully without crashing
-        vm_compile_source(src, strlen(src), &prog, 0);
+        ExitCode ret = vm_compile_source(src, strlen(src), &prog, 0);
+        // Invalid Python syntax should return error
+        CHECK_MESSAGE(ret != EXIT_OK, "Invalid Python should fail compilation: " << src);
         vm_program_free(&prog);
     }
 }

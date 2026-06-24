@@ -84,12 +84,12 @@ TEST_CASE("vm_deserialize_truncated_header") {
     REQUIRE(vm_serialize(&prog, &serialized) == EXIT_OK);
     REQUIRE(serialized.size > sizeof(VmHeader));
 
-    // Test: truncated header should not crash
+    // Test: truncated header should return error, not crash
     for (size_t sz = 1; sz < sizeof(VmHeader); sz++) {
         VmProgram test_prog;
         vm_program_init(&test_prog);
         ExitCode ret = vm_deserialize(serialized.data, sz, &test_prog);
-        // Should return error, not crash
+        CHECK_MESSAGE(ret != EXIT_OK, "Truncated header should return error, got size: " << sz);
         vm_program_free(&test_prog);
     }
 
@@ -109,7 +109,9 @@ TEST_CASE("vm_invalid_magic_handling") {
     vm_program_init(&test_prog);
     ExitCode ret = vm_deserialize(fake_header, sizeof(fake_header), &test_prog);
 
-    // Should handle gracefully (not crash), may return error for invalid header
+    // Should return error for invalid magic
+    CHECK_MESSAGE(ret == EXIT_ERR_CRYPTO || ret == EXIT_ERR_INTERNAL,
+                  "Invalid magic should return error, got: " << ret);
     vm_program_free(&test_prog);
     vm_program_free(&prog);
 }
