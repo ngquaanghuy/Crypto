@@ -101,9 +101,10 @@ TEST_CASE("vm_invalid_magic_handling") {
     VmProgram prog;
     vm_program_init(&prog);
 
-    // Create fake header with invalid magic
+    // Create fake header with invalid magic (use memcpy to avoid strict aliasing UB)
     unsigned char fake_header[32] = {0};
-    *(uint32_t*)fake_header = 0xDEADBEEF;  // Invalid magic
+    uint32_t invalid_magic = 0xDEADBEEF;
+    memcpy(fake_header, &invalid_magic, sizeof(invalid_magic));
 
     VmProgram test_prog;
     vm_program_init(&test_prog);
@@ -190,6 +191,28 @@ TEST_CASE("cipher_encrypt_decrypt_roundtrip") {
     CHECK(encrypt_data(plaintext, sizeof(plaintext) - 1, ALGO_CHACHA20, key, 32, &enc) == EXIT_OK);
     REQUIRE(enc.size > 0);
     CHECK(decrypt_data(enc.data, enc.size, ALGO_CHACHA20, key, 32, &dec) == EXIT_OK);
+    CHECK(dec.size == sizeof(plaintext) - 1);
+    CHECK(memcmp(dec.data, plaintext, dec.size) == 0);
+    free(enc.data);
+    free(dec.data);
+
+    // Test AES-CTR roundtrip
+    enc = {0};
+    dec = {0};
+    CHECK(encrypt_data(plaintext, sizeof(plaintext) - 1, ALGO_AES_CTR, key, 32, &enc) == EXIT_OK);
+    REQUIRE(enc.size > 0);
+    CHECK(decrypt_data(enc.data, enc.size, ALGO_AES_CTR, key, 32, &dec) == EXIT_OK);
+    CHECK(dec.size == sizeof(plaintext) - 1);
+    CHECK(memcmp(dec.data, plaintext, dec.size) == 0);
+    free(enc.data);
+    free(dec.data);
+
+    // Test AES-ECB roundtrip (no IV, deterministic)
+    enc = {0};
+    dec = {0};
+    CHECK(encrypt_data(plaintext, sizeof(plaintext) - 1, ALGO_AES_ECB, key, 32, &enc) == EXIT_OK);
+    REQUIRE(enc.size > 0);
+    CHECK(decrypt_data(enc.data, enc.size, ALGO_AES_ECB, key, 32, &dec) == EXIT_OK);
     CHECK(dec.size == sizeof(plaintext) - 1);
     CHECK(memcmp(dec.data, plaintext, dec.size) == 0);
     free(enc.data);
