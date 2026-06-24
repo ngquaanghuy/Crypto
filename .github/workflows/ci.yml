@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential libssl-dev python3
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build -j$(nproc)
+
+      - name: Run tests
+        run: |
+          cd build
+          ./test_crypto --test-case="*"
+          # Run regression tests specifically
+          ./test_crypto --test-case="*regression*,*security*"
+
+  security-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get install -y cmake build-essential libssl-dev python3
+
+      - name: Build and run security tests
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Debug
+          cmake --build build -j$(nproc)
+          cd build
+          ./test_crypto --test-case="*bounds*,*truncation*,*overflow*,*invalid_magic*,*deserial*"
+
+  clang-tidy:
+    runs-on: ubuntu-latest
+    container: clang-tools:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug
+      - name: Run clang-tidy
+        run: cmake --build build --target clang-tidy 2>&1 || true

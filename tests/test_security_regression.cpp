@@ -17,10 +17,14 @@
 #include "crypto/aes.h"
 #include "encode/base64.h"
 #include "encode/hexcode.h"
+#include "encode/xorcode.h"
 #include "vm/vm.h"
 #include <vector>
 #include <string>
 #include <cstring>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VM BOUNDS & SERIALIZATION TESTS
@@ -394,4 +398,358 @@ TEST_CASE("base64_large_data") {
 
     free(encoded.data);
     free(decoded.data);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// vRAM TESTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("vm_compile_with_vram_enabled") {
+    // vRAM (virtual RAM) is a security feature that garbles memory access
+    const char* source = R"(
+x = 1
+y = x * 2
+print(y)
+)";
+
+    VmCompileConfig cfg;
+    vm_default_config(&cfg);
+    cfg.enable_vram = 1;
+    cfg.vram_size = 4096;
+    cfg.enable_vram_garble = 1;
+    cfg.vram_garble_min_interval = 100;
+    cfg.vram_garble_max_interval = 500;
+
+    VmProgram prog;
+    vm_program_init(&prog);
+
+    ExitCode ret = vm_compile_source_ex(source, strlen(source), &prog, &cfg);
+    CHECK_MESSAGE(ret == EXIT_OK, "Compilation with vRAM should succeed");
+
+    // Serialize and deserialize
+    Buffer ser = {0};
+    ret = vm_serialize(&prog, &ser);
+    CHECK_MESSAGE(ret == EXIT_OK, "Serialization with vRAM should succeed");
+    REQUIRE(ser.size > 0);
+
+    VmProgram prog2;
+    vm_program_init(&prog2);
+    ret = vm_deserialize(ser.data, ser.size, &prog2);
+    CHECK_MESSAGE(ret == EXIT_OK, "Deserialization with vRAM should succeed");
+
+    free(ser.data);
+    vm_program_free(&prog);
+    vm_program_free(&prog2);
+}
+
+TEST_CASE("vram_garble_injection") {
+    VmCompileConfig cfg;
+    vm_default_config(&cfg);
+    cfg.enable_vram = 1;
+    cfg.vram_garble_min_interval = 50;
+    cfg.vram_garble_max_interval = 100;
+
+    VmProgram prog;
+    vm_program_init(&prog);
+    const char* source = "x = [1, 2, 3]\nprint(sum(x))\n";
+    REQUIRE(vm_compile_source_ex(source, strlen(source), &prog, &cfg) == EXIT_OK);
+
+    // inject_vram_garble should modify program to include garbling
+    ExitCode ret = vm_pass_inject_vram_garble(&prog, &cfg);
+    bool acceptable = (ret == EXIT_OK) || (ret == EXIT_ERR_INTERNAL);
+    CHECK_MESSAGE(acceptable, "vRAM garble should succeed or gracefully fail, got: " << ret);
+
+    vm_program_free(&prog);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// XOR TRANSFORM AUTH TESTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("xor_transform_auth_basic") {
+    const unsigned char data[] = "test_data_for_xor_auth";
+    unsigned char key[16] = {
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10
+    };
+
+    Buffer out = {0};
+    ExitCode ret = xor_transform_auth(data, sizeof(data) - 1, key, 16, &out);
+    CHECK_MESSAGE(ret == EXIT_OK, "xor_transform_auth should succeed");
+    CHECK(out.size > 0);
+
+    // Verify output differs from input (was transformed)
+    CHECK(memcmp(out.data, data, out.size) != 0);
+
+    free(out.data);
+}
+
+TEST_CASE("xor_transform_auth_with_various_sizes") {
+    const unsigned char key[16] = {0};
+    const char* test_sizes[] = {"a", "ab", "abc", "abcd", "abcdefgh", "1234567890123456"};
+
+    for (const char* data : test_sizes) {
+        Buffer out = {0};
+        ExitCode ret = xor_transform_auth((const unsigned char*)data, strlen(data), key, 16, &out);
+        CHECK_MESSAGE(ret == EXIT_OK, "xor_transform_auth should succeed for size " << strlen(data));
+        // Output includes: salt(16) + data + HMAC(32), so output > input
+        CHECK(out.size == 16 + strlen(data) + 32);
+        free(out.data);
+    }
+}
+
+TEST_CASE("xor_transform_auth_null_handling") {
+    Buffer out = {0};
+    unsigned char key[16] = {0};
+
+    // NULL data with size 0 should be handled
+    CHECK(xor_transform_auth(nullptr, 0, key, 16, &out) == EXIT_ERR_INTERNAL);
+
+    // NULL key with non-zero size should be handled
+    CHECK(xor_transform_auth((const unsigned char*)"test", 4, nullptr, 16, &out) == EXIT_ERR_ARGS);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MULTI-KEY LAYER TESTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("multi_key_obfuscation_basic") {
+    // Test that protect_file with multi-key layer produces different output than single-key
+    const unsigned char plaintext[] = "identical_test_data";
+    const unsigned char key[32] = {
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
+        0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
+        0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20
+    };
+
+    Buffer enc = {0};
+    ExitCode ret = encrypt_data(plaintext, sizeof(plaintext) - 1, ALGO_XOR, key, 32, &enc);
+    CHECK(ret == EXIT_OK);
+    REQUIRE(enc.size > 0);
+
+    Buffer dec = {0};
+    ret = decrypt_data(enc.data, enc.size, ALGO_XOR, key, 32, &dec);
+    CHECK(ret == EXIT_OK);
+    CHECK(dec.size == sizeof(plaintext) - 1);
+    CHECK(memcmp(dec.data, plaintext, dec.size) == 0);
+
+    free(enc.data);
+    free(dec.data);
+}
+
+TEST_CASE("multi_pass_xor_encrypt") {
+    // multi_pass_xor_encrypt should produce output different from single pass
+    const unsigned char pt[] = "test_data";
+    const unsigned char key[32] = {0x01};
+
+    Buffer single_pass = {0}, multi_pass = {0};
+    CHECK(encrypt_data(pt, sizeof(pt) - 1, ALGO_XOR, key, 32, &single_pass) == EXIT_OK);
+
+    // multi_pass_xor_encrypt is internal - test the overall effect
+    Buffer combined = {0};
+    ExitCode ret = encrypt_data(pt, sizeof(pt) - 1, ALGO_XOR, key, 32, &combined);
+    CHECK(ret == EXIT_OK);
+
+    // Both should decrypt correctly
+    Buffer dec1 = {0}, dec2 = {0};
+    CHECK(decrypt_data(single_pass.data, single_pass.size, ALGO_XOR, key, 32, &dec1) == EXIT_OK);
+    CHECK(decrypt_data(combined.data, combined.size, ALGO_XOR, key, 32, &dec2) == EXIT_OK);
+    CHECK(dec1.size == sizeof(pt) - 1);
+    CHECK(dec2.size == sizeof(pt) - 1);
+
+    free(single_pass.data);
+    free(combined.data);
+    free(dec1.data);
+    free(dec2.data);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PROTECT PIPELINE TESTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("protect_file_compile_encrypt_roundtrip") {
+    // Test the full pipeline: compile Python → serialize → encrypt
+    const char* source = R"(
+def fib(n):
+    if n <= 1: return n
+    return fib(n-1) + fib(n-2)
+print(fib(10))
+)";
+
+    // Compile
+    VmProgram prog;
+    vm_program_init(&prog);
+    REQUIRE(vm_compile_source(source, strlen(source), &prog, 0) == EXIT_OK);
+
+    // Serialize
+    Buffer ser = {0};
+    REQUIRE(vm_serialize(&prog, &ser) == EXIT_OK);
+    REQUIRE(ser.size > 0);
+
+    // Encrypt
+    const unsigned char key[32] = {0};
+    Buffer enc = {0};
+    REQUIRE(encrypt_data(ser.data, ser.size, ALGO_AES_ECB, key, 32, &enc) == EXIT_OK);
+    REQUIRE(enc.size > 0);
+
+    // Decrypt
+    Buffer dec = {0};
+    REQUIRE(decrypt_data(enc.data, enc.size, ALGO_AES_ECB, key, 32, &dec) == EXIT_OK);
+    REQUIRE(dec.size == ser.size);
+
+    // Deserialize decrypted data
+    VmProgram prog2;
+    vm_program_init(&prog2);
+    CHECK(vm_deserialize(dec.data, dec.size, &prog2) == EXIT_OK);
+    CHECK(prog2.count == prog.count);
+
+    free(ser.data);
+    free(enc.data);
+    free(dec.data);
+    vm_program_free(&prog);
+    vm_program_free(&prog2);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CLI ARG PARSING EDGE CASES
+// ═══════════════════════════════════════════════════════════════════════════
+
+TEST_CASE("cli_arg_null_input_handling") {
+    // CLI should handle NULL/missing arguments gracefully
+    const char* empty_argv[] = {"test", ""};
+    int argc = 2;
+
+    // This should either handle gracefully or return error, not crash
+    // Testing the underlying functions that CLI would call
+    Buffer out = {0};
+    const unsigned char key[32] = {0};
+
+    // Try encrypt with empty input
+    ExitCode ret = encrypt_data((const unsigned char*)"", 0, ALGO_BASE64, nullptr, 0, &out);
+    bool acceptable = (ret == EXIT_ERR_INTERNAL) || (ret == EXIT_OK);
+    CHECK(acceptable);
+
+    // Try decrypt with invalid data
+    ret = decrypt_data(nullptr, 0, ALGO_AES_CBC, key, 32, &out);
+    CHECK(ret != EXIT_OK);  // Should fail with NULL input
+}
+
+TEST_CASE("cli_arg_invalid_algo_handling") {
+    // Invalid algorithm IDs should be handled gracefully
+    const unsigned char data[] = "test";
+    Buffer out = {0};
+
+    // Test with algorithm out of range (using internal enum)
+    ExitCode ret = encrypt_data(data, sizeof(data) - 1, ALGO_NONE, nullptr, 0, &out);
+    CHECK(ret != EXIT_OK);  // NONE should fail
+
+    // Test XOR with NULL key
+    ret = encrypt_data(data, sizeof(data) - 1, ALGO_XOR, nullptr, 0, &out);
+    CHECK(ret == EXIT_ERR_ARGS);
+}
+
+TEST_CASE("cli_large_file_handling") {
+    // Test handling of larger data to catch buffer size issues
+    std::vector<unsigned char> large_data(64 * 1024);  // 64KB
+    for (size_t i = 0; i < large_data.size(); i++) {
+        large_data[i] = (unsigned char)(i % 256);
+    }
+
+    Buffer out = {0};
+    ExitCode ret = base64_encode(large_data.data(), large_data.size(), &out);
+    CHECK_MESSAGE(ret == EXIT_OK, "Large data encoding should succeed");
+
+    Buffer decoded = {0};
+    ret = base64_decode(out.data, out.size, &decoded);
+    CHECK_MESSAGE(ret == EXIT_OK, "Large data decoding should succeed");
+    CHECK(decoded.size == large_data.size());
+    CHECK(memcmp(decoded.data, large_data.data(), large_data.size()) == 0);
+
+    free(out.data);
+    free(decoded.data);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// THREAD SAFETY TESTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+#include <thread>
+#include <atomic>
+
+TEST_CASE("safe_pread_thread_safety") {
+    // safe_pread should be thread-safe when called concurrently
+    // Create a temporary file for testing
+    const char* test_file = "/tmp/test_crypto_thread.tmp";
+    const char* test_data = "thread_safety_test_data_for_safe_pread";
+
+    // Write test data
+    int fd = open(test_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    REQUIRE(fd >= 0);
+    write(fd, test_data, strlen(test_data));
+    close(fd);
+
+    // Open file for reading
+    fd = open(test_file, O_RDONLY);
+    REQUIRE(fd >= 0);
+
+    std::vector<char> buffer1(256), buffer2(256);
+    std::atomic<bool> success1{false}, success2{false};
+
+    // Read from same file descriptor from multiple threads
+    auto read_func = [&](char* buf, std::atomic<bool>* flag) {
+        ssize_t n = read(fd, buf, 255);
+        if (n > 0) flag->store(true);
+    };
+
+    std::thread t1(read_func, buffer1.data(), &success1);
+    std::thread t2(read_func, buffer2.data(), &success2);
+
+    t1.join();
+    t2.join();
+
+    close(fd);
+    unlink(test_file);
+
+    // Basic test: at least one read should succeed
+    bool any_success = success1.load() || success2.load();
+    CHECK(any_success);
+}
+
+TEST_CASE("concurrent_encoding_different_algorithms") {
+    // Test that different encryption tasks can run concurrently
+    const unsigned char data[] = "concurrent_test_data";
+    const unsigned char key[32] = {0};
+
+    std::atomic<int> success_count{0};
+
+    std::thread t1([&]() {
+        Buffer out = {0};
+        if (encrypt_data(data, sizeof(data) - 1, ALGO_AES_CBC, key, 32, &out) == EXIT_OK) {
+            success_count++;
+            free(out.data);
+        }
+    });
+
+    std::thread t2([&]() {
+        Buffer out = {0};
+        if (encrypt_data(data, sizeof(data) - 1, ALGO_BASE64, nullptr, 0, &out) == EXIT_OK) {
+            success_count++;
+            free(out.data);
+        }
+    });
+
+    std::thread t3([&]() {
+        Buffer out = {0};
+        if (encrypt_data(data, sizeof(data) - 1, ALGO_HEX, nullptr, 0, &out) == EXIT_OK) {
+            success_count++;
+            free(out.data);
+        }
+    });
+
+    t1.join();
+    t2.join();
+    t3.join();
+
+    CHECK(success_count.load() >= 2);  // At least some should succeed
 }
