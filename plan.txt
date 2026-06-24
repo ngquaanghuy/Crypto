@@ -1,0 +1,205 @@
+ Plan: Obfuscate VM runtime in generated stub
+
+ Context
+
+ When crypto protect --vm file.py runs, it emits a self-decrypting Python stub
+ that embeds vm_interp_py.h (60 KB raw Python — the entire 2,000-line VM
+ dispatcher). Anyone with the produced .py stub immediately sees:
+
+ - def _vm_decode_vl, def _vm_decode_poly, dispatch logic
+ - Register spilling / restore routines
+ - Opcode map and self-modifying-code patches
+ - _count_ops = frozenset((43, 44, 63, ...)) literals
+
+ This single file is the entire "protection" — once extracted, the rest of
+ the scheme falls apart. The audit (not yet committed) flagged the lack of
+ formal threat-model, but the practical first step is making this runtime
+ hard to grep/read.
+
+ Goal: keep cross-platform Python approach, but produce a stub where the
+ VM runtime is no longer sitting in the file as plain Python source.
+
+ Approach: combination of (1) running the runtime through the project's
+ existing obfuscator with a curation of safe techniques, and (2) shipping the
+ result as marshalled Python bytecode bytes instead of source text.
+
+ ---
+ Approach
+
+ Tier 1 — Obfuscate runtime via existing pipeline (direction 1)
+
+ Move the runtime source out of the header where it currently lives, and gate
+ it through the project's own pyobf.py orchestrator at build time. The
+ existing obfuscator has a known-flexibility matrix; this plan picks only the
+ two robust techniques that don't break the VM interpreter:
+
+ - rename (identifier renaming) — safe on VM runtime because no getattr/
+ setattr to objects, all helpers prefix with _, frozenset entries are
+ integer literals so unaffected
+ - cleanup (remove docstrings/constant expressions) — harmless
+
+ Drop on purpose:
+ - mba, mutate — rewrite arithmetic; the VM interpreter depends on exact
+ bit-shift semantics for opcode decode (would break badly)
+ - aflow, opaque, junk — exception-swallowing ast.parse loops,
+ flatten_advanced only handles if/else (not for, try, async)
+ - funcenc — round-trips functions through ast.unparse; breaks closures
+ - strings — encrypts opcode-name tables and string literals with b64
+ decode at runtime (2–4× startup cost, marginal security gain)
+ - apihash — keeps originals + adds __import__, net bloat
+
+ Tier 2 — Marshal the (post-obfuscation) runtime (direction 2 hint)
+
+ Compile the obfuscated Python source to a CodeType, marshal it to bytes,
+ embed as a C byte array. Stub bootstraps with two lines:
+
+ import marshal, base64
+ exec(marshal.loads(base64.b64decode("...marshal_bytes...")), globals())
+
+ Now the stub contains only:
+ - A 2-line bootstrap (Python)
+ - A base64-encoded binary blob (marshal bytes, not source)
+
+ grep _vm_decode_vl finds nothing. grep frozenset finds nothing.
+ This is the cheapest possible "no plaintext runtime" win — no PyInstaller,
+ no native ext, no cross-platform concern.
+
+ Composition
+
+ Both tiers run in one generator pass. The generator:
+ 1. Reads source-of-truth .py file
+ 2. Pipes through pyobf.py rename,cleanup [--seed]
+ 3. compile()s the result → marshal.dumps() it
+ 4. Emits a single generated header containing:
+   - obfuscated source (for #ifdef fallback / debugging)
+   - marshalled byte array (primary path)
+
+ protect.cpp's emit site chooses marshal path when obfuscation is on,
+ source path when off.
+
+ Gating
+
+ New CMake option:
+
+ option(CRYPTO_OBFUSCATE_VM_RUNTIME
+        "Obfuscate VM runtime in generated stub via pyobf + marshal"
+        ON)
+
+ =OFF → behavior is exactly current (header is hand-maintained). This keeps
+ the build green for anyone who doesn't want pyobf in the build pipeline.
+
+ ---
+ Critical files
+
+ New
+
+ - include/vm/vm_runtime_source.py — extracted source-of-truth (≈60 KB).
+ Plain Python file. Hand-edited going forward; never edit the generated
+ header by hand again.
+ - tools/generate_vm_interp_h.py — generator mirroring
+ tools/generate_pyobf_h.py pattern. ~80 lines. Reads runtime source →
+ pyobf → compile → marshal.dumps → writes include/vm/vm_interp_py.h
+ containing both obfuscated source + C byte array.
+ - tests/test_vm_runtime_obfuscation.cpp — round-trip test:
+ marshalled runtime compiles a small program to VM bytecode, executes,
+ asserts stdout matches.
+
+ Modified
+
+ - include/vm/vm_interp_py.h — becomes generator output. Current
+ hand-maintained contents move verbatim to vm_runtime_source.py. After
+ generation: raw-string literal of obfuscated source
+ (static const char VM_INTERP_SCRIPT[] — unchanged name, fallback only)
+   - a new static const unsigned char VM_INTERP_MARSHAL[] block.
+ - src/cli/protect.cpp — line 380 emit site changes from
+ sb_printf(buf, "{}\n", VM_INTERP_SCRIPT) to a conditional:
+   - if CRYPTO_OBFUSCATE_VM_RUNTIME compiled in (via macro check):
+ emit marshal bootstrap (b64 of marshal bytes)
+   - else: emit the obfuscated-or-plaintext source blob (current path)
+ - CMakeLists.txt — add add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/include/vm/vm_interp_py.h ...) with DEPENDS on
+ vm_runtime_source.py, tools/pyobf.py, tools/generate_vm_interp_h.py.
+ add_custom_target(vm_interp_py_h_gen ...). add_dependencies(crypto vm_interp_py_h_gen) (same for test_crypto). New option near
+ CRYPTO_BUILD_TESTS (line 101).
+ - tests/test_security_regression.cpp — extend with regression
+ checks: #ifdef-gated test that verifies the marshal bytes survive a
+ serialize-deserialize roundtrip and produce a working VM_RUN when exec'd.
+
+ Existing utilities to reuse
+
+ - tools/pyobf.py — already a stdin→stdout pipe with --seed.
+ - tools/generate_pyobf_h.py (in tools/) — structural template for the
+ new generator (R"pyobf_script(...)pyobf_script" literal emission).
+ - compile() + marshal.dumps() — Python stdlib for marshal step.
+ - tests/test_security_regression.cpp (vm_serialize_deserialize_roundtrip,
+ full_protection_pipeline) — refer to know-it-works patterns.
+ - tests/test_obfuscate.cpp — already integrates the C++ binary, useful
+ for the system-call style integration test.
+
+ ---
+ Verification
+
+ 1. Hand-test (primary):
+ cmake -B build -DCRYPTO_OBFUSCATE_VM_RUNTIME=ON
+ cmake --build build -j$(nproc)
+ echo 'print("hello obfuscated vm")' > /tmp/test.py
+ ./build/crypto protect --vm --keygen 32 --no-compress /tmp/test.py -o /tmp/stub.py
+ grep -c '_vm_decode_vl\|frozenset\|_r_even' /tmp/stub.py   # expect 0
+ python3 /tmp/stub.py                                       # expect "hello obfuscated vm"
+ 2. Off-mode regression:
+ cmake -B build -DCRYPTO_OBFUSCATE_VM_RUNTIME=OFF
+ cmake --build build -j$(nproc)
+ # All existing tests must pass unchanged.
+ 3. CI: existing GitHub Actions workflow (.github/workflows/ci.yml)
+ already builds + runs ./test_crypto. Add the hand-test (1) as an
+ integration step.
+ 4. Existing regression tests must pass without modification:
+ tests/test_security_regression.cpp, tests/test_integration.cpp,
+ tests/test_vm.cpp, tests/test_obfuscate.cpp,
+ tests/test_all.cpp.
+
+ ---
+ Risks & mitigations
+
+ ┌───────────────────────────────────────────────────────────────────────────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+ │                                               Risk                                                │                                               Mitigation                                                │
+ ├───────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+ │ pyobf.py rename,cleanup breaks vm runtime on edge case                                            │ Generator catches ast.parse exceptions (already does in pyobf.py:50-52); failing pipeline falls back to │
+     │                                               Risk                                                │                                               Mitigation                                                │
+     ├───────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ pyobf.py rename,cleanup breaks vm runtime on edge case                                            │ Generator catches ast.parse exceptions (already does in pyobf.py:50-52); failing pipeline falls back to │
+     │                                                                                                   │  source-only mode and emits a warning at build time                                                     │
+     ├───────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ Marshal format mismatch (Python 3.x minor)                                                        │ Document requirement: build with the same Python minor that runs the stub; generator uses               │
+     │                                                                                                   │ sys.version_info                                                                                        │
+     ├───────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ add_custom_command rebuild churn                                                                  │ DEPENDS only files; header is only regenerated when source .py or generator script changes              │
+     ├───────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ python3 not on builder path                                                                       │ Same requirement as existing pyobf.h and compress_script.h — already a build prerequisite               │
+     ├───────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ Anti-debug inline_hooks check calls c_ubyte.from_address; marshal-side c_ubyte.from_address       │ n/a                                                                                                     │
+     │ doesn't apply (irrelevant to runtime obfuscation)                                                 │                                                                                                         │
+     ├───────────────────────────────────────────────────────────────────────────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+     │ Stub grows by ~30-50 KB (source → marshal bytes b64)                                              │ Acceptable for the readability win                                                                      │
+     └───────────────────────────────────────────────────────────────────────────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+     ---
+     Out of scope
+
+     - Full PyInstaller-style bootloader (would require extracting stub to
+     tmpfs / memory, exec then unlink — large build pipeline change)
+     - Native C extension for VM (cross-platform burden)
+     - HWID binding / expiration (separate task)
+     - Adding obfuscator support for match/case or async (pyobf limitations;
+     vm runtime doesn't use either)
+
+     ---
+     Estimated scope
+
+     - Generator script: ~80 LOC
+     - Source extraction: 1 mechanical edit (~2,000 lines moved)
+     - CMake additions: ~15 LOC
+     - protect.cpp emit changes: ~10 LOC
+     - New regression test: ~80 LOC
+     - Documentation in README: ~10 LOC
+
+     Total: ~200 LOC of new code, ~2,000 LOC mechanical move.

@@ -41,4 +41,25 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=Debug
           cmake --build build -j$(nproc)
           cd build
-          ./test_crypto --test-case="*bounds*,*truncation*,*overflow*,*invalid_magic*,*deserial*,*xor*,*ecb*"
+          ./test_crypto --test-case="*bounds*,*truncation*,*overflow*,*invalid_magic*,*deserial*,*xor*,*ecb*,*marshal*,*runtime.obf*"
+
+      - name: Test obfuscated VM stub
+        run: |
+          cd build
+          echo 'print("hello obfuscated vm")' > /tmp/test_vmo.py
+          ./crypto protect --vm --keygen 32 --no-compress /tmp/test_vmo.py -o /tmp/stub_vmo.py
+          # Verify no plaintext runtime identifiers
+          if grep -E '_vm_decode_vl|frozenset|_r_even|_count_ops|_vm_rs2' /tmp/stub_vmo.py; then
+            echo "ERROR: Plaintext VM identifiers found in stub"
+            exit 1
+          fi
+          # Verify stub runs correctly
+          python3 /tmp/stub_vmo.py | grep -q "hello obfuscated vm"
+          echo "VM obfuscation test passed"
+
+      - name: Test off-mode regression
+        run: |
+          cmake -B build_off -DCRYPTO_BUILD_TESTS=ON -DCRYPTO_OBFUSCATE_VM_RUNTIME=OFF -DCMAKE_BUILD_TYPE=Release
+          cmake --build build_off -j$(nproc)
+          cd build_off
+          ./test_crypto --test-case="*" 2>&1 | tail -3

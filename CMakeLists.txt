@@ -90,6 +90,10 @@ target_include_directories(crypto PRIVATE
 
 target_compile_definitions(crypto PRIVATE HAVE_CONFIG_H)
 
+if(CRYPTO_OBFUSCATE_VM_RUNTIME)
+    target_compile_definitions(crypto PRIVATE CRYPTO_OBFUSCATE_VM_RUNTIME)
+endif()
+
 target_link_libraries(crypto PRIVATE
     OpenSSL::Crypto
     ZLIB::ZLIB
@@ -99,6 +103,18 @@ target_link_libraries(crypto PRIVATE
 )
 
 option(CRYPTO_BUILD_TESTS "Build unit tests" ON)
+option(CRYPTO_OBFUSCATE_VM_RUNTIME "Obfuscate VM runtime in generated stub via marshal" ON)
+
+# Generate vm_interp_py.h from vm_runtime_source.py at build time
+if(CRYPTO_OBFUSCATE_VM_RUNTIME)
+    if(NOT EXISTS ${CMAKE_SOURCE_DIR}/include/vm/vm_interp_py.h)
+        message(STATUS "Generating vm_interp_py.h...")
+        execute_process(
+            COMMAND python3 ${CMAKE_SOURCE_DIR}/tools/generate_vm_interp_h.py
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        )
+    endif()
+endif()
 
 if(CRYPTO_BUILD_TESTS)
     add_executable(test_crypto
@@ -107,6 +123,7 @@ if(CRYPTO_BUILD_TESTS)
         tests/test_obfuscate.cpp
         tests/test_security_regression.cpp
         tests/test_integration.cpp
+        tests/test_vm_runtime_obfuscation.cpp
     src/utils/file_util.cpp
     src/utils/compress.cpp
         src/encode/base64.cpp

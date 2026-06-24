@@ -12,7 +12,13 @@
 #include "encode/ascii85.h"
 #include "encode/hexcode.h"
 #include "encode/xorcode.h"
+#ifndef CRYPTO_OBFUSCATE_VM_RUNTIME
+// Provide empty marshal when obfuscation is disabled
+#define VM_INTERP_MARSHAL_DUMMY 1
+#endif
+
 #include "vm/vm.h"
+#include "vm/vm_interp_py.h"
 #include "vm/vm_interp_py.h"
 #include "vm/vm_split.h"
 #include "crypto/compress.h"
@@ -375,9 +381,16 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
     sb_printf(buf, "{} = {}\n", n_A, algo_id);
     sb_printf(buf, "{} = {}({})\n", j2, junk_fn, j1);
 
-    // VM interpreter
+    // VM runtime (marshalled bytecode bootstrap)
     if (use_vm) {
+#ifdef CRYPTO_OBFUSCATE_VM_RUNTIME
+        // exec the bytecode using __import__ to avoid any name shadowing
+        // __import__ is always available and doesn't conflict with VM's obfuscated names
+        sb_printf(buf, "exec(__import__('marshal').loads(__import__('base64').b64decode(\"{}\")))\n", VM_INTERP_MARSHAL);
+#else
+        // Legacy: embed runtime as plain Python source (debugging/fallback)
         sb_printf(buf, "{}\n", VM_INTERP_SCRIPT);
+#endif
     }
 
     // Main function

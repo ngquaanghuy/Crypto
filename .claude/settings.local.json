@@ -17,7 +17,13 @@
       "Bash(make -j4)",
       "Bash(xargs ls -la)",
       "Bash(cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON)",
-      "Bash(cmake --build . --target test_crypto -j4)"
+      "Bash(cmake --build . --target test_crypto -j4)",
+      "Bash(cmake --build build --target crypto -j4)",
+      "Bash(cmake --build build --target crypto)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(cmake --build build --target test_crypto -j4)",
+      "Bash(./build/test_crypto)",
+      "Bash(./build/test_crypto --test-case=\"*runtime*\")"
     ]
   }
 }
