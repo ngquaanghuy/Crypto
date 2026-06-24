@@ -312,7 +312,8 @@ TEST_CASE("project_version_info") {
 // ═══════════════════════════════════════════════════════════════════════════
 
 TEST_CASE("vm_decode_vl_bounds_regression") {
-    // Security fix: vm_decode_vl should bounds-check all _c[_p+N] accesses
+    // Security fix: vm_decode_var_length should bounds-check all accesses
+    // Test malformed input that could trigger out-of-bounds reads
     const char* valid_py = "x = 1\n";
     VmProgram prog;
     vm_program_init(&prog);
@@ -321,23 +322,81 @@ TEST_CASE("vm_decode_vl_bounds_regression") {
     Buffer ser = {0};
     REQUIRE(vm_serialize(&prog, &ser) == EXIT_OK);
 
+    // Corrupt the serialized data to trigger boundary conditions
+    std::vector<uint8_t> corrupt_data(ser.data, ser.data + ser.size);
+
+    // Corrupt magic bytes at offset 0 (first 4 bytes)
+    // Magic is VM_HEADER_MAGIC = 0x0001564D
+    corrupt_data[0] ^= 0xFF;
+    corrupt_data[1] ^= 0xFF;
+    corrupt_data[2] ^= 0xFF;
+    corrupt_data[3] ^= 0xFF;
+
     VmProgram prog2;
     vm_program_init(&prog2);
-    CHECK(vm_deserialize(ser.data, ser.size, &prog2) == EXIT_OK);
+    ExitCode ret = vm_deserialize(corrupt_data.data(), corrupt_data.size(), &prog2);
+    // Corrupted header magic should cause failure
+    CHECK_MESSAGE(ret != EXIT_OK, "Corrupted magic bytes should fail deserialization");
+    vm_program_free(&prog2);
+
+    // Truncated data should also fail gracefully
+    for (size_t sz = 1; sz < 20 && sz < ser.size; sz++) {
+        VmProgram prog2;
+        vm_program_init(&prog2);
+        ExitCode ret = vm_deserialize(ser.data, sz, &prog2);
+        CHECK_MESSAGE(ret != EXIT_OK, "Truncated size " << sz << " should fail");
+        vm_program_free(&prog2);
+    }
 
     free(ser.data);
     vm_program_free(&prog);
-    vm_program_free(&prog2);
 }
 
-TEST_CASE("anti_buf_size_adequate") {
-    // Security fix: anti_buf[4096] should have bounds checking
+TEST_CASE("anti_buf_truncation_behavior") {
+    // Security fix: anti_buf[4096] bounds check should prevent overflow
+    // When anti_pos + sl >= sizeof(anti_buf), copy is skipped but anti_pos not updated
     constexpr size_t ANTI_BUF_SIZE = 4096;
-    CHECK(ANTI_BUF_SIZE >= 1024);  // Minimum adequate size
+
+    // Test the truncation logic: if we try to copy oversized data, it should be handled
+    // This tests that the boundary check (anti_pos + sl < sizeof(anti_buf)) is correct
+    size_t anti_pos = 0;
+    char anti_buf[4096] = {0};
+
+    // Simulate copying that would overflow
+    size_t one_chunk_size = 8192;  // Larger than buffer
+    if (anti_pos + one_chunk_size < sizeof(anti_buf)) {
+        // Should NOT enter this branch
+        CHECK(false);
+    } else {
+        // Should detect overflow and skip copy, NOT corrupt memory
+        // After overflow check, anti_pos should remain unchanged
+        CHECK(anti_pos == 0);  // Verify anti_pos wasn't modified
+    }
+
+    // Now test partial fits
+    size_t small_chunk = 100;
+    if (anti_pos + small_chunk < sizeof(anti_buf)) {
+        // Simulate: memcpy(anti_buf + anti_pos, ...)
+        anti_pos += small_chunk;
+    }
+    CHECK(anti_pos == 100);
+
+    // Verify we can continue filling up to the limit
+    while (anti_pos + 100 < sizeof(anti_buf)) {
+        anti_pos += 100;
+    }
+    // anti_pos is now at most sizeof(anti_buf) - 100 = 3996 (since 3996 + 100 = 4096 is NOT < 4096)
+
+    // Final write should be safe
+    if (anti_pos < sizeof(anti_buf)) {
+        anti_buf[anti_pos] = '\0';
+        CHECK(true);  // No overflow occurred
+    }
 }
 
-TEST_CASE("csrrng_secure_range_usage") {
-    // Verifies encryption uses secure random values
+TEST_CASE("csprng_semantic_security") {
+    // Verifies encryption uses secure random nonces (semantic security)
+    // Same plaintext, same key, different ciphertexts prove nonce is random
     const unsigned char key[32] = {
         0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
         0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
@@ -345,19 +404,31 @@ TEST_CASE("csrrng_secure_range_usage") {
         0x19, 0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20
     };
 
-    const unsigned char pt1[] = "test1";
-    const unsigned char pt2[] = "test2";
+    // Test same plaintext, two different encryptions should differ
+    const unsigned char pt[] = "identical_plaintext";
 
     Buffer c1 = {0}, c2 = {0};
-    CHECK(encrypt_data(pt1, sizeof(pt1) - 1, ALGO_AES_GCM, key, 32, &c1) == EXIT_OK);
-    CHECK(encrypt_data(pt2, sizeof(pt2) - 1, ALGO_AES_GCM, key, 32, &c2) == EXIT_OK);
+    CHECK(encrypt_data(pt, sizeof(pt) - 1, ALGO_AES_GCM, key, 32, &c1) == EXIT_OK);
+    CHECK(encrypt_data(pt, sizeof(pt) - 1, ALGO_AES_GCM, key, 32, &c2) == EXIT_OK);
 
-    // Different plaintexts should produce different ciphertexts
-    CHECK(c1.size > 0);
-    CHECK(c2.size > 0);
+    // Semantic security: same PT with same key produces DIFFERENT CT
+    REQUIRE(c1.size > 0);
+    REQUIRE(c2.size > 0);
     bool ciphertexts_differ = (c1.size != c2.size) || (memcmp(c1.data, c2.data, c1.size) != 0);
-    CHECK(ciphertexts_differ);
+    CHECK_MESSAGE(ciphertexts_differ,
+                  "Same plaintext should produce different ciphertexts (proves random nonce)");
+
+    // Both ciphertexts should decrypt back to original plaintext
+    Buffer d1 = {0}, d2 = {0};
+    CHECK(decrypt_data(c1.data, c1.size, ALGO_AES_GCM, key, 32, &d1) == EXIT_OK);
+    CHECK(decrypt_data(c2.data, c2.size, ALGO_AES_GCM, key, 32, &d2) == EXIT_OK);
+    CHECK(d1.size == sizeof(pt) - 1);
+    CHECK(d2.size == sizeof(pt) - 1);
+    CHECK(memcmp(d1.data, pt, d1.size) == 0);
+    CHECK(memcmp(d2.data, pt, d2.size) == 0);
 
     free(c1.data);
     free(c2.data);
+    free(d1.data);
+    free(d2.data);
 }

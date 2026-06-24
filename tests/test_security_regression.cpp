@@ -110,8 +110,8 @@ TEST_CASE("vm_invalid_magic_handling") {
     ExitCode ret = vm_deserialize(fake_header, sizeof(fake_header), &test_prog);
 
     // Should return error for invalid magic
-    CHECK_MESSAGE(ret == EXIT_ERR_CRYPTO || ret == EXIT_ERR_INTERNAL,
-                  "Invalid magic should return error, got: " << ret);
+    CHECK_MESSAGE(ret == EXIT_ERR_CRYPTO,
+                  "Invalid magic should return EXIT_ERR_CRYPTO, got: " << ret);
     vm_program_free(&test_prog);
     vm_program_free(&prog);
 }
