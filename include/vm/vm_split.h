@@ -131,7 +131,7 @@ def obfuscate_source(obf_script_path, source, techniques):
 def extract_imports(tree):
     return [n for n in tree.body if isinstance(n, (ast.Import, ast.ImportFrom))]
 
-def pipeline(orig_source, obf_script_path, techniques='rename'):
+def pipeline(orig_source, obf_script_path, techniques=None):
     orig_tree = ast.parse(orig_source)
     orig_funcs, orig_others = extract_defs(orig_tree)
 
@@ -152,10 +152,13 @@ def pipeline(orig_source, obf_script_path, techniques='rename'):
 
     full_source = genexpr_to_listcomp(full_source)
 
-    # Step 1: Obfuscate FULL source with ONLY rename to build name mapping.
-    #         This ensures function/global names are consistent between
-    #         exec source and VM source.
-    rename_source = obfuscate_source(obf_script_path, full_source, 'rename')
+    # Step 1: Obfuscate FULL source with rename ONLY if techniques specified.
+    #         This builds name mapping for consistent naming between exec and VM.
+    #         Skip rename entirely when no obfuscation requested.
+    if techniques:
+        rename_source = obfuscate_source(obf_script_path, full_source, 'rename')
+    else:
+        rename_source = full_source
 
     rename_tree = ast.parse(rename_source)
     rename_funcs, rename_others = extract_defs(rename_tree)
@@ -217,10 +220,10 @@ def pipeline(orig_source, obf_script_path, techniques='rename'):
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        sys.stderr.write('usage: python3 vm_split.py <obf_script_path> <techniques>\n')
+        sys.stderr.write('usage: python3 vm_split.py <obf_script_path> [techniques]\n')
         sys.exit(1)
     obf_path = sys.argv[1]
-    techniques = sys.argv[2] if len(sys.argv) > 2 else 'rename'
+    techniques = sys.argv[2].strip() if len(sys.argv) > 2 else ''
     source = sys.stdin.read()
     if not source:
         sys.stderr.write('error: no input\n')

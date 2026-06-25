@@ -124,16 +124,21 @@ def generate_header(obfuscate=True, seed=42):
 '''
 
     # Add VM_INTERP_SCRIPT (obfuscated source as raw string)
-    # Delimiter must be <=16 chars each side
-    header += 'static const char VM_INTERP_SCRIPT[] = R"VMSRC(\\n'
-    # Escape any existing \ in the source
-    escaped_source = obf_source.replace('\\', '\\\\').replace('"', '\\"')
-    header += escaped_source
-    header += '\\n)VMSRC";\n\n'
+    # In C++ raw string R"delim(...)delim", quotes are literal (no escape needed)
+    # BUT backslash IS literal too in raw strings, so NO escaping needed for the content!
+    # The ONLY restriction is that the delimiter sequence )X" cannot appear inside.
+    # Use a long unique delimiter that won't appear in Python source.
+    delim = "_XaBcD98fGhIjK"
+    _start = 'static const char VM_INTERP_SCRIPT[] = '
+    _open = f'R"{delim}('
+    _close = f'\n){delim}";' + '\n\n'
+    header += _start + _open
+    header += obf_source
+    header += _close
 
     # Add VM_INTERP_MARSHAL (base64-encoded marshal bytes)
     # Output as single line to avoid Python triple-quote multi-line issues
-    header += '// Base64-encoded marshalled Python bytecode ({marshal_size} bytes)\n'
+    header += f'// Base64-encoded marshalled Python bytecode ({marshal_size} bytes)\n'
     header += '// Bootstrapped with: exec(marshal.loads(base64.b64decode(VM_INTERP_MARSHAL)))\n'
     header += 'static const char VM_INTERP_MARSHAL[] = "' + marshal_b64 + '";\n'
 

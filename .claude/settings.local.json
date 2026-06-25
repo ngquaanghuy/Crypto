@@ -24,7 +24,16 @@
       "Bash(cmake --build build --target test_crypto -j4)",
       "Bash(./build/test_crypto)",
       "Bash(./build/test_crypto --test-case=\"*runtime*\")",
-      "Bash(/home/ngquanghuy/Crypto/build/crypto protect *)"
+      "Bash(/home/ngquanghuy/Crypto/build/crypto protect *)",
+      "Bash(./build/crypto --help)",
+      "Read(//home/ngquanghuy/C/**)",
+      "Bash(python b.py)",
+      "Bash(python b_full.py)",
+      "Bash(ctest -R vm --verbose -j1)",
+      "Bash(git *)",
+      "Bash(patch -p1 --dry-run)",
+      "Bash(cmake *)",
+      "Bash(ctest --output-on-failure -j4)"
     ]
   }
 }

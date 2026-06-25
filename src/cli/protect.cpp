@@ -305,7 +305,8 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
                                     const char *exec_src,
                                     Buffer *out,
                                     float density = 1.0f,
-                                    const MultiLayerKey *ml_key = nullptr) {
+                                    const MultiLayerKey *ml_key = nullptr,
+                                    int use_antidump = 0) {
     std::string buf;
     buf.reserve(SB_SZ);
 
@@ -1685,7 +1686,7 @@ static ExitCode vm_split_source(const char *src, size_t src_len,
     }
     close(fd_s); close(fd_i); fd_s = fd_i = -1;
 
-    const char *tech = techniques ? techniques : "rename";
+    const char *tech = (techniques && techniques[0]) ? techniques : "";
     char *err_path = tmpdir_path(tmpdir, "out.err");
     const char *argv[] = {split_path, obf_tmpl_path, tech, NULL};
     if (run_python3(argv, in_path, out_path, err_path ? err_path : NULL) != 0) {
@@ -1776,7 +1777,7 @@ static ExitCode vm_split_source_clean(const char *src, size_t src_len,
     }
     close(obf_fd);
 
-    ExitCode ret = vm_split_source(src, src_len, obf_tmpl, "rename", exec_out, vm_out);
+    ExitCode ret = vm_split_source(src, src_len, obf_tmpl, NULL, exec_out, vm_out);
     free(obf_tmpl);
     tmpdir_destroy(tmpdir);
     return ret;
@@ -1854,7 +1855,8 @@ ExitCode protect_file(const char *input, const char *output,
                       float obf_density,
                       int use_vram, int use_vram_garble,
                       int vram_garble_min, int vram_garble_max,
-                      int use_vram_auto, int vram_size) {
+                      int use_vram_auto, int vram_size,
+                      int use_antidump) {
     int sa_id = stub_algo_id(algo);
     if (sa_id < 0) {
         fprintf(stderr, "error: unsupported algorithm for protect\n");
@@ -1914,9 +1916,11 @@ ExitCode protect_file(const char *input, const char *output,
             else if (strncmp(p, "plt", 3) == 0) { use_plt = 1; p += 3; }
             else if (strncmp(p, "syscall", 7) == 0) { use_syscall = 1; p += 7; }
             else if (strncmp(p, "memory", 6) == 0) { use_mem_integrity = 1; p += 6; }
+            else if (strncmp(p, "dump", 4) == 0) { use_antidump = 1; p += 4; }
             else if (strncmp(p, "all", 3) == 0) {
                 use_debug = use_hook = use_scramble = use_opaque = use_frida = 1;
                 use_inline = use_plt = use_syscall = use_mem_integrity = 1;
+                use_antidump = 1;
                 p += 3;
             }
             else    { while (*p && *p != ',') p++; }
@@ -1933,6 +1937,9 @@ ExitCode protect_file(const char *input, const char *output,
     }
     if (obf_density >= 1.5f) {
         use_opaque = 1;
+    }
+    if (obf_density >= 2.0f) {
+        use_antidump = 1;
     }
 
     FileBuffer buf;
@@ -2374,7 +2381,7 @@ ExitCode protect_file(const char *input, const char *output,
         obf_len = obf_key.size();
     }
 
-    char anti_buf[4096];
+    char anti_buf[65536];  // 64KB to fit all anti-analysis codes
     // ── build anti-analysis buffer ──
     size_t anti_pos = 0;
     bool anti_truncated = false;
@@ -2416,7 +2423,7 @@ ExitCode protect_file(const char *input, const char *output,
                            vm_nonce_hex,
                            (const char *)(exec_b64.data ? exec_b64.data : (unsigned char*)""),
                            &stub_buf, obf_density,
-                           ml_key_ptr);
+                           ml_key_ptr, use_antidump);
     free(b64.data); free(vm_xor_key_hex); free(vm_nonce_hex);
     free(exec_b64.data);
 

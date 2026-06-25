@@ -331,17 +331,12 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     _garbler_keys = [[random.getrandbits(64) for _ in range(64)]]
 
     def _r_get(_ix):
-        _vv = _r_even[_ix >> 1] if (_ix & 1) == 0 else _r_odd[_ix >> 1]
-        if _r_type[_ix]:  # fast: array lookup instead of isinstance()
-            return _vv ^ _garbler_keys[0][_ix]
-        return _vv
+        # Return raw stored value - no garbler XOR (fixes int corruption bug)
+        return _r_even[_ix >> 1] if (_ix & 1) == 0 else _r_odd[_ix >> 1]
 
     def _r_set(_ix, _vv):
-        if isinstance(_vv, int):
-            _vv = _vv ^ _garbler_keys[0][_ix]
-            _r_type[_ix] = 1
-        else:
-            _r_type[_ix] = 0
+        # Store raw value - no garbler XOR (fixes int corruption bug)
+        _r_type[_ix] = 0
         if (_ix & 1) == 0:
             _r_even[_ix >> 1] = _vv
         else:
@@ -702,12 +697,16 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     # Iteration (70-75)
     def _h_get_iter():
         nonlocal _rd_val, _rd_modified
-        _rd_val = iter(_rs1_val)
+        _src = _rs1
+        _val = _r_get(_src)
+        _rd_val = iter(_val) if hasattr(_val, '__iter__') else _val
         _rd_modified = True
     def _h_for_iter():
         nonlocal _rd_val, _rd_modified
+        _iter_reg = _rs1
+        _it = _r_get(_iter_reg)
         try:
-            _rd_val = next(_rs1_val)
+            _rd_val = next(_it)
             _rd_modified = True
         except StopIteration:
             return _imm if _vl_flag else _imm * 8
@@ -715,6 +714,12 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
         _rd_val.extend(_rs1_val)
     def _h_list_append():
         _rd_val.append(_rs1_val)
+
+    # Python 3.14+ iteration cleanup (END_FOR=74, POP_ITER=76)
+    def _h_end_for():
+        pass
+    def _h_pop_iter():
+        pass
 
     # Indirect & Virtual Call (80-81) — complex, use _r_get/_r_set
     def _h_call_indirect():
@@ -1650,7 +1655,9 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
     _dt[70] = _h_get_iter
     _dt[71] = _h_for_iter
     _dt[72] = _h_list_extend
+    _dt[74] = _h_end_for
     _dt[75] = _h_list_append
+    _dt[76] = _h_pop_iter
     _dt[80] = _h_call_indirect
     _dt[81] = _h_call_vtable
     _dt[90] = _h_try

@@ -592,6 +592,14 @@ def convert(source, opaque=0):
                 iter_reg = 0
             target = dis._get_jump_target(instr.opcode, instr.arg, instr.offset)
             rd = alloc_reg()
+            # CRITICAL: Ensure rd != iter_reg.
+            # If alloc_reg() returns iter_reg (because it's still on reg_stack),
+            # it would overwrite the iterator after FOR_ITER stores the loop var.
+            # This causes "int object is not iterator" on subsequent iterations.
+            while rd == iter_reg:
+                free_regs.append(rd)
+                rd = next_reg
+                next_reg += 1
             reg_stack.append(rd)
             vm_code.extend(struct.pack('<BBBBi', 71, rd, iter_reg, 0, _record_target(target)))
 
@@ -1529,8 +1537,12 @@ def convert(source, opaque=0):
     # Serialize
     out = bytearray()
     
-    # Apply Junk Insertion to bytecode (only when opaque flag set — otherwise breaks jump targets!)
-    if opaque:
+    # Apply Junk Insertion to bytecode only when:
+    # - opaque flag is set AND
+    # - there are NO jump patches (which would be corrupted by insert_junk)
+    # NOTE: insert_junk places bytes at non-instruction-aligned positions,
+    #       which can corrupt jump immediate values if jumps exist.
+    if opaque and not _jump_patches:
         vm_code = insert_junk(vm_code)
     
     # Consts

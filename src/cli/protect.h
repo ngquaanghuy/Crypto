@@ -12,6 +12,7 @@ ExitCode protect_file(const char *input, const char *output,
                       float obf_density = 1.0f,
                       int use_vram = 0, int use_vram_garble = 0,
                       int vram_garble_min = 80, int vram_garble_max = 200,
-                      int use_vram_auto = 0, int vram_size = 4096);
+                      int use_vram_auto = 0, int vram_size = 4096,
+                      int use_antidump = 0);
 
 #endif
