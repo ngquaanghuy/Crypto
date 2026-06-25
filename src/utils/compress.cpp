@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <zlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #define LZ4F_STATIC_LINKING_ONLY
 #include "lz4frame.h"
@@ -382,6 +385,102 @@ static ExitCode snappy_decompress_data(const unsigned char *input, size_t input_
     return EXIT_OK;
 }
 
+static ExitCode blosc_compress(const unsigned char *input, size_t input_size,
+                                int level, Buffer *out) {
+    char *tmpdir = getenv("TMPDIR");
+    if (!tmpdir) tmpdir = "/tmp";
+    char tmp_in[256], tmp_out[256];
+    snprintf(tmp_in, sizeof(tmp_in), "%s/blosc_in_XXXXXX", tmpdir);
+    snprintf(tmp_out, sizeof(tmp_out), "%s/blosc_out_XXXXXX", tmpdir);
+    int fd_in = mkstemp(tmp_in);
+    int fd_out = mkstemp(tmp_out);
+    if (fd_in < 0 || fd_out < 0) {
+        if (fd_in >= 0) close(fd_in);
+        if (fd_out >= 0) close(fd_out);
+        return EXIT_ERR_CRYPTO;
+    }
+    write(fd_in, input, input_size);
+    close(fd_in);
+    char cmd[512];
+    snprintf(cmd, sizeof(cmd),
+             "python3 -c \"import blosc,sys;d=open('%s','rb').read();open('%s','wb').write(blosc.compress(d))\"> /dev/null 2>&1",
+             tmp_in, tmp_out);
+    int rc = system(cmd);
+    if (rc != 0) {
+        unlink(tmp_in); unlink(tmp_out);
+        return EXIT_ERR_CRYPTO;
+    }
+    struct stat st;
+    if (stat(tmp_out, &st) != 0) {
+        unlink(tmp_in); unlink(tmp_out);
+        return EXIT_ERR_CRYPTO;
+    }
+    out->data = (unsigned char *)malloc(st.st_size);
+    if (!out->data) {
+        unlink(tmp_in); unlink(tmp_out);
+        return EXIT_ERR_CRYPTO;
+    }
+    int fd = open(tmp_out, O_RDONLY);
+    if (fd < 0) {
+        free(out->data);
+        unlink(tmp_in); unlink(tmp_out);
+        return EXIT_ERR_CRYPTO;
+    }
+    read(fd, out->data, st.st_size);
+    close(fd);
+    out->size = st.st_size;
+    unlink(tmp_in); unlink(tmp_out);
+    return EXIT_OK;
+}
+
+static ExitCode blosc_decompress(const unsigned char *input, size_t input_size,
+                                   Buffer *out) {
+    char *tmpdir = getenv("TMPDIR");
+    if (!tmpdir) tmpdir = "/tmp";
+    char tmp_in[256], tmp_out[256];
+    snprintf(tmp_in, sizeof(tmp_in), "%s/blosc_in_XXXXXX", tmpdir);
+    snprintf(tmp_out, sizeof(tmp_out), "%s/blosc_out_XXXXXX", tmpdir);
+    int fd_in = mkstemp(tmp_in);
+    int fd_out = mkstemp(tmp_out);
+    if (fd_in < 0 || fd_out < 0) {
+        if (fd_in >= 0) close(fd_in);
+        if (fd_out >= 0) close(fd_out);
+        return EXIT_ERR_CRYPTO;
+    }
+    write(fd_in, input, input_size);
+    close(fd_in);
+    char cmd[512];
+    snprintf(cmd, sizeof(cmd),
+             "python3 -c \"import blosc,sys;d=open('%s','rb').read();open('%s','wb').write(blosc.decompress(d))\"> /dev/null 2>&1",
+             tmp_in, tmp_out);
+    int rc = system(cmd);
+    if (rc != 0) {
+        unlink(tmp_in); unlink(tmp_out);
+        return EXIT_ERR_CRYPTO;
+    }
+    struct stat st;
+    if (stat(tmp_out, &st) != 0) {
+        unlink(tmp_in); unlink(tmp_out);
+        return EXIT_ERR_CRYPTO;
+    }
+    out->data = (unsigned char *)malloc(st.st_size);
+    if (!out->data) {
+        unlink(tmp_in); unlink(tmp_out);
+        return EXIT_ERR_CRYPTO;
+    }
+    int fd = open(tmp_out, O_RDONLY);
+    if (fd < 0) {
+        free(out->data);
+        unlink(tmp_in); unlink(tmp_out);
+        return EXIT_ERR_CRYPTO;
+    }
+    read(fd, out->data, st.st_size);
+    close(fd);
+    out->size = st.st_size;
+    unlink(tmp_in); unlink(tmp_out);
+    return EXIT_OK;
+}
+
 ExitCode compress_data(const unsigned char *data, size_t size,
                         int algo_id, int level, Buffer *out) {
     if (!data || size == 0 || !out) {
@@ -403,6 +502,7 @@ ExitCode compress_data(const unsigned char *data, size_t size,
         case COMPRESS_ID_GZIP:   return gzip_compress(data, size, level, out);
         case COMPRESS_ID_LZ4:    return lz4_compress(data, size, level, out);
         case COMPRESS_ID_SNAPPY: return snappy_compress_data(data, size, out);
+        case COMPRESS_ID_BLOSC:  return blosc_compress(data, size, level, out);
         default:
             fprintf(stderr, "error: compression algorithm '%s' not supported\n",
                     compress_name(algo_id));
@@ -431,6 +531,7 @@ ExitCode decompress_data(const unsigned char *data, size_t size,
         case COMPRESS_ID_GZIP:   return gzip_decompress(data, size, out);
         case COMPRESS_ID_LZ4:    return lz4_decompress(data, size, out);
         case COMPRESS_ID_SNAPPY: return snappy_decompress_data(data, size, out);
+        case COMPRESS_ID_BLOSC:  return blosc_decompress(data, size, out);
         default:
             fprintf(stderr, "error: decompression algorithm '%s' not supported\n",
                     compress_name(algo_id));

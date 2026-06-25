@@ -810,40 +810,80 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
         sb_printf(buf, "    from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305 as {}\n", n_ae);
         sb_printf(buf, "    _pd = {}(_vk).decrypt(_vn, {}[4:], b'')\n", n_ae, n_9);
         if (compress_algo != COMPRESS_ID_NONE) {
-            sb_printf(buf, "    if {}[1] == {}:\n"
-                      "        import zlib as {}\n"
-                      "        _pd = {}.decompress(_pd)\n",
-                      n_9, COMPRESS_ID_ZLIB, n_z, n_z);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import lzma as {}\n"
-                      "        _pd = {}.decompress(_pd)\n",
-                      n_9, COMPRESS_ID_LZMA, n_z, n_z);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import bz2 as {}\n"
-                      "        _pd = {}.decompress(_pd)\n",
-                      n_9, COMPRESS_ID_BZ2, n_z, n_z);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import brotli as {}\n"
-                      "        _pd = {}.decompress(_pd)\n",
-                      n_9, COMPRESS_ID_BROTLI, n_z, n_z);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import gzip as {}\n"
-                      "        _pd = {}.decompress(_pd)\n",
-                      n_9, COMPRESS_ID_GZIP, n_z, n_z);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import lz4.frame as {}\n"
-                      "        _pd = {}.decompress(_pd)\n",
-                      n_9, COMPRESS_ID_LZ4, n_z, n_z);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import snappy as {}\n"
-                      "        _pd = {}.decompress(_pd)\n",
-                      n_9, COMPRESS_ID_SNAPPY, n_z, n_z);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import blosc as {}\n"
-                      "        _pd = {}.decompress(_pd)\n",
-                      n_9, COMPRESS_ID_BLOSC, n_z, n_z);
-            sb_printf(buf, "    else:\n"
-                      "        pass\n");
+            // VM mode decompression with error handling
+            sb_printf(buf, "    _dc_algo = {}[1]\n", n_9);
+            sb_printf(buf, "    if _dc_algo == {}:\n", COMPRESS_ID_ZLIB);
+            sb_printf(buf, "        try:\n"
+                      "            import zlib as {}\n"
+                      "            _pd = {}.decompress(_pd)\n"
+                      "        except ImportError:\n"
+                      "            {}.stderr.write('error: zlib not installed\\n'); {}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {}.stderr.write('error: zlib decompression failed\\n'); {}.exit(1)\n",
+                      n_z, n_z, n_s, n_s, n_s, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_LZMA);
+            sb_printf(buf, "        try:\n"
+                      "            import lzma as {}\n"
+                      "            _pd = {}.decompress(_pd)\n"
+                      "        except ImportError:\n"
+                      "            {}.stderr.write('error: lzma not installed\\n'); {}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {}.stderr.write('error: lzma decompression failed\\n'); {}.exit(1)\n",
+                      n_z, n_z, n_s, n_s, n_s, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_BZ2);
+            sb_printf(buf, "        try:\n"
+                      "            import bz2 as {}\n"
+                      "            _pd = {}.decompress(_pd)\n"
+                      "        except ImportError:\n"
+                      "            {}.stderr.write('error: bz2 not installed\\n'); {}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {}.stderr.write('error: bz2 decompression failed\\n'); {}.exit(1)\n",
+                      n_z, n_z, n_s, n_s, n_s, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_BROTLI);
+            sb_printf(buf, "        try:\n"
+                      "            import brotli as {}\n"
+                      "            _pd = {}.decompress(_pd)\n"
+                      "        except ImportError:\n"
+                      "            {}.stderr.write('error: brotli not installed\\n'); {}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {}.stderr.write('error: brotli decompression failed\\n'); {}.exit(1)\n",
+                      n_z, n_z, n_s, n_s, n_s, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_GZIP);
+            sb_printf(buf, "        try:\n"
+                      "            import gzip as {}\n"
+                      "            _pd = {}.decompress(_pd)\n"
+                      "        except ImportError:\n"
+                      "            {}.stderr.write('error: gzip not installed\\n'); {}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {}.stderr.write('error: gzip decompression failed\\n'); {}.exit(1)\n",
+                      n_z, n_z, n_s, n_s, n_s, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_LZ4);
+            sb_printf(buf, "        try:\n"
+                      "            import lz4.frame as {}\n"
+                      "            _pd = {}.decompress(_pd)\n"
+                      "        except ImportError:\n"
+                      "            {}.stderr.write('error: lz4 not installed\\n'); {}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {}.stderr.write('error: lz4 decompression failed\\n'); {}.exit(1)\n",
+                      n_z, n_z, n_s, n_s, n_s, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_SNAPPY);
+            sb_printf(buf, "        try:\n"
+                      "            import snappy as {}\n"
+                      "            _pd = {}.decompress(_pd)\n"
+                      "        except ImportError:\n"
+                      "            {}.stderr.write('error: snappy not installed\\n'); {}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {}.stderr.write('error: snappy decompression failed\\n'); {}.exit(1)\n",
+                      n_z, n_z, n_s, n_s, n_s, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_BLOSC);
+            sb_printf(buf, "        try:\n"
+                      "            import blosc as {}\n"
+                      "            _pd = {}.decompress(_pd)\n"
+                      "        except ImportError:\n"
+                      "            {}.stderr.write('error: blosc not installed\\n'); {}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {}.stderr.write('error: blosc decompression failed\\n'); {}.exit(1)\n",
+                      n_z, n_z, n_s, n_s, n_s, n_s);
         }
         sb_printf(buf, "    _c, _k, _m, _map, _ok, _ht, _pf, _vf, _vs = _vm_deserialize(_pd)\n");
         if (exec_src && exec_src[0]) {
@@ -851,39 +891,81 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
         }
         sb_printf(buf, "    _vm_run(_c, _k, _m, globals(), locals(), _map, _ok, _ht, _pf, _vf, _vs)\n");
     } else {
+        // Non-VM mode decompression with error handling
         if (compress_algo != COMPRESS_ID_NONE) {
-            sb_printf(buf, "    if {}[1] == {}:\n"
-                      "        import zlib as {}\n"
-                      "        {} = {}.decompress({}[4:])\n",
-                      n_9, COMPRESS_ID_ZLIB, n_z, n_9, n_z, n_9);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import lzma as {}\n"
-                      "        {} = {}.decompress({}[4:])\n",
-                      n_9, COMPRESS_ID_LZMA, n_z, n_9, n_z, n_9);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import bz2 as {}\n"
-                      "        {} = {}.decompress({}[4:])\n",
-                      n_9, COMPRESS_ID_BZ2, n_z, n_9, n_z, n_9);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import brotli as {}\n"
-                      "        {} = {}.decompress({}[4:])\n",
-                      n_9, COMPRESS_ID_BROTLI, n_z, n_9, n_z, n_9);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import gzip as {}\n"
-                      "        {} = {}.decompress({}[4:])\n",
-                      n_9, COMPRESS_ID_GZIP, n_z, n_9, n_z, n_9);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import lz4.frame as {}\n"
-                      "        {} = {}.decompress({}[4:])\n",
-                      n_9, COMPRESS_ID_LZ4, n_z, n_9, n_z, n_9);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import snappy as {}\n"
-                      "        {} = {}.decompress({}[4:])\n",
-                      n_9, COMPRESS_ID_SNAPPY, n_z, n_9, n_z, n_9);
-            sb_printf(buf, "    elif {}[1] == {}:\n"
-                      "        import blosc as {}\n"
-                      "        {} = {}.decompress({}[4:])\n",
-                      n_9, COMPRESS_ID_BLOSC, n_z, n_9, n_z, n_9);
+            sb_printf(buf, "    _dc_algo = {}[1]\n", n_9);
+            sb_printf(buf, "    if _dc_algo == {}:\n", COMPRESS_ID_ZLIB);
+            sb_printf(buf, "        try:\n"
+                      "            import zlib as {0}\n"
+                      "            {1} = {0}.decompress({2}[4:])\n"
+                      "        except ImportError:\n"
+                      "            {3}.stderr.write('error: zlib not installed\\n'); {3}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {3}.stderr.write('error: zlib decompression failed\\n'); {3}.exit(1)\n",
+                      n_z, n_9, n_9, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_LZMA);
+            sb_printf(buf, "        try:\n"
+                      "            import lzma as {0}\n"
+                      "            {1} = {0}.decompress({2}[4:])\n"
+                      "        except ImportError:\n"
+                      "            {3}.stderr.write('error: lzma not installed\\n'); {3}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {3}.stderr.write('error: lzma decompression failed\\n'); {3}.exit(1)\n",
+                      n_z, n_9, n_9, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_BZ2);
+            sb_printf(buf, "        try:\n"
+                      "            import bz2 as {0}\n"
+                      "            {1} = {0}.decompress({2}[4:])\n"
+                      "        except ImportError:\n"
+                      "            {3}.stderr.write('error: bz2 not installed\\n'); {3}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {3}.stderr.write('error: bz2 decompression failed\\n'); {3}.exit(1)\n",
+                      n_z, n_9, n_9, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_BROTLI);
+            sb_printf(buf, "        try:\n"
+                      "            import brotli as {0}\n"
+                      "            {1} = {0}.decompress({2}[4:])\n"
+                      "        except ImportError:\n"
+                      "            {3}.stderr.write('error: brotli not installed\\n'); {3}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {3}.stderr.write('error: brotli decompression failed\\n'); {3}.exit(1)\n",
+                      n_z, n_9, n_9, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_GZIP);
+            sb_printf(buf, "        try:\n"
+                      "            import gzip as {0}\n"
+                      "            {1} = {0}.decompress({2}[4:])\n"
+                      "        except ImportError:\n"
+                      "            {3}.stderr.write('error: gzip not installed\\n'); {3}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {3}.stderr.write('error: gzip decompression failed\\n'); {3}.exit(1)\n",
+                      n_z, n_9, n_9, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_LZ4);
+            sb_printf(buf, "        try:\n"
+                      "            import lz4.frame as {0}\n"
+                      "            {1} = {0}.decompress({2}[4:])\n"
+                      "        except ImportError:\n"
+                      "            {3}.stderr.write('error: lz4 not installed\\n'); {3}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {3}.stderr.write('error: lz4 decompression failed\\n'); {3}.exit(1)\n",
+                      n_z, n_9, n_9, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_SNAPPY);
+            sb_printf(buf, "        try:\n"
+                      "            import snappy as {0}\n"
+                      "            {1} = {0}.decompress({2}[4:])\n"
+                      "        except ImportError:\n"
+                      "            {3}.stderr.write('error: snappy not installed\\n'); {3}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {3}.stderr.write('error: snappy decompression failed\\n'); {3}.exit(1)\n",
+                      n_z, n_9, n_9, n_s);
+            sb_printf(buf, "    elif _dc_algo == {}:\n", COMPRESS_ID_BLOSC);
+            sb_printf(buf, "        try:\n"
+                      "            import blosc as {0}\n"
+                      "            {1} = {0}.decompress({2}[4:])\n"
+                      "        except ImportError:\n"
+                      "            {3}.stderr.write('error: blosc not installed\\n'); {3}.exit(1)\n"
+                      "        except Exception:\n"
+                      "            {3}.stderr.write('error: blosc decompression failed\\n'); {3}.exit(1)\n",
+                      n_z, n_9, n_9, n_s);
             sb_printf(buf, "    else:\n"
                       "        {} = {}[4:]\n", n_9, n_9);
         } else {
