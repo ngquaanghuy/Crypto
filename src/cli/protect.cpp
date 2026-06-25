@@ -800,27 +800,15 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
               n_s, n_s);
 
     if (use_vm) {
-        // VM key/nonce — obfuscated through same multi-layer mechanism
-        if (ml_key) {
-            sb_printf(buf, "    _evm = bytes.fromhex(\"{}\")\n", ml_key->vm_enc_hex);
-            sb_printf(buf, "    _vk = bytearray()\n");
-            sb_printf(buf, "    for _i in range(32):\n");
-            sb_printf(buf, "        _vk.append(_evm[_i] ^ _lk1[_i % 16] ^ _ek)\n");
-            sb_printf(buf, "    _vk = bytes(_vk)\n");
-            sb_printf(buf, "    _vnn = bytearray()\n");
-            sb_printf(buf, "    for _i in range(16):\n");
-            sb_printf(buf, "        _vnn.append(_evm[32+_i] ^ _lk1[_i % 16] ^ _ek)\n");
-            sb_printf(buf, "    _vn = bytes(_vnn)\n");
-        } else {
-            sb_printf(buf, "    _vk = bytes.fromhex(\"{}\")\n", vm_xor_key);
-            sb_printf(buf, "    _vn = bytes.fromhex(\"{}\")\n", vm_nonce_hex);
-        }
-        sb_printf(buf, "    _sig = {}[-32:]\n", n_9);
-        sb_printf(buf, "    _pl = {}[4:-32]\n", n_9);
-        sb_printf(buf, "    import hmac, hashlib\n");
-        sb_printf(buf, "    if not hmac.compare_digest(_sig, hmac.new(_vk, _pl, hashlib.sha256).digest()):\n");
-        sb_printf(buf, "        {}.stderr.write('error: VM integrity check failed\\n'); {}.exit(1)\n", n_s, n_s);
-        sb_printf(buf, "    _pd = bytes([_pl[i] ^ _vk[i % 32] ^ _vn[i % 16] for i in range(len(_pl))])\n");
+        // VM decryption: derive key from user key + salt, then AEAD decrypt
+        // VM data format: [salt(16)] [nonce(24)] [ciphertext+tag]
+        sb_printf(buf, "    _vsalt = bytes.fromhex(\"{}\")  # VM key derivation salt\n", vm_xor_key);
+        sb_printf(buf, "    _vn = bytes.fromhex(\"{}\")  # XChaCha20 nonce\n", vm_nonce_hex);
+        sb_printf(buf, "    # Derive VM key from user key (same PBKDF2 as main payload)\n");
+        sb_printf(buf, "    _vk = {}.pbkdf2_hmac('sha256', {}.encode(), _vsalt, 100000, dklen=32)\n", n_h, n_k);
+        sb_printf(buf, "    # AEAD decryption: tag verified automatically by ChaCha20Poly1305\n");
+        sb_printf(buf, "    from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305 as {}\n", n_ae);
+        sb_printf(buf, "    _pd = {}(_vk).decrypt(_vn, {}[4:], b'')\n", n_ae, n_9);
         if (compress_algo != COMPRESS_ID_NONE) {
             sb_printf(buf, "    if {}[1] == {}:\n"
                       "        import zlib as {}\n"
@@ -2095,7 +2083,7 @@ ExitCode protect_file(const char *input, const char *output,
         if (vm_obf_enabled) {
             vm_obfuscate_program(&vm_prog);
         }
-        
+
         ret = vm_serialize(&vm_prog, &vm_buf);
         if (ret != EXIT_OK) {
             vm_program_free(&vm_prog);
@@ -2104,10 +2092,19 @@ ExitCode protect_file(const char *input, const char *output,
             return ret;
         }
 
-        // Use a simple raw encryption for VM
-        unsigned char vkey[32];
-        unsigned char vnonce[16];
-        if (RAND_bytes(vkey, 32) != 1 || RAND_bytes(vnonce, 16) != 1) {
+        // ── VM AEAD Encryption ─────────────────────────────────────────────
+        // Derive VM key from user key using PBKDF2 with a random salt.
+        // This ensures: 1) attacker only needs one key, 2) uses proper AEAD.
+        //
+        // Format output: [salt(16)] [nonce(24)] [ciphertext] [tag(16)]
+        // Total overhead: 56 bytes (vs 32 bytes for XOR+HMAC)
+
+        unsigned char vm_salt[16];
+        unsigned char vm_nonce[24];
+        unsigned char vm_key[32];  // Derived key
+
+        if (RAND_bytes(vm_salt, sizeof(vm_salt)) != 1 ||
+            RAND_bytes(vm_nonce, sizeof(vm_nonce)) != 1) {
             free(obf_buf.data);
             free(exec_buf.data);
             free(vm_buf_src.data);
@@ -2117,84 +2114,178 @@ ExitCode protect_file(const char *input, const char *output,
             return EXIT_ERR_CRYPTO;
         }
 
-        // Simple XOR encryption for VM (for compatibility)
-
-        // Prepend a dummy 32-byte op_key for compatibility with VM_INTERP_SCRIPT
-        unsigned char op_key[32] = {0};
-        size_t vm_blob_size = 32 + vm_buf.size;
-        unsigned char *vm_blob = (unsigned char *)malloc(vm_blob_size);
-        if (!vm_blob) {
-            free(vm_buf.data); vm_program_free(&vm_prog);
-            file_buffer_free(&buf); free(obf_buf.data);
-            free(exec_buf.data); free(vm_buf_src.data);
-            return EXIT_ERR_CRYPTO;
+        // Derive VM key directly from user key + VM salt (same pbkdf2 as main payload)
+        {
+            unsigned char derived[64];
+            if (PKCS5_PBKDF2_HMAC((char*)key, (int)key_len,
+                            vm_salt, sizeof(vm_salt),
+                            100000, EVP_sha256(),
+                            sizeof(derived), derived) != 1) {
+                free(obf_buf.data);
+                free(exec_buf.data);
+                free(vm_buf_src.data);
+                free(vm_buf.data);
+                vm_program_free(&vm_prog);
+                file_buffer_free(&buf);
+                return EXIT_ERR_CRYPTO;
+            }
+            memcpy(vm_key, derived, sizeof(vm_key));
+            // Zero intermediate key material
+            memset(derived, 0, sizeof(derived));
         }
-        memcpy(vm_blob, op_key, 32);
-        memcpy(vm_blob + 32, vm_buf.data, vm_buf.size);
 
-        // Compress VM blob if compression is enabled
+        size_t vm_blob_size = vm_buf.size;
+        unsigned char *vm_blob = vm_buf.data;
+
+        // Compress VM blob if enabled
         if (compress_algo != COMPRESS_ID_NONE) {
             Buffer vm_compressed = {0};
             ret = compress_data(vm_blob, vm_blob_size, compress_algo, compress_level, &vm_compressed);
             if (ret != EXIT_OK) {
-                free(vm_blob); free(vm_buf.data); vm_program_free(&vm_prog);
+                free(vm_blob); memset(vm_key, 0, sizeof(vm_key));
+                vm_program_free(&vm_prog);
                 file_buffer_free(&buf); free(obf_buf.data);
                 free(exec_buf.data); free(vm_buf_src.data);
                 return ret;
             }
-            free(vm_blob);
+            free(vm_blob);  // Free original vm_buf.data
             vm_blob = vm_compressed.data;
             vm_blob_size = vm_compressed.size;
+            vm_buf.data = vm_blob;  // Keep vm_buf.data in sync
         }
 
-        unsigned char *encrypted_vm_data = (unsigned char *)malloc(vm_blob_size);
-        if (!encrypted_vm_data) {
-            /* vm_blob still holds the uncompressed data */
-            int prev_errno = errno;
-            free(vm_blob);
-            errno = prev_errno;
-            free(vm_buf.data); vm_program_free(&vm_prog);
+        // AEAD encryption: XChaCha20-Poly1305 with pre-derived key
+        // Format: [salt(16)] [nonce(24)] [ciphertext] [tag(16)]
+        #define VM_XNONCE_HALF 16
+        #define VM_TAG_SIZE 16
+        #define VM_SALT_SIZE 16
+        #define VM_NONCE_SIZE 24
+
+        EVP_CIPHER_CTX *ectx = EVP_CIPHER_CTX_new();
+        if (!ectx) {
+            memset(vm_key, 0, sizeof(vm_key));
+            free(vm_blob); vm_program_free(&vm_prog);
             file_buffer_free(&buf); free(obf_buf.data);
             free(exec_buf.data); free(vm_buf_src.data);
             return EXIT_ERR_CRYPTO;
         }
-        for (size_t i = 0; i < vm_blob_size; i++) {
-            encrypted_vm_data[i] = vm_blob[i] ^ vkey[i % 32] ^ vnonce[i % 16];
+
+        unsigned char subkey[32];
+        unsigned char chacha_nonce[12] = {0};
+        // hchacha20: nonce[0:4] unused, nonce[4:12] used as XChaCha nonce
+        memcpy(chacha_nonce + 4, vm_nonce + VM_XNONCE_HALF, 8);
+
+        // Inline hchacha20 to derive subkey from vm_key + vm_nonce
+        {
+            uint32_t state[16];
+            static const uint32_t constants[4] = {
+                0x61707865, 0x3320646e, 0x79622d32, 0x6b206574
+            };
+            #define LE32(p) ((uint32_t)(p)[0] | ((uint32_t)(p)[1] << 8) | \
+                            ((uint32_t)(p)[2] << 16) | ((uint32_t)(p)[3] << 24))
+            #define LE32E(p, v) ((p)[0] = (v), (p)[1] = (v) >> 8, \
+                                (p)[2] = (v) >> 16, (p)[3] = (v) >> 24)
+            #define QROUND(X, a, b, c, d) do { \
+                (a) += (b); (d) ^= (a); (d) = ((d) << 16) | ((d) >> 16); \
+                (c) += (d); (b) ^= (c); (b) = ((b) << 12) | ((b) >> 20); \
+                (a) += (b); (d) ^= (a); (d) = ((d) << 8) | ((d) >> 24); \
+                (c) += (d); (b) ^= (c); (b) = ((b) << 7) | ((b) >> 25); \
+            } while (0)
+            state[0] = constants[0]; state[1] = constants[1]; state[2] = constants[2]; state[3] = constants[3];
+            state[4] = LE32(vm_key + 0); state[5] = LE32(vm_key + 4);
+            state[6] = LE32(vm_key + 8); state[7] = LE32(vm_key + 12);
+            state[8] = LE32(vm_key + 16); state[9] = LE32(vm_key + 20);
+            state[10] = LE32(vm_key + 24); state[11] = LE32(vm_key + 28);
+            state[12] = LE32(vm_nonce + 0); state[13] = LE32(vm_nonce + 4);
+            state[14] = LE32(vm_nonce + 8); state[15] = LE32(vm_nonce + 12);
+            uint32_t x[16]; memcpy(x, state, sizeof(x));
+            for (int _i = 0; _i < 10; _i++) {
+                QROUND(x, x[0], x[4], x[8], x[12]);
+                QROUND(x, x[1], x[5], x[9], x[13]);
+                QROUND(x, x[2], x[6], x[10], x[14]);
+                QROUND(x, x[3], x[7], x[11], x[15]);
+                QROUND(x, x[0], x[5], x[10], x[15]);
+                QROUND(x, x[1], x[6], x[11], x[12]);
+                QROUND(x, x[2], x[7], x[8], x[13]);
+                QROUND(x, x[3], x[4], x[9], x[14]);
+            }
+            LE32E(subkey + 0, x[0]); LE32E(subkey + 4, x[1]);
+            LE32E(subkey + 8, x[2]); LE32E(subkey + 12, x[3]);
+            LE32E(subkey + 16, x[12]); LE32E(subkey + 20, x[13]);
+            LE32E(subkey + 24, x[14]); LE32E(subkey + 28, x[15]);
+            #undef LE32
+            #undef LE32E
+            #undef QROUND
         }
 
-        unsigned char computed_hmac[32];
-        unsigned int hmac_len;
-        HMAC(EVP_sha256(), vkey, 32, encrypted_vm_data, vm_blob_size, computed_hmac, &hmac_len);
-
-        size_t final_vm_size = vm_blob_size + 32;
-        unsigned char *final_vm_data = (unsigned char *)malloc(final_vm_size);
-        if (!final_vm_data) {
-            int prev_errno = errno;
-            free(vm_blob); free(encrypted_vm_data);
-            errno = prev_errno;
-            free(vm_buf.data); vm_program_free(&vm_prog);
+        if (EVP_EncryptInit_ex(ectx, EVP_chacha20_poly1305(), NULL,
+                               subkey, chacha_nonce) != 1) {
+            EVP_CIPHER_CTX_free(ectx);
+            memset(vm_key, 0, sizeof(vm_key));
+            free(vm_blob); free(vm_buf.data); vm_program_free(&vm_prog);
             file_buffer_free(&buf); free(obf_buf.data);
             free(exec_buf.data); free(vm_buf_src.data);
             return EXIT_ERR_CRYPTO;
         }
-        memcpy(final_vm_data, encrypted_vm_data, vm_blob_size);
-        memcpy(final_vm_data + vm_blob_size, computed_hmac, 32);
 
-        free(vm_blob); free(encrypted_vm_data); free(vm_buf.data);
-        vm_buf.data = final_vm_data;
-        vm_buf.size = final_vm_size;
-        
-        vm_xor_key_hex = (char *)malloc(65);
+        size_t cipher_out_size = vm_blob_size + VM_TAG_SIZE;
+        unsigned char *cipher_out = (unsigned char *)malloc(VM_SALT_SIZE + VM_NONCE_SIZE + cipher_out_size);
+        if (!cipher_out) {
+            EVP_CIPHER_CTX_free(ectx);
+            memset(vm_key, 0, sizeof(vm_key));
+            free(vm_blob); free(vm_buf.data); vm_program_free(&vm_prog);
+            file_buffer_free(&buf); free(obf_buf.data);
+            free(exec_buf.data); free(vm_buf_src.data);
+            return EXIT_ERR_CRYPTO;
+        }
+
+        memcpy(cipher_out, vm_salt, VM_SALT_SIZE);
+        memcpy(cipher_out + VM_SALT_SIZE, vm_nonce, VM_NONCE_SIZE);
+
+        int cipher_len = 0;
+        if (EVP_EncryptUpdate(ectx, cipher_out + VM_SALT_SIZE + VM_NONCE_SIZE,
+                              &cipher_len, vm_blob, (int)vm_blob_size) != 1) {
+            EVP_CIPHER_CTX_free(ectx);
+            memset(vm_key, 0, sizeof(vm_key));
+            free(cipher_out); free(vm_blob); free(vm_buf.data); vm_program_free(&vm_prog);
+            file_buffer_free(&buf); free(obf_buf.data);
+            free(exec_buf.data); free(vm_buf_src.data);
+            return EXIT_ERR_CRYPTO;
+        }
+
+        int final_len = 0;
+        EVP_EncryptFinal_ex(ectx, cipher_out + VM_SALT_SIZE + VM_NONCE_SIZE + cipher_len, &final_len);
+        cipher_len += final_len;
+
+        unsigned char poly_tag[16];
+        EVP_CIPHER_CTX_ctrl(ectx, EVP_CTRL_AEAD_GET_TAG, 16, poly_tag);
+        EVP_CIPHER_CTX_free(ectx);
+        memset(vm_key, 0, sizeof(vm_key));
+        memcpy(cipher_out + VM_SALT_SIZE + VM_NONCE_SIZE + cipher_len, poly_tag, 16);
+        // Note: vm_blob is the only allocated source data now (already freed original vm_buf.data on compression)
+        free(vm_blob);
+
+        vm_buf.data = cipher_out;
+        vm_buf.size = VM_SALT_SIZE + VM_NONCE_SIZE + cipher_len + 16;
+
+        #undef VM_XNONCE_HALF
+        #undef VM_TAG_SIZE
+        #undef VM_SALT_SIZE
+        #undef VM_NONCE_SIZE
+
+        // Convert salt to hex for stub (no key stored — key derived at runtime)
+        vm_xor_key_hex = (char *)malloc(33);
         if (!vm_xor_key_hex) {
             free(vm_buf.data); vm_program_free(&vm_prog);
             file_buffer_free(&buf); free(obf_buf.data);
             free(exec_buf.data); free(vm_buf_src.data);
             return EXIT_ERR_CRYPTO;
         }
-        for (int i = 0; i < 32; i++) sprintf(vm_xor_key_hex + i * 2, "%02x", vkey[i]);
-        vm_xor_key_hex[64] = '\0';
+        for (int i = 0; i < 16; i++) sprintf(vm_xor_key_hex + i * 2, "%02x", vm_salt[i]);
+        vm_xor_key_hex[32] = '\0';
 
-        vm_nonce_hex = (char *)malloc(33);
+        // VM nonce stored as hex (needed for decryption)
+        vm_nonce_hex = (char *)malloc(49);
         if (!vm_nonce_hex) {
             free(vm_xor_key_hex);
             free(vm_buf.data); vm_program_free(&vm_prog);
@@ -2202,18 +2293,17 @@ ExitCode protect_file(const char *input, const char *output,
             free(exec_buf.data); free(vm_buf_src.data);
             return EXIT_ERR_CRYPTO;
         }
-        for (int i = 0; i < 16; i++) sprintf(vm_nonce_hex + i * 2, "%02x", vnonce[i]);
-        vm_nonce_hex[32] = '\0';
-        
-        // Obfuscate VM raw keys using pre-computed layer1_key
+        for (int i = 0; i < 24; i++) sprintf(vm_nonce_hex + i * 2, "%02x", vm_nonce[i]);
+        vm_nonce_hex[48] = '\0';
+
+        // Note: vm_enc_hex is now just salt (no layer1 obfuscation needed since key is derived)
+        // Legacy stubs might still expect vm_enc_hex — provide it for compatibility
         if (layer1_computed) {
+            // Obscure the salt slightly for legacy compatibility (not security-critical)
             std::string vm_obf_hex;
-            vm_obf_hex.reserve(192);
-            unsigned char vm_raw[48];
-            memcpy(vm_raw, vkey, 32);
-            memcpy(vm_raw + 32, vnonce, 16);
-            for (int vi = 0; vi < 48; vi++) {
-                unsigned char b = vm_raw[vi];
+            vm_obf_hex.reserve(32);
+            for (int vi = 0; vi < 16; vi++) {
+                unsigned char b = vm_salt[vi];
                 b ^= layer1_key[vi % 16];
                 b ^= layer1_env_byte;
                 vm_obf_hex += std::format("{:02x}", b);
@@ -2221,7 +2311,7 @@ ExitCode protect_file(const char *input, const char *output,
             ml_key_data.vm_enc_hex = vm_obf_hex;
         }
 
-        printf("[vm] Mandatory ChaCha20 encryption and HMAC applied\n");
+        printf("[vm] XChaCha20-Poly1305 AEAD encryption applied\n");
 
         printf("[vm] compiled %zu bytes -> %zu bytes VM (%d instrs, %d consts, %d names)\n",
                vm_src_len, vm_buf.size, vm_prog.count, vm_prog.const_count, vm_prog.name_count);
