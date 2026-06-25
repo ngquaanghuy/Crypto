@@ -33,7 +33,9 @@
       "Bash(git *)",
       "Bash(patch -p1 --dry-run)",
       "Bash(cmake *)",
-      "Bash(ctest --output-on-failure -j4)"
+      "Bash(ctest --output-on-failure -j4)",
+      "Bash(python *)",
+      "Bash(ctest --verbose)"
     ]
   }
 }

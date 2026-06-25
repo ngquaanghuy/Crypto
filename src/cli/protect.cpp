@@ -800,15 +800,32 @@ static ExitCode generate_stub(const char *b64_data, size_t b64_sz,
               n_s, n_s);
 
     if (use_vm) {
-        // VM decryption: derive key from user key + salt, then AEAD decrypt
-        // VM data format: [salt(16)] [nonce(24)] [ciphertext+tag]
-        sb_printf(buf, "    _vsalt = bytes.fromhex(\"{}\")  # VM key derivation salt\n", vm_xor_key);
-        sb_printf(buf, "    _vn = bytes.fromhex(\"{}\")  # XChaCha20 nonce\n", vm_nonce_hex);
-        sb_printf(buf, "    # Derive VM key from user key (same PBKDF2 as main payload)\n");
-        sb_printf(buf, "    _vk = {}.pbkdf2_hmac('sha256', {}.encode(), _vsalt, 100000, dklen=32)\n", n_h, n_k);
-        sb_printf(buf, "    # AEAD decryption: tag verified automatically by ChaCha20Poly1305\n");
+        // VM decryption: XChaCha20-Poly1305 format
+        // VM blob: [salt(16)] [nonce(24)] [ciphertext+tag] [HMAC(32)]
+        // n_9 = outer decrypted payload
+        sb_printf(buf, "    _vsalt_vm = {}[4+0:4+16]  # VM salt from encrypted blob\n", n_9);
+        sb_printf(buf, "    _vn_full = {}[4+16:4+40]  # VM 24-byte nonce\n", n_9);
+        sb_printf(buf, "    # hchacha20: derive 32-byte subkey from PBKDF2 key + first 16 bytes of nonce\n");
+        sb_printf(buf, "    def hchacha20_h(_k, _n):\n");
+        sb_printf(buf, "        _C=[0x61707865,0x3320646e,0x79622d32,0x6b206574]\n");
+        sb_printf(buf, "        _s=[_C[0],_C[1],_C[2],_C[3]]\n");
+        sb_printf(buf, "        for _i in range(8):_s.append(int.from_bytes(_k[_i*4:(_i+1)*4],'little'))\n");
+        sb_printf(buf, "        for _i in range(4):_s.append(int.from_bytes(_n[_i*4:(_i+1)*4],'little'))\n");
+        sb_printf(buf, "        def _qr(_x,_a,_b,_c,_d):\n");
+        sb_printf(buf, "            _x[_a]=(_x[_a]+_x[_b])&0xFFFFFFFF;_x[_d]=_x[_d]^_x[_a];_x[_d]=((_x[_d]<<16)|(_x[_d]>>16))&0xFFFFFFFF\n");
+        sb_printf(buf, "            _x[_c]=(_x[_c]+_x[_d])&0xFFFFFFFF;_x[_b]=_x[_b]^_x[_c];_x[_b]=((_x[_b]<<12)|(_x[_b]>>20))&0xFFFFFFFF\n");
+        sb_printf(buf, "            _x[_a]=(_x[_a]+_x[_b])&0xFFFFFFFF;_x[_d]=_x[_d]^_x[_a];_x[_d]=((_x[_d]<<8)|(_x[_d]>>24))&0xFFFFFFFF\n");
+        sb_printf(buf, "            _x[_c]=(_x[_c]+_x[_d])&0xFFFFFFFF;_x[_b]=_x[_b]^_x[_c];_x[_b]=((_x[_b]<<7)|(_x[_b]>>25))&0xFFFFFFFF\n");
+        sb_printf(buf, "        for _ in range(10):\n");
+        sb_printf(buf, "            _qr(_s,0,4,8,12);_qr(_s,1,5,9,13);_qr(_s,2,6,10,14);_qr(_s,3,7,11,15)\n");
+        sb_printf(buf, "            _qr(_s,0,5,10,15);_qr(_s,1,6,11,12);_qr(_s,2,7,8,13);_qr(_s,3,4,9,14)\n");
+        sb_printf(buf, "        return b''.join(_s[_i].to_bytes(4,'little') for _i in [0,1,2,3,12,13,14,15])\n");
+        sb_printf(buf, "    _vk_pbk = {}.pbkdf2_hmac('sha256', {}.encode(), _vsalt_vm, 100000, dklen=32)\n", n_h, n_k);
+        sb_printf(buf, "    _vk = hchacha20_h(_vk_pbk, _vn_full[:16])[:32]  # hchacha20 to derive ChaCha20 key\n");
+        sb_printf(buf, "    _vn = b'\\x00\\x00\\x00\\x00' + _vn_full[16:24]  # 12-byte ChaCha20 nonce\n");
         sb_printf(buf, "    from cryptography.hazmat.primitives.ciphers.aead import ChaCha20Poly1305 as {}\n", n_ae);
-        sb_printf(buf, "    _pd = {}(_vk).decrypt(_vn, {}[4:], b'')\n", n_ae, n_9);
+        sb_printf(buf, "    _ct = {}[4+40:]  # ciphertext+tag from VM blob (no HMAC in this format)\n", n_9);
+        sb_printf(buf, "    _pd = {}(_vk).decrypt(_vn, _ct, b'')\n", n_ae);
         if (compress_algo != COMPRESS_ID_NONE) {
             // VM mode decompression with error handling
             sb_printf(buf, "    _dc_algo = {}[1]\n", n_9);
