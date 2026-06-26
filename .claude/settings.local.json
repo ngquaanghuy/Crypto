@@ -35,7 +35,12 @@
       "Bash(cmake *)",
       "Bash(ctest --output-on-failure -j4)",
       "Bash(python *)",
-      "Bash(ctest --verbose)"
+      "Bash(ctest --verbose)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(ctest --output-on-failure -R test_vm -j4)",
+      "Bash(ctest -N)",
+      "Bash(/home/ngquanghuy/Crypto/build/test_crypto)"
     ]
   }
 }
