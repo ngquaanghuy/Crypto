@@ -500,7 +500,25 @@ ExitCode vm_serialize(const VmProgram *prog, Buffer *out) {
     } else {
         uint32_t ic = (uint32_t)prog->count;
         memcpy(out->data + pos, &ic, 4); pos += 4;
-        memcpy(out->data + pos, prog->instrs, (size_t)prog->count * VM_INSTR_SIZE);
+
+        // ─── XOR-encode instruction bytes with op_key (Python _vm_decode_fixed expects this) ───
+        for (int i = 0; i < prog->count; i++) {
+            size_t base = i * VM_INSTR_SIZE;
+            // Encode first 4 bytes (op, rd, rs1, rs2) with corresponding key bytes
+            for (int j = 0; j < 4; j++) {
+                out->data[pos + base + j] = ((uint8_t*)prog->instrs)[base + j] ^ op_key[base + j];
+            }
+            // Encode imm (bytes 4-7) - matches Python's key[4..7] per-byte XOR
+            uint32_t imm_val;
+            memcpy(&imm_val, (uint8_t*)prog->instrs + base + 4, 4);
+            // XOR each byte with corresponding key byte 4-7
+            uint8_t* enc_imm = (uint8_t*)&imm_val;
+            enc_imm[0] ^= op_key[base + 4];
+            enc_imm[1] ^= op_key[base + 5];
+            enc_imm[2] ^= op_key[base + 6];
+            enc_imm[3] ^= op_key[base + 7];
+            memcpy(out->data + pos + base + 4, &imm_val, 4);
+        }
         pos += (size_t)prog->count * VM_INSTR_SIZE;
     }
 
@@ -748,38 +766,11 @@ ExitCode vm_deserialize(const unsigned char *data, size_t size,
             size_t instr_bytes = (size_t)ic * VM_INSTR_SIZE;
             if (pos + instr_bytes > size) return EXIT_ERR_CRYPTO;
 
-            if (new_format) {
-                // ─── XOR-decode instruction bytes with op_key (new format) ───
-                unsigned char *raw_bytes = (unsigned char *)malloc(instr_bytes);
-                if (!raw_bytes) return EXIT_ERR_CRYPTO;
-                memcpy(raw_bytes, data + pos, instr_bytes);
-
-                prog->instrs = (VmInstr *)malloc(instr_bytes);
-                if (!prog->instrs) {
-                    free(raw_bytes);
-                    return EXIT_ERR_CRYPTO;
-                }
-
-                for (uint32_t i = 0; i < ic; i++) {
-                    size_t base = i * VM_INSTR_SIZE;
-                    prog->instrs[i].op  = raw_bytes[base + 0] ^ op_key[base + 0];
-                    prog->instrs[i].rd  = raw_bytes[base + 1] ^ op_key[base + 1];
-                    prog->instrs[i].rs1  = raw_bytes[base + 2] ^ op_key[base + 2];
-                    prog->instrs[i].rs2  = raw_bytes[base + 3] ^ op_key[base + 3];
-                    uint32_t imm_val;
-                    memcpy(&imm_val, raw_bytes + base + 4, 4);
-                    // XOR imm using key bytes 12-15 (key[12..15])
-                    imm_val ^= ((uint32_t *)(op_key + 12))[0];
-                    prog->instrs[i].imm = (int32_t)imm_val;
-                }
-
-                free(raw_bytes);
-            } else {
-                // Legacy format (no XOR encoding)
-                prog->instrs = (VmInstr *)malloc(instr_bytes);
-                if (!prog->instrs) return EXIT_ERR_CRYPTO;
-                memcpy(prog->instrs, data + pos, instr_bytes);
-            }
+            // Instructions are stored as raw bytes (Python _vm_decode_fixed handles XOR decode)
+            // We just copy them directly
+            prog->instrs = (VmInstr *)malloc(instr_bytes);
+            if (!prog->instrs) return EXIT_ERR_CRYPTO;
+            memcpy(prog->instrs, data + pos, instr_bytes);
 
             pos += instr_bytes;
         }

@@ -1913,12 +1913,21 @@ def _vm_deserialize(_data):
             _off_opmap  = int.from_bytes(_decrypted[24:28], 'little')
             # _total_sz = int.from_bytes(_decrypted[28:32], 'little')
             _flags = _hdr_flags
+            # Header offsets are absolute (from start of _data). Convert to _decrypted-relative
+            # by subtracting op_key_size (32)
+            _op_key_sz = 32
+            _off_consts -= _op_key_sz
+            _off_names  -= _op_key_sz
+            _off_code   -= _op_key_sz
+            _off_opmap  -= _op_key_sz
         else:
             # Legacy: first 256 bytes = opcode_map, then 4 bytes = flags
             _off_opmap = 0
             _off_consts = 0  # computed below
             _flags = int.from_bytes(_decrypted[256:260], 'little')
-    
+    else:
+        pass
+
     _vl_flag = (_flags & 1) != 0
     _poly_flag = (_flags & 8) != 0
     _vram_flag = (_flags & 32) != 0
@@ -1989,7 +1998,7 @@ def _vm_deserialize(_data):
                 _v = _s
         else: _v = _s
         _consts.append(_v)
-    
+
     # ─── Names ───
     if _has_hdr:
         _pos = _off_names
