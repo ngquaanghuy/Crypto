@@ -328,18 +328,31 @@ TEST_CASE("vm_decode_vl_bounds_regression") {
     // Corrupt the serialized data to trigger boundary conditions
     std::vector<uint8_t> corrupt_data(ser.data, ser.data + ser.size);
 
-    // Corrupt magic bytes at offset 0 (first 4 bytes)
-    // Magic is VM_HEADER_MAGIC = 0x0001564D
+    // Corrupt at position 0 (op_key in new format, magic in legacy)
     corrupt_data[0] ^= 0xFF;
-    corrupt_data[1] ^= 0xFF;
-    corrupt_data[2] ^= 0xFF;
-    corrupt_data[3] ^= 0xFF;
 
     VmProgram prog2;
     vm_program_init(&prog2);
     ExitCode ret = vm_deserialize(corrupt_data.data(), corrupt_data.size(), &prog2);
-    // Corrupted header magic should cause failure
-    CHECK_MESSAGE(ret != EXIT_OK, "Corrupted magic bytes should fail deserialization");
+
+    // Also try corrupting magic bytes (at offset 0 in legacy, offset op_key_size in new)
+    constexpr size_t op_key_size = 32;
+    std::vector<uint8_t> corrupt_data2(ser.data, ser.data + ser.size);
+    size_t magic_offset = (ser.size > op_key_size + 4) ? op_key_size : 0;
+    if (magic_offset + 4 <= ser.size) {
+        corrupt_data2[magic_offset] ^= 0xFF;
+        corrupt_data2[magic_offset + 1] ^= 0xFF;
+        corrupt_data2[magic_offset + 2] ^= 0xFF;
+        corrupt_data2[magic_offset + 3] ^= 0xFF;
+
+        VmProgram prog3;
+        vm_program_init(&prog3);
+        ExitCode ret2 = vm_deserialize(corrupt_data2.data(), corrupt_data2.size(), &prog3);
+        // Corrupted header magic should cause failure
+        CHECK_MESSAGE(ret2 != EXIT_OK, "Corrupted magic at offset " << magic_offset << " should fail");
+        vm_program_free(&prog3);
+    }
+
     vm_program_free(&prog2);
 
     // Truncated data should also fail gracefully

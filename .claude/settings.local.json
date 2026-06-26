@@ -40,7 +40,9 @@
       "Read(//tmp/**)",
       "Bash(ctest --output-on-failure -R test_vm -j4)",
       "Bash(ctest -N)",
-      "Bash(/home/ngquanghuy/Crypto/build/test_crypto)"
+      "Bash(/home/ngquanghuy/Crypto/build/test_crypto)",
+      "Bash(sudo chown *)",
+      "Bash(chown ngquanghuy:ngquanghuy /home/ngquanghuy/Crypto/.git/objects/61)"
     ]
   }
 }

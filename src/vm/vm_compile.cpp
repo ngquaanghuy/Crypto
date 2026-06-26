@@ -345,6 +345,9 @@ ExitCode vm_compile_source_ex(const char *source, size_t source_len,
 }
 
 // ─── Serialize (with VM header, constant encryption & CFI table) ───
+// Format: [op_key: 32 bytes] [header: 32 bytes] [opmap: 256 bytes] [flags: 4 bytes]
+//         [const_key: 16 bytes if enabled] [CFI table if enabled] [consts] [names] [code]
+// The op_key is used by _vm_deserialize(_data) to XOR-decode the instruction bytes at runtime.
 ExitCode vm_serialize(const VmProgram *prog, Buffer *out) {
     if (!prog || !out) return EXIT_ERR_ARGS;
 
@@ -352,6 +355,7 @@ ExitCode vm_serialize(const VmProgram *prog, Buffer *out) {
     bool encrypt_consts = (flags & VM_SER_FLAG_CONST_ENCRYPTED) != 0;
     bool has_cfi = (flags & VM_SER_FLAG_CFI_ENABLED) != 0;
 
+    const size_t op_key_size = 32;  // 32-byte XOR key for instruction obfuscation
     const size_t hdr_sz = VM_HEADER_SIZE;
     size_t map_size = 256;
     size_t flags_dup_size = 4;  // duplicate flags after opmap for legacy fallback
@@ -381,13 +385,22 @@ ExitCode vm_serialize(const VmProgram *prog, Buffer *out) {
         code_section_size = 4 + (size_t)prog->count * VM_INSTR_SIZE;
     }
 
-    size_t total = hdr_sz + map_size + flags_dup_size + const_key_size
+    size_t total = op_key_size + hdr_sz + map_size + flags_dup_size + const_key_size
                   + cfi_table_size + consts_size + names_size + code_section_size;
     out->data = (unsigned char *)malloc(total);
     if (!out->data) return EXIT_ERR_CRYPTO;
 
-    // ─── Compute section offsets ───
-    size_t off_opmap = hdr_sz;
+    // ─── Generate and write random op_key (32 bytes) ───
+    unsigned char op_key[op_key_size];
+    if (RAND_bytes(op_key, (int)op_key_size) != 1) {
+        free(out->data);
+        out->data = nullptr;
+        return EXIT_ERR_CRYPTO;
+    }
+    memcpy(out->data, op_key, op_key_size);
+
+    // ─── Compute section offsets (shifted by op_key_size) ───
+    size_t off_opmap = op_key_size + hdr_sz;
     size_t off_flags = off_opmap + 256;
     size_t off_const_key = off_flags + 4;
     size_t off_cfi = off_const_key + const_key_size;
@@ -404,8 +417,8 @@ ExitCode vm_serialize(const VmProgram *prog, Buffer *out) {
     hdr.names_offset  = (uint32_t)off_names;
     hdr.code_offset   = (uint32_t)off_code;
     hdr.opmap_offset  = (uint32_t)off_opmap;
-    hdr.total_size    = (uint32_t)total;
-    memcpy(out->data, &hdr, hdr_sz);
+    hdr.total_size    = (uint32_t)(total - op_key_size);  // total without op_key prefix
+    memcpy(out->data + op_key_size, &hdr, hdr_sz);
 
     size_t pos = off_opmap;
 
@@ -495,27 +508,32 @@ ExitCode vm_serialize(const VmProgram *prog, Buffer *out) {
     return EXIT_OK;
 }
 
-// ─── Deserialize (with VM header, constant decryption & CFI table) ──
+// ─── Deserialize (with VM header, constant decryption & CFI table) ───
 ExitCode vm_deserialize(const unsigned char *data, size_t size,
                          VmProgram *prog) {
     vm_program_init(prog);
 
+    const size_t op_key_size = 32;  // Must match vm_serialize
+    unsigned char op_key[op_key_size] = {0};  // Zero-filled for legacy default
+    bool new_format = false;  // True if blob has op_key prefix
+    unsigned char *op_key_ptr = op_key;  // Points to where key actually is
+
     size_t pos = 0;
 
-    // ─── Detect format: check for VM header magic ───
+    // ─── Detect format: check for VM header magic at position 0 (legacy) ───
     bool has_header = false;
     size_t off_opmap, off_const_key, off_cfi, off_consts, off_names, off_code;
     size_t off_flags;
     uint32_t hdr_flags = 0;
     bool encrypt_consts = false, has_cfi = false, is_vl = false;
-    uint8_t const_key[VM_CONST_KEY_SIZE] = {0};
+    uint8_t const_key_arr[VM_CONST_KEY_SIZE] = {0};
 
     if (size >= VM_HEADER_SIZE) {
         uint32_t magic;
         memcpy(&magic, data, 4);
         if (magic == VM_HEADER_MAGIC) {
+            // Legacy format (no op_key prefix)
             has_header = true;
-            // Parse header
             VmHeader hdr;
             memcpy(&hdr, data, VM_HEADER_SIZE);
             hdr_flags = hdr.flags;
@@ -524,7 +542,36 @@ ExitCode vm_deserialize(const unsigned char *data, size_t size,
             off_consts = hdr.const_offset;
             off_names  = hdr.names_offset;
             off_code   = hdr.code_offset;
-            off_flags  = off_opmap + 256;  // flags follow opmap
+            off_flags  = off_opmap + 256;
+            off_const_key = off_flags + 4;
+
+            is_vl = (hdr_flags & (VM_SER_FLAG_VL_ENCODED | VM_SER_FLAG_POLY_ENCODING)) != 0;
+            encrypt_consts = (hdr_flags & VM_SER_FLAG_CONST_ENCRYPTED) != 0;
+            has_cfi = (hdr_flags & VM_SER_FLAG_CFI_ENABLED) != 0;
+            off_cfi = off_const_key + (encrypt_consts ? VM_CONST_KEY_SIZE : 0);
+        }
+    }
+
+    // Check for new format (op_key prefix) if not legacy
+    if (!has_header && size >= op_key_size + VM_HEADER_SIZE) {
+        uint32_t magic;
+        memcpy(&magic, data + op_key_size, 4);
+        if (magic == VM_HEADER_MAGIC) {
+            // New format with op_key prefix
+            new_format = true;
+            memcpy(op_key, data, op_key_size);  // Read op_key
+            pos = op_key_size;
+            has_header = true;
+
+            VmHeader hdr;
+            memcpy(&hdr, data + pos, VM_HEADER_SIZE);
+            hdr_flags = hdr.flags;
+            prog->flags = (int)hdr_flags;
+            off_opmap  = hdr.opmap_offset;
+            off_consts = hdr.const_offset;
+            off_names  = hdr.names_offset;
+            off_code   = hdr.code_offset;
+            off_flags  = off_opmap + 256;
             off_const_key = off_flags + 4;
 
             is_vl = (hdr_flags & (VM_SER_FLAG_VL_ENCODED | VM_SER_FLAG_POLY_ENCODING)) != 0;
@@ -535,12 +582,11 @@ ExitCode vm_deserialize(const unsigned char *data, size_t size,
     }
 
     if (!has_header) {
-        // Legacy format — sequential: opcode_map(256) + flags(4) + ...
+        // Legacy sequential format (no header magic)
         off_opmap = 0;
         off_flags = 256;
         off_const_key = off_flags + 4;
 
-        // Copy raw first 4 bytes to tentatively read flags
         if (size >= 260) {
             uint32_t fv;
             memcpy(&fv, data + 256, 4);
@@ -551,8 +597,8 @@ ExitCode vm_deserialize(const unsigned char *data, size_t size,
         encrypt_consts = (hdr_flags & VM_SER_FLAG_CONST_ENCRYPTED) != 0;
         has_cfi = (hdr_flags & VM_SER_FLAG_CFI_ENABLED) != 0;
         off_cfi = off_const_key + (encrypt_consts ? VM_CONST_KEY_SIZE : 0);
-        off_consts = off_cfi + (has_cfi ? (4 + 12) : 0);  // approximate
-        off_names = 0;  // computed below
+        off_consts = off_cfi + (has_cfi ? (4 + 12) : 0);
+        off_names = 0;
         off_code = 0;
     }
 
@@ -567,8 +613,8 @@ ExitCode vm_deserialize(const unsigned char *data, size_t size,
     // Constant encryption key (if present)
     if (encrypt_consts) {
         if (off_const_key + VM_CONST_KEY_SIZE > size) return EXIT_ERR_CRYPTO;
-        memcpy(const_key, data + off_const_key, VM_CONST_KEY_SIZE);
-        memcpy(prog->const_key, const_key, VM_CONST_KEY_SIZE);
+        memcpy(const_key_arr, data + off_const_key, VM_CONST_KEY_SIZE);
+        memcpy(prog->const_key, const_key_arr, VM_CONST_KEY_SIZE);
     }
 
     // CFI table (if present)
@@ -636,7 +682,7 @@ ExitCode vm_deserialize(const unsigned char *data, size_t size,
                 if (encrypt_consts && prog->const_types[i] == 4) {
                     for (uint32_t j = 0; j < sl; j++) {
                         prog->const_strs[i][j] = (char)(data[pos + j] ^
-                                                        const_key[j % VM_CONST_KEY_SIZE]);
+                                                        const_key_arr[j % VM_CONST_KEY_SIZE]);
                     }
                 } else {
                     memcpy(prog->const_strs[i], data + pos, sl);
@@ -701,9 +747,40 @@ ExitCode vm_deserialize(const unsigned char *data, size_t size,
         if (ic > 0) {
             size_t instr_bytes = (size_t)ic * VM_INSTR_SIZE;
             if (pos + instr_bytes > size) return EXIT_ERR_CRYPTO;
-            prog->instrs = (VmInstr *)malloc(instr_bytes);
-            if (!prog->instrs) return EXIT_ERR_CRYPTO;
-            memcpy(prog->instrs, data + pos, instr_bytes);
+
+            if (new_format) {
+                // ─── XOR-decode instruction bytes with op_key (new format) ───
+                unsigned char *raw_bytes = (unsigned char *)malloc(instr_bytes);
+                if (!raw_bytes) return EXIT_ERR_CRYPTO;
+                memcpy(raw_bytes, data + pos, instr_bytes);
+
+                prog->instrs = (VmInstr *)malloc(instr_bytes);
+                if (!prog->instrs) {
+                    free(raw_bytes);
+                    return EXIT_ERR_CRYPTO;
+                }
+
+                for (uint32_t i = 0; i < ic; i++) {
+                    size_t base = i * VM_INSTR_SIZE;
+                    prog->instrs[i].op  = raw_bytes[base + 0] ^ op_key[base + 0];
+                    prog->instrs[i].rd  = raw_bytes[base + 1] ^ op_key[base + 1];
+                    prog->instrs[i].rs1  = raw_bytes[base + 2] ^ op_key[base + 2];
+                    prog->instrs[i].rs2  = raw_bytes[base + 3] ^ op_key[base + 3];
+                    uint32_t imm_val;
+                    memcpy(&imm_val, raw_bytes + base + 4, 4);
+                    // XOR imm using key bytes 12-15 (key[12..15])
+                    imm_val ^= ((uint32_t *)(op_key + 12))[0];
+                    prog->instrs[i].imm = (int32_t)imm_val;
+                }
+
+                free(raw_bytes);
+            } else {
+                // Legacy format (no XOR encoding)
+                prog->instrs = (VmInstr *)malloc(instr_bytes);
+                if (!prog->instrs) return EXIT_ERR_CRYPTO;
+                memcpy(prog->instrs, data + pos, instr_bytes);
+            }
+
             pos += instr_bytes;
         }
     }
