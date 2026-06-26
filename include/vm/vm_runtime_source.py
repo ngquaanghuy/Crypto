@@ -853,16 +853,16 @@ def _vm_run(_code, _consts, _names, _globals, _locals, _map, _op_key, _vl_flag, 
                 _reg = _rr(_rd, _b)
                 if _reg < 64:
                     # Push register number BEFORE value for paired restore.
-                    # RESTORE_MANY will pop value first, then register number.
+                    # RESTORE_MANY will pop register first, then value (reverse order).
                     _spill_stack.append(_reg)
                     _spill_stack.append(_r_get(_reg))
                     _r_set(_reg, None)
     def _h_restore_many():
         _cnt = _imm & 0xFF
         for _ in range(min(_cnt, len(_spill_stack) // 2)):
-            # Pop paired (value, reg) in reverse order
-            _val = _spill_stack.pop()
+            # Pop in reverse of spill order: SPILL_MANY pushed (reg, val) pairs
             _reg = _spill_stack.pop()
+            _val = _spill_stack.pop()
             _r_set(_reg, _val)
 
     # SMC (130-133) — complex, keep _r_get/_r_set
