@@ -44,6 +44,8 @@ set(CRYPTO_SOURCES
     src/cli/protect.cpp
     src/utils/file_util.cpp
     src/utils/compress.cpp
+    src/utils/compress_stdlib.cpp
+    src/utils/compress_thirdparty.cpp
     src/encode/encoder.cpp
     src/encode/base64.cpp
     src/encode/base32.cpp
@@ -51,18 +53,25 @@ set(CRYPTO_SOURCES
     src/encode/ascii85.cpp
     src/encode/hexcode.cpp
     src/encode/xorcode.cpp
+    src/encode/xor_basic.cpp
+    src/encode/xor_protect.cpp
+    src/encode/xor_prng.cpp
     src/crypto/cipher.cpp
     src/crypto/aes.cpp
     src/crypto/chacha20.cpp
     src/crypto/chacha20_poly1305.cpp
     src/crypto/xchacha20_poly1305.cpp
     src/vm/vm_compile.cpp
+    src/vm/vm_program.cpp
+    src/vm/vm_serialize.cpp
     src/vm/vm_stub.cpp
     src/vm/isa_expand.cpp
     src/vm/obfcond.cpp
     src/vm/spill.cpp
     src/vm/smc.cpp
     src/vm/vlencode.cpp
+    src/vm/vlencode_deterministic.cpp
+    src/vm/vlencode_polymorphic.cpp
     src/vm/cfi.cpp
     src/vm/code_schedule.cpp
     src/obfuscate/anti_debug.cpp
@@ -126,24 +135,33 @@ if(CRYPTO_BUILD_TESTS)
         tests/test_vm_runtime_obfuscation.cpp
     src/utils/file_util.cpp
     src/utils/compress.cpp
+    src/utils/compress_stdlib.cpp
+    src/utils/compress_thirdparty.cpp
         src/encode/base64.cpp
         src/encode/base32.cpp
         src/encode/base85.cpp
         src/encode/ascii85.cpp
         src/encode/hexcode.cpp
         src/encode/xorcode.cpp
+        src/encode/xor_basic.cpp
+        src/encode/xor_protect.cpp
+        src/encode/xor_prng.cpp
         src/crypto/aes.cpp
         src/crypto/cipher.cpp
         src/crypto/chacha20.cpp
         src/crypto/chacha20_poly1305.cpp
         src/crypto/xchacha20_poly1305.cpp
         src/vm/vm_compile.cpp
+        src/vm/vm_program.cpp
+        src/vm/vm_serialize.cpp
         src/vm/vm_stub.cpp
         src/vm/isa_expand.cpp
         src/vm/obfcond.cpp
         src/vm/spill.cpp
         src/vm/smc.cpp
         src/vm/vlencode.cpp
+        src/vm/vlencode_deterministic.cpp
+        src/vm/vlencode_polymorphic.cpp
         src/vm/cfi.cpp
         src/vm/code_schedule.cpp
         src/obfuscate/anti_debug.cpp
