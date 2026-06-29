@@ -77,9 +77,13 @@ set(CRYPTO_SOURCES
     src/obfuscate/anti_debug.cpp
     src/obfuscate/rename.cpp
     src/obfuscate/flow_flatten.cpp
+    src/obfuscate/flow_flatten_opaque.cpp
     src/obfuscate/flow_flatten_adv.cpp
-    src/obfuscate/junk.cpp
+    src/obfuscate/flow_flatten_adv_plan.cpp
+    src/obfuscate/junk_basic.cpp
+    src/obfuscate/junk_advanced.cpp
     src/obfuscate/xor_gen.cpp
+    src/obfuscate/xor_gen_crypto.cpp
     src/obfuscate/obfuscate.cpp
     ${LZ4_SOURCES}
     ${SNAPPY_SOURCES}
@@ -167,9 +171,13 @@ if(CRYPTO_BUILD_TESTS)
         src/obfuscate/anti_debug.cpp
         src/obfuscate/rename.cpp
         src/obfuscate/flow_flatten.cpp
+        src/obfuscate/flow_flatten_opaque.cpp
         src/obfuscate/flow_flatten_adv.cpp
-        src/obfuscate/junk.cpp
+        src/obfuscate/flow_flatten_adv_plan.cpp
+        src/obfuscate/junk_basic.cpp
+        src/obfuscate/junk_advanced.cpp
         src/obfuscate/xor_gen.cpp
+        src/obfuscate/xor_gen_crypto.cpp
         src/obfuscate/obfuscate.cpp
         ${LZ4_SOURCES}
         ${SNAPPY_SOURCES}
