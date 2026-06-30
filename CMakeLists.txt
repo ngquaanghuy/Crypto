@@ -41,7 +41,13 @@ set_source_files_properties(
 set(CRYPTO_SOURCES
     src/main.cpp
     src/cli/cli.cpp
+    src/cli/cli_help.cpp
+    src/cli/cli_parse.cpp
     src/cli/protect.cpp
+    src/cli/protect_utils.cpp
+    src/cli/protect_stub.cpp
+    src/cli/protect_keyobf.cpp
+    src/cli/protect_pyrunner.cpp
     src/utils/file_util.cpp
     src/utils/compress.cpp
     src/utils/compress_stdlib.cpp
@@ -74,7 +80,10 @@ set(CRYPTO_SOURCES
     src/vm/vlencode_polymorphic.cpp
     src/vm/cfi.cpp
     src/vm/code_schedule.cpp
-    src/obfuscate/anti_debug.cpp
+        src/obfuscate/anti_debug_common.cpp
+        src/obfuscate/anti_debug_basic.cpp
+        src/obfuscate/anti_debug_hooks.cpp
+        src/obfuscate/anti_debug_codegen.cpp
     src/obfuscate/rename.cpp
     src/obfuscate/flow_flatten.cpp
     src/obfuscate/flow_flatten_opaque.cpp
@@ -141,6 +150,11 @@ if(CRYPTO_BUILD_TESTS)
     src/utils/compress.cpp
     src/utils/compress_stdlib.cpp
     src/utils/compress_thirdparty.cpp
+    src/cli/protect.cpp
+    src/cli/protect_utils.cpp
+    src/cli/protect_stub.cpp
+    src/cli/protect_keyobf.cpp
+    src/cli/protect_pyrunner.cpp
         src/encode/base64.cpp
         src/encode/base32.cpp
         src/encode/base85.cpp
@@ -168,7 +182,10 @@ if(CRYPTO_BUILD_TESTS)
         src/vm/vlencode_polymorphic.cpp
         src/vm/cfi.cpp
         src/vm/code_schedule.cpp
-        src/obfuscate/anti_debug.cpp
+    src/obfuscate/anti_debug_common.cpp
+    src/obfuscate/anti_debug_basic.cpp
+    src/obfuscate/anti_debug_hooks.cpp
+    src/obfuscate/anti_debug_codegen.cpp
         src/obfuscate/rename.cpp
         src/obfuscate/flow_flatten.cpp
         src/obfuscate/flow_flatten_opaque.cpp
