@@ -43,7 +43,8 @@
       "Bash(/home/ngquanghuy/Crypto/build/test_crypto)",
       "Bash(sudo chown *)",
       "Bash(chown ngquanghuy:ngquanghuy /home/ngquanghuy/Crypto/.git/objects/61)",
-      "Bash(./tools/generate_vm_interp_h.py *)"
+      "Bash(./tools/generate_vm_interp_h.py *)",
+      "WebSearch"
     ]
   }
 }

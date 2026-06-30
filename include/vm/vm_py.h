@@ -4,6 +4,23 @@
 static const char VM_COMPILE_SCRIPT[] = R"vm_compile(
 import sys, dis, struct, types, random
 
+# Map Python 3.14 BINARY_OP arg to VM opcode
+# Python 3.14 uses these arg values for BINARY_OP:
+# 0:+, 1:&, 2://, 3:<<, 5:*, 6:%, 7:|, 8:**, 9:>>, 10:-, 11:/, 12:^
+PY_BINOP_TO_VM = {
+    0: 10,   # + -> VM_ADD
+    1: 17,   # & -> VM_BIT_AND
+    2: 35,   # // -> VM_FLOOR_DIV
+    3: 19,   # << -> VM_LSHIFT
+    5: 12,   # * -> VM_MUL
+    6: 36,   # % -> VM_MOD
+    7: 16,   # | -> VM_BIT_OR
+    8: 14,   # ** -> VM_POW
+    9: 34,   # >> -> VM_RSHIFT
+    10: 11,  # - -> VM_SUB
+    11: 13,  # / -> VM_DIV
+    12: 18,  # ^ -> VM_BIT_XOR
+}
 BINOP_MAP = {'+':10, '-':11, '*':12, '/':13, '**':14, '|':16, '&':17, '^':18, '<<':19, '>>':34, '//':35, '%':36}
 CMPOP_MAP = {'==':20, '!=':21, '<':22, '<=':23, '>':24, '>=':25}
 
@@ -474,7 +491,8 @@ def convert(source, opaque=0):
                 reg_stack.append(rd)
                 vm_code.extend(struct.pack('<BBBBi', 33, rd, rs1, rs2, 0))
             else:
-                opcode = BINOP_MAP.get(instr.argrepr, 10)
+                # Use Python arg (not argrepr) for BINARY_OP to handle Python 3.14 changes
+                opcode = PY_BINOP_TO_VM.get(instr.arg, 10)
                 if len(reg_stack) >= 2:
                     rs2 = reg_stack.pop()
                     rs1 = reg_stack.pop()
