@@ -238,6 +238,10 @@ ExitCode vm_compile_source_ex(const char *source, size_t source_len,
     }
 
     // Step 8: Apply opcode shuffle BEFORE encoding
+    // Seed rand() to ensure deterministic opcode shuffle
+    if (cfg->seed >= 0) {
+        srand((unsigned)cfg->seed);
+    }
     ret = apply_opcode_shuffle(prog);
     if (ret != EXIT_OK) return ret;
 
